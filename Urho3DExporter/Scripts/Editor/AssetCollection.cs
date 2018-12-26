@@ -38,7 +38,8 @@ namespace Urho3DExporter
         public void AddMeshPath(Mesh mesh, string fileName)
         {
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).Replace('\\','/');
+                fileName = fileName.Substring(_urhoDataPath.Length);
+            fileName = fileName.Replace('\\', '/');
             TryAdd(_meshPaths, mesh, mesh.name, fileName);
         }
 

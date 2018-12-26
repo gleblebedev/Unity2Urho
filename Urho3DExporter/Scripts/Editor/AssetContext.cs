@@ -8,11 +8,19 @@ namespace Urho3DExporter
 {
     public class AssetContext
     {
-        public string UrhoFileName { get; private set; }
+        public string UrhoFileName
+        {
+            get { return _urhoFileName; }
+            private set { _urhoFileName = value.Replace('/', '\\'); }
+        }
 
         public string UrhoAssetName { get; private set; }
 
-        public string FullPath { get; private set; }
+        public string FullPath
+        {
+            get { return _fullPath; }
+            private set { _fullPath = value.Replace('/', '\\'); }
+        }
 
         public string RelPath { get; private set; }
 
@@ -22,8 +30,12 @@ namespace Urho3DExporter
 
         public string Guid { get; private set; }
 
-        public string ContentFolder { get; private set; }
-        
+        public string ContentFolder
+        {
+            get { return _contentFolder; }
+            private set { _contentFolder = value.Replace('/','\\'); }
+        }
+
         public bool Is3DAsset { get; private set; }
 
         private static readonly HashSet<string> _supported3DFormats = new HashSet<string>()
@@ -38,6 +50,10 @@ namespace Urho3DExporter
             ".mb",
             ".blend",
         };
+
+        private string _contentFolder;
+        private string _urhoFileName;
+        private string _fullPath;
 
         public static AssetContext Create(string guid, string urhoDataFolder)
         {
