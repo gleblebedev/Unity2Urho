@@ -351,13 +351,18 @@ namespace Urho3DExporter
             {
                 using (var binaryWriter = new BinaryWriter(imageFile))
                 {
-                    WriteTgaHeader(binaryWriter, 8, w, h);
+                    WriteTgaHeader(binaryWriter, 32, w, h);
                     for (int y = h - 1; y >= 0; --y)
                     {
                         for (int x = 0; x < w; ++x)
                         {
                             var height = (heights[h-y-1, x] - min) / (max - min) * 255.0f;
-                            binaryWriter.Write((byte) height);
+                            var msb = (byte)height;
+                            var lsb = (byte) ((height - msb) * 255.0f);
+                            binaryWriter.Write((byte)0);//B - none
+                            binaryWriter.Write((byte)lsb); //G - LSB
+                            binaryWriter.Write((byte)msb); //R - MSB
+                            binaryWriter.Write((byte)255);//A - none
                         }
                     }
                 }
