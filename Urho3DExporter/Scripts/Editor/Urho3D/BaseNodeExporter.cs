@@ -13,7 +13,7 @@ using UnityEngine.Rendering;
 
 namespace Urho3DExporter
 {
-    public class BaseNodeExporter: XmlExporter
+    public class BaseNodeExporter
     {
         private readonly AssetCollection _assets;
 
@@ -324,8 +324,6 @@ namespace Urho3DExporter
 
         private static (float min, float max, Vector2 size) WriteHeightMap(AssetContext asset, string heightmapFileName, Terrain terrain)
         {
-            var heightmapFilePath = Path.Combine(asset.UrhoDataFolder, heightmapFileName);
-            Directory.CreateDirectory(Path.GetDirectoryName(heightmapFilePath));
             var w = terrain.terrainData.heightmapResolution;
             var h = terrain.terrainData.heightmapResolution;
             var max = float.MinValue;
@@ -347,22 +345,25 @@ namespace Urho3DExporter
                 max = min + 0.1f;
             }
 
-            using (var imageFile = File.Open(heightmapFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName))
             {
-                using (var binaryWriter = new BinaryWriter(imageFile))
+                if (imageFile != null)
                 {
-                    WriteTgaHeader(binaryWriter, 32, w, h);
-                    for (int y = h - 1; y >= 0; --y)
+                    using (var binaryWriter = new BinaryWriter(imageFile))
                     {
-                        for (int x = 0; x < w; ++x)
+                        WriteTgaHeader(binaryWriter, 32, w, h);
+                        for (int y = h - 1; y >= 0; --y)
                         {
-                            var height = (heights[h-y-1, x] - min) / (max - min) * 255.0f;
-                            var msb = (byte)height;
-                            var lsb = (byte) ((height - msb) * 255.0f);
-                            binaryWriter.Write((byte)0);//B - none
-                            binaryWriter.Write((byte)lsb); //G - LSB
-                            binaryWriter.Write((byte)msb); //R - MSB
-                            binaryWriter.Write((byte)255);//A - none
+                            for (int x = 0; x < w; ++x)
+                            {
+                                var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
+                                var msb = (byte) height;
+                                var lsb = (byte) ((height - msb) * 255.0f);
+                                binaryWriter.Write((byte) 0); //B - none
+                                binaryWriter.Write((byte) lsb); //G - LSB
+                                binaryWriter.Write((byte) msb); //R - MSB
+                                binaryWriter.Write((byte) 255); //A - none
+                            }
                         }
                     }
                 }
@@ -373,20 +374,17 @@ namespace Urho3DExporter
 
         private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath, string weightsTextureName)
         {
-            var materialFilePath = Path.Combine(asset.UrhoDataFolder, materialPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(materialFilePath));
-
-            var layers = terrain.terrainData.terrainLayers;
-            if (layers.Length > 3)
+            using (XmlTextWriter writer = asset.DestinationFolder.CreateXml(materialPath))
             {
-                layers = layers.Take(3).ToArray();
-            }
+                if (writer == null)
+                    return;
 
-            //if (File.Exists(asset.UrhoFileName))
-            //    return;
+                var layers = terrain.terrainData.terrainLayers;
+                if (layers.Length > 3)
+                {
+                    layers = layers.Take(3).ToArray();
+                }
 
-            using (XmlTextWriter writer = new XmlTextWriter(materialFilePath, new UTF8Encoding(false)))
-            {
                 writer.WriteStartDocument();
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
@@ -443,9 +441,6 @@ namespace Urho3DExporter
 
         private void WriteTerrainWeightsTexture(AssetContext asset, string weightsTextureName, Terrain terrain)
         {
-            var weightsFilePath = Path.Combine(asset.UrhoDataFolder, weightsTextureName);
-            Directory.CreateDirectory(Path.GetDirectoryName(weightsFilePath));
-            
             var layers = terrain.terrainData.terrainLayers;
             var w = terrain.terrainData.alphamapWidth;
             var h = terrain.terrainData.alphamapHeight;
@@ -455,8 +450,10 @@ namespace Urho3DExporter
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
 
-            using (var imageFile = File.Open(weightsFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (var imageFile = asset.DestinationFolder.Create(weightsTextureName))
             {
+                if (imageFile == null)
+                    return;
                 using (var binaryWriter = new BinaryWriter(imageFile))
                 {
                     var weights = new byte[4];

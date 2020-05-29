@@ -10,14 +10,12 @@ namespace Urho3DExporter
 {
     public class AssetCollection : IEnumerable<AssetContext>
     {
-        private readonly string _urhoDataPath;
+        private readonly DestinationFolder _urhoDataPath;
         private readonly List<AssetContext> _assets;
 
-        public AssetCollection(string urhoDataPath, IEnumerable<AssetContext> assets)
+        public AssetCollection(DestinationFolder urhoDataPath, IEnumerable<AssetContext> assets)
         {
-            _urhoDataPath = urhoDataPath.FixDirectorySeparator();
-            if (!_urhoDataPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
-                _urhoDataPath += Path.DirectorySeparatorChar;
+            _urhoDataPath = urhoDataPath;
             _assets = assets.ToList();
             foreach (var assetContext in assets.Where(_=>_.Type == typeof(Material)))
             {
@@ -38,8 +36,6 @@ namespace Urho3DExporter
 
         public void AddMeshPath(Mesh mesh, string fileName)
         {
-            if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length);
             fileName = fileName.FixAssetSeparator();
             TryAdd(_meshPaths, mesh, mesh.name, fileName);
         }
@@ -71,9 +67,7 @@ namespace Urho3DExporter
 
         public void AddMaterialPath(Material material, string fileName)
         {
-
-            if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).FixAssetSeparator();
+            fileName = fileName.FixAssetSeparator();
             TryAdd(_materialPaths, material, material.name, fileName);
         }
 
@@ -93,9 +87,7 @@ namespace Urho3DExporter
 
         public void AddTexturePath(Texture material, string fileName)
         {
-
-            if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).FixAssetSeparator();
+            fileName = fileName.FixAssetSeparator();
             TryAdd(_texturePaths, material, material.name, fileName);
         }
 

@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 
 namespace Urho3DExporter
 {
-    public class MaterialExporter : XmlExporter, IExporter
+    public class MaterialExporter : IExporter
     {
         private readonly AssetCollection _assets;
 
@@ -124,6 +124,10 @@ namespace Urho3DExporter
         }
         private void ExportStandardMaterial(Material material, XmlWriter writer)
         {
+            if (material.name.IndexOf("BottleTall_mtl") >= 0)
+            {
+
+            }
             {
                 var matEmissionEnabled = material.IsKeywordEnabled("_EMISSION");
                 var matDiffColor = Color.white;
@@ -146,14 +150,17 @@ namespace Urho3DExporter
                                 case "_Diffuse":
                                 case "_Texture":
                                 case "_MainTex":
+                                case "_MainTexture":
                                     flags.hasDiffuse = WriteTexture(texture, writer, "diffuse");
                                     break;
                                 case "_SpecGlossMap":
+                                case "_SpecularRGBGlossA":
                                     flags.hasSpecular = WriteTexture(texture, writer, "specular");
                                     break;
                                 case "_ParallaxMap":
                                     break;
                                 case "_Normal":
+                                case "_NormalMapRefraction":
                                 case "_BumpMap":
                                     flags.hasNormal = WriteTexture(texture, writer, "normal");
                                     break;
@@ -254,13 +261,13 @@ namespace Urho3DExporter
                     //    Debug.LogWarning(propertyName+" of unsupported type "+propertyType);
                     //}
                 }
-                if (!flags.hasDiffuse)
+                //if (!flags.hasDiffuse)
                     WriteParameter(writer, "\t", "MatDiffColor", BaseNodeExporter.Format(matDiffColor));
                 if (!flags.hasSpecular)
                     WriteParameter(writer, "\t", "MatSpecColor", BaseNodeExporter.Format(matSpecColor));
                 if (matEmissionEnabled)
                     WriteParameter(writer, "\t", "MatEmissiveColor", BaseNodeExporter.Format(matEmissiveColor));
-                if (!flags.hasAlpha)
+                if (material.renderQueue == (int)RenderQueue.AlphaTest)
                 {
                     writer.WriteWhitespace("\t");
                     writer.WriteStartElement("shader");
@@ -326,11 +333,10 @@ namespace Urho3DExporter
             var material = AssetDatabase.LoadAssetAtPath<Material>(asset.AssetPath);
             _assets.AddMaterialPath(material, asset.UrhoAssetName);
 
-            if (File.Exists(asset.UrhoFileName))
-                return;
-
-            using (XmlTextWriter writer = CreateXmlFile(asset))
+            using (XmlTextWriter writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName))
             {
+                if (writer == null)
+                    return;
                 writer.WriteStartDocument();
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);

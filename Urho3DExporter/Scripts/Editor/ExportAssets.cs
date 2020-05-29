@@ -40,25 +40,25 @@ namespace Urho3DExporter
 
         static string _prevFolder = "";
 
-        [MenuItem("CONTEXT/Terrain/Export Terrain To Urho3D")]
-        static void ExportTerrain(MenuCommand command)
-        {
-            if (!ResolveDataPath(out var urhoDataPath)) return;
-        }
+        //[MenuItem("CONTEXT/Terrain/Export Terrain To Urho3D")]
+        //static void ExportTerrain(MenuCommand command)
+        //{
+        //    if (!ResolveDataPath(out var urhoDataPath)) return;
+        //}
 
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
         private static void ExportToUrho()
         {
-            if (!ResolveDataPath(out var urhoDataPath)) return;
+            var urhoDataPath = ResolveDataPath();
+            if (urhoDataPath == null) return;
 
-            if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).FixAssetSeparator(), StringComparison.InvariantCultureIgnoreCase))
+            if (urhoDataPath.ToString().StartsWith(Path.GetDirectoryName(Application.dataPath).FixDirectorySeparator(), StringComparison.InvariantCultureIgnoreCase))
             {
-                EditorUtility.DisplayDialog("Error",
-                    "Selected path is inside Unity folder. Please select a different folder.", "Ok");
+                EditorUtility.DisplayDialog("Error", "Selected path is inside Unity folder. Please select a different folder.", "Ok");
                 return;
             }
 
-            _prevFolder = urhoDataPath;
+            _prevFolder = urhoDataPath.ToString();
 
             AssetCollection assets;
             if (Selection.assetGUIDs.Length == 0)
@@ -75,9 +75,6 @@ namespace Urho3DExporter
                 assets = new AssetCollection(urhoDataPath, selectedAssets.Select(_ => AssetContext.Create(_, urhoDataPath)).Where(_ => _.Type != null));
             }
             _id = 0;
-            //string urhoDataPath = @"C:\Temp\Data\";
-
-            //foreach (var type in assets.Select(_ => _.Type).Distinct()) Debug.Log(type.FullName);
 
             List<AssetContext> other  = Split(assets, _ => _.Is3DAsset, _=> Process3DAsset(assets, _));
             other = Split(other, _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D) || _.Type == typeof(Cubemap), _ => new TextureExporter(assets).ExportAsset(_));
@@ -93,45 +90,17 @@ namespace Urho3DExporter
             {
                 ProcessAsset(assets, assetContext);
             }
-            //foreach (var s in guids2)
-            //{
-            //    var path = AssetDatabase.GUIDToAssetPath(s);
-            //    if (path.StartsWith(assetsPrefix))
-            //    {
-            //        path = path.Substring(assetsPrefix.Length);
-            //    }
-
-            //    if (path.StartsWith("PolygonSciFiCity"))
-            //    {
-            //        if (path.EndsWith(".prefab", true, CultureInfo.InvariantCulture))
-            //        {
-            //            ExportPrefab(s, path, @"C:\Temp\Data\");
-            //        }
-
-            //        if (path.EndsWith(".fbx", true, CultureInfo.InvariantCulture))
-            //        {
-            //            ExportModel(s, path, @"C:\Temp\Data\");
-            //        }
-
-            //        if (path.EndsWith(".mat", true, CultureInfo.InvariantCulture))
-            //        {
-            //            ExportMaterial(s, path, @"C:\Temp\Data\");
-            //        }
-
-            //        if (path.EndsWith(".png", true, CultureInfo.InvariantCulture) ||
-            //            path.EndsWith(".dds", true, CultureInfo.InvariantCulture) ||
-            //            path.EndsWith(".tga", true, CultureInfo.InvariantCulture))
-            //        {
-            //            CopyFileIfNew(s, path, @"C:\Temp\Data\");
-            //        }
-            //    }
-            //}
         }
 
-        private static bool ResolveDataPath(out string urhoDataPath)
+        private static DestinationFolder ResolveDataPath()
         {
-            urhoDataPath = EditorUtility.SaveFolderPanel("Save assets to Data folder", _prevFolder, "");
-            return !string.IsNullOrEmpty(urhoDataPath);
+            var urhoDataPath = EditorUtility.SaveFolderPanel("Save assets to Data folder", _prevFolder, "");
+            if (!string.IsNullOrEmpty(urhoDataPath))
+            {
+                return new DestinationFolder(urhoDataPath);
+            }
+
+            return null;
         }
 
         private static void AddSelection(string assetGuiD, HashSet<string> guids)
@@ -160,9 +129,6 @@ namespace Urho3DExporter
 
         private static void ProcessAsset(AssetCollection assets, AssetContext assetContext)
         {
-            if (File.Exists(assetContext.UrhoFileName))
-                return;
-            Directory.CreateDirectory(Path.GetDirectoryName(assetContext.UrhoFileName));
             if (assetContext.Type == typeof(GameObject))
             {
                 new PrefabExporter(assets).ExportAsset(assetContext);
@@ -175,26 +141,9 @@ namespace Urho3DExporter
 
         private static void Process3DAsset(AssetCollection assets, AssetContext assetContext)
         {
-            Directory.CreateDirectory(assetContext.ContentFolder);
-
             new MeshExporter(assets).ExportAsset(assetContext);
-
-            if (File.Exists(assetContext.UrhoFileName))
-                return;
 
             new PrefabExporter(assets).ExportAsset(assetContext);
         }
-
-
-
-        public static FileStream CreateFile(string path, string dataFolder, string extension)
-        {
-            var fileName = Path.Combine(Path.Combine(dataFolder, Path.GetDirectoryName(path)), Path.GetFileNameWithoutExtension(path) + extension);
-            Directory.CreateDirectory(Path.GetDirectoryName(fileName));
-            var xmlFile = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read);
-            return xmlFile;
-        }
-
-      
     }
 }

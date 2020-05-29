@@ -15,8 +15,15 @@ namespace Urho3DExporter
         public void ExportAsset(AssetContext asset, Scene scene)
         {
             var exlusion = new HashSet<Renderer>();
-            using (XmlTextWriter writer = CreateXmlFile(asset))
+            var sceneAssetName = asset.UrhoAssetName;
             {
+                //Fix scene path
+                sceneAssetName = "Scenes/" + sceneAssetName.Replace('/','_');
+            }
+            using (XmlTextWriter writer = asset.DestinationFolder.CreateXml(sceneAssetName))
+            {
+                if (writer == null)
+                    return;
                 using (var sceneElement = Element.Start(writer, "scene"))
                 {
                     WriteAttribute(writer, "\t", "Name", scene.name);
@@ -36,8 +43,10 @@ namespace Urho3DExporter
             var go = AssetDatabase.LoadAssetAtPath<SceneAsset>(asset.AssetPath);
 
             var exclusionSet = new HashSet<Renderer>();
-            using (XmlTextWriter writer = CreateXmlFile(asset))
+            using (XmlTextWriter writer = asset.CreateXml())
             {
+                if (writer == null)
+                    return;
                 using (var scene = Element.Start(writer, "scene"))
                 {
                 }

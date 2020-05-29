@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Xml;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,12 +9,6 @@ namespace Urho3DExporter
 {
     public class AssetContext
     {
-        public string UrhoFileName
-        {
-            get { return _urhoFileName; }
-            private set { _urhoFileName = value.FixDirectorySeparator(); }
-        }
-
         public string UrhoAssetName { get; private set; }
 
         public string FullPath
@@ -30,10 +25,10 @@ namespace Urho3DExporter
 
         public string Guid { get; private set; }
 
-        public string ContentFolder
+        public string ContentFolderName
         {
-            get { return _contentFolder; }
-            private set { _contentFolder = value.FixDirectorySeparator(); }
+            get { return _contentFolderName; }
+            private set { _contentFolderName = value.FixDirectorySeparator(); }
         }
 
         public bool Is3DAsset { get; private set; }
@@ -51,11 +46,11 @@ namespace Urho3DExporter
             ".blend",
         };
 
-        private string _contentFolder;
+        private string _contentFolderName;
         private string _urhoFileName;
         private string _fullPath;
 
-        public static AssetContext Create(string guid, string urhoDataFolder)
+        public static AssetContext Create(string guid, DestinationFolder urhoDataFolder)
         {
             var res = new AssetContext
             {
@@ -79,18 +74,25 @@ namespace Urho3DExporter
                     res.Is3DAsset = _supported3DFormats.Contains(res.FileExtension);
                 }
                 else if (res.Type == typeof(SceneAsset)) res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
-                res.UrhoFileName = System.IO.Path.Combine(urhoDataFolder, res.UrhoAssetName);
-                res.UrhoDataFolder = urhoDataFolder;
-                if (res.Is3DAsset)
+                res.DestinationFolder = urhoDataFolder;
                 {
-                    res.ContentFolder = res.UrhoFileName.Substring(0, res.UrhoFileName.Length - ".xml".Length);
+                    var dotIndex = res.UrhoAssetName.LastIndexOf('.');
+                    var lastSlash = res.UrhoAssetName.LastIndexOf('/');
+                    if (dotIndex > lastSlash)
+                    {
+                        res.ContentFolderName = res.UrhoAssetName.Substring(0, dotIndex);
+                    }
+                    else
+                    {
+                        res.ContentFolderName = res.UrhoAssetName + ".Content";
+                    }
                 }
             }
 
             return res;
         }
 
-        public string UrhoDataFolder { get; set; }
+        public DestinationFolder DestinationFolder { get; set; }
 
         public string FileExtension { get; private set; }
 
@@ -99,5 +101,15 @@ namespace Urho3DExporter
             var ext = System.IO.Path.GetExtension(resUrhoAssetName);
             return resUrhoAssetName.Substring(0, resUrhoAssetName.Length - ext.Length) + newExt;
         }
+
+        public XmlTextWriter CreateXml()
+        {
+            return DestinationFolder.CreateXml(UrhoAssetName);
+        }
+        public FileStream Create()
+        {
+            return DestinationFolder.Create(UrhoAssetName);
+        }
+
     }
 }

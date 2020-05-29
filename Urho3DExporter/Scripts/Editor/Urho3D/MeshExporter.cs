@@ -129,7 +129,7 @@ namespace Urho3DExporter
 
             foreach (var ac in allAssets.Select(_ => _ as AnimationClip).Where(_ => _ != null))
             {
-                if (ac.name != null && ac.name.StartsWith("__preview__"))
+                if (ac.name != null && ac.name.StartsWith("__preview__", StringComparison.InvariantCultureIgnoreCase))
                     continue;
                 ExportAnimation(asset, ac);
             }
@@ -153,53 +153,50 @@ namespace Urho3DExporter
         {
             var name = GetSafeFileName(clipAnimation.name);
 
-            var fileName = Path.Combine(asset.ContentFolder, name + ".ani");
-
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
-            if (!File.Exists(fileName))
+            using (var file = asset.DestinationFolder.Create(Path.Combine(asset.ContentFolderName, name + ".ani")))
             {
-                using (var file = Urho3DExporter.ExportAssets.CreateFile(fileName))
+                if (file == null)
+                    return;
+                using (var writer = new BinaryWriter(file))
                 {
-                    using (var writer = new BinaryWriter(file))
-                    {
-                        writer.Write(new byte[]{0x55,0x41,0x4e,0x49});
-                        WriteStringSZ(writer, clipAnimation.name);
-                        writer.Write(clipAnimation.length);
+                    writer.Write(new byte[]{0x55,0x41,0x4e,0x49});
+                    WriteStringSZ(writer, clipAnimation.name);
+                    writer.Write(clipAnimation.length);
 
-                        if (clipAnimation.legacy)
+                    if (clipAnimation.legacy)
+                    {
+                        WriteTracksAsIs(clipAnimation, writer);
+                    }
+                    else
+                    {
+                        var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
+                        var rootBones =
+                            new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+                        if (rootBones.Count != 1)
                         {
+                            Debug.LogWarning(asset.AssetPath + ": Multiple root bones found (" +
+                                             string.Join(", ", rootBones.ToArray()) +
+                                             "), falling back to curve export");
                             WriteTracksAsIs(clipAnimation, writer);
                         }
                         else
                         {
-                            var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-                            var rootBones =
-                                new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
-                            if (rootBones.Count != 1)
+                            var rootBoneName = rootBones.First();
+                            var rootGOs = _skeletons
+                                .Select(_ =>
+                                    (_.name == rootBoneName) ? _.transform : _.transform.Find(rootBoneName))
+                                .Where(_ => _ != null).ToList();
+                            if (rootGOs.Count == 1)
                             {
-                                Debug.LogWarning(asset.AssetPath + ": Multiple root bones found (" +
-                                                 string.Join(", ", rootBones.ToArray()) +
-                                                 "), falling back to curve export");
-                                WriteTracksAsIs(clipAnimation, writer);
+                                WriteSkelAnimation(clipAnimation, rootGOs.First().gameObject, writer);
                             }
                             else
                             {
-                                var rootBoneName = rootBones.First();
-                                var rootGOs = _skeletons
-                                    .Select(_ =>
-                                        (_.name == rootBoneName) ? _.transform : _.transform.Find(rootBoneName))
-                                    .Where(_ => _ != null).ToList();
-                                if (rootGOs.Count == 1)
-                                {
-                                    WriteSkelAnimation(clipAnimation, rootGOs.First().gameObject, writer);
-                                }
-                                else
-                                {
-                                    Debug.LogWarning(asset.AssetPath +
-                                                     ": Multiple game objects found that match root bone name, falling back to curve export");
-                                    WriteTracksAsIs(clipAnimation, writer);
-                                }
+                                Debug.LogWarning(asset.AssetPath +
+                                                 ": Multiple game objects found that match root bone name, falling back to curve export");
+                                WriteTracksAsIs(clipAnimation, writer);
                             }
                         }
                     }
@@ -511,13 +508,13 @@ namespace Urho3DExporter
             {
                 var name = GetSafeFileName(mesh.name);
 
-                var fileName = Path.Combine(asset.ContentFolder, name + ".mdl");
+                var contentName = Path.Combine(asset.ContentFolderName, name + ".mdl").FixAssetSeparator();
 
-                _assetCollection.AddMeshPath(mesh, fileName);
+                _assetCollection.AddMeshPath(mesh, contentName);
 
-                if (!File.Exists(fileName))
+                using (var file = asset.DestinationFolder.Create(contentName))
                 {
-                    using (var file = Urho3DExporter.ExportAssets.CreateFile(fileName))
+                    if (file != null)
                     {
                         using (var writer = new BinaryWriter(file))
                         {
