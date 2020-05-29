@@ -122,7 +122,7 @@ namespace Urho3DExporter
             }
             return true;
         }
-        private void ExportStandartMaterial(Material material, XmlWriter writer)
+        private void ExportStandardMaterial(Material material, XmlWriter writer)
         {
             {
                 var matEmissionEnabled = material.IsKeywordEnabled("_EMISSION");
@@ -260,6 +260,14 @@ namespace Urho3DExporter
                     WriteParameter(writer, "\t", "MatSpecColor", BaseNodeExporter.Format(matSpecColor));
                 if (matEmissionEnabled)
                     WriteParameter(writer, "\t", "MatEmissiveColor", BaseNodeExporter.Format(matEmissiveColor));
+                if (!flags.hasAlpha)
+                {
+                    writer.WriteWhitespace("\t");
+                    writer.WriteStartElement("shader");
+                    writer.WriteAttributeString("psdefines", "ALPHAMASK");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace("\n");
+                }
 
                 writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("technique");
@@ -330,12 +338,12 @@ namespace Urho3DExporter
                 {
                     if (material.shader.name == "Standard")
                     {
-                        ExportStandartMaterial(material, writer);
+                        ExportStandardMaterial(material, writer);
                     }
                     else
                     {
                         Debug.Log("Unknown shader " + material.shader.name);
-                        ExportStandartMaterial(material, writer);
+                        ExportStandardMaterial(material, writer);
                     }
                 }
 

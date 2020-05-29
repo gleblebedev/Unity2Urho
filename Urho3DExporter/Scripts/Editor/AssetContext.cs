@@ -80,6 +80,7 @@ namespace Urho3DExporter
                 }
                 else if (res.Type == typeof(SceneAsset)) res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
                 res.UrhoFileName = System.IO.Path.Combine(urhoDataFolder, res.UrhoAssetName);
+                res.UrhoDataFolder = urhoDataFolder;
                 if (res.Is3DAsset)
                 {
                     res.ContentFolder = res.UrhoFileName.Substring(0, res.UrhoFileName.Length - ".xml".Length);
@@ -88,6 +89,8 @@ namespace Urho3DExporter
 
             return res;
         }
+
+        public string UrhoDataFolder { get; set; }
 
         public string FileExtension { get; private set; }
 

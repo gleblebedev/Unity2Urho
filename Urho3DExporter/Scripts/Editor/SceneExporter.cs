@@ -26,7 +26,7 @@ namespace Urho3DExporter
                     EndElement(writer, "\t");
                     foreach (var gameObject in scene.GetRootGameObjects())
                     {
-                        WriteObject(writer, "", gameObject, exlusion);
+                        WriteObject(writer, "", gameObject, exlusion, asset);
                     }
                 }
             }

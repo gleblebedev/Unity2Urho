@@ -40,14 +40,16 @@ namespace Urho3DExporter
 
         static string _prevFolder = "";
 
-        [MenuItem("Assets/Export To Urho3D")]
+        [MenuItem("CONTEXT/Terrain/Export Terrain To Urho3D")]
+        static void ExportTerrain(MenuCommand command)
+        {
+            if (!ResolveDataPath(out var urhoDataPath)) return;
+        }
+
+        [MenuItem("Assets/Export Assets and Scene To Urho3D")]
         private static void ExportToUrho()
         {
-            string urhoDataPath = EditorUtility.SaveFolderPanel("Save assets to Data folder", _prevFolder, "");
-            if (string.IsNullOrEmpty(urhoDataPath))
-            {
-                return;
-            }
+            if (!ResolveDataPath(out var urhoDataPath)) return;
 
             if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).Replace('\\','/'), StringComparison.InvariantCultureIgnoreCase))
             {
@@ -124,6 +126,12 @@ namespace Urho3DExporter
             //        }
             //    }
             //}
+        }
+
+        private static bool ResolveDataPath(out string urhoDataPath)
+        {
+            urhoDataPath = EditorUtility.SaveFolderPanel("Save assets to Data folder", _prevFolder, "");
+            return !string.IsNullOrEmpty(urhoDataPath);
         }
 
         private static void AddSelection(string assetGuiD, HashSet<string> guids)

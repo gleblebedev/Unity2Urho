@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -136,7 +139,8 @@ namespace Urho3DExporter
         //    }
         //    WriteAttribute(subSubPrefix, "Material", material.ToString());
         //}
-        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList)
+        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
+            AssetContext asset)
         {
             var localExcludeList = new HashSet<Renderer>(excludeList);
             if (!string.IsNullOrEmpty(prefix))
@@ -205,78 +209,7 @@ namespace Urho3DExporter
                 EndElement(writer, subPrefix);
             }
 
-            //if (terrain != null)
-            //{
-            //    var terrainSize = terrain.terrainData.size;
-            //    writer.WriteWhitespace(subPrefix);
-            //    writer.WriteStartElement("node");
-            //    writer.WriteAttributeString("id", (++_id).ToString());
-            //    writer.WriteWhitespace("\n");
-
-            //    var w = terrain.terrainData.heightmapWidth;
-            //    var h = terrain.terrainData.heightmapHeight;
-            //    var max = float.MinValue;
-            //    var min = float.MaxValue;
-            //    var heights = terrain.terrainData.GetHeights(0, 0, w, h);
-            //    foreach (var height in heights)
-            //    {
-            //        if (height > max) max = height;
-            //        if (height < min) min = height;
-            //    }
-
-            //    if (max < min)
-            //    {
-            //        max = 1;
-            //        min = 0;
-            //    }
-            //    else if (max == min)
-            //    {
-            //        max = min + 0.1f;
-            //    }
-
-            //    WriteAttribute(writer, subPrefix, "Position", new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
-
-            //    StartCompoent(writer, subPrefix, "Terrain");
-            //    //var folderAndName = _fileNameWithoutExtension + "/" +
-            //    //                    Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
-            //    //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
-            //    //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
-            //    //WriteAttribute(subSubPrefix, "Height Map", "Image;" + heightmapFileName);
-
-            //    //WriteAttribute(subSubPrefix, "Material", "Material;" + materialFileName);
-            //    //WriteTerrainMaterial(terrain, Path.Combine(_assetsFolder, materialFileName));
-            //    //WriteAttribute(subSubPrefix, "Vertex Spacing", new Vector3(terrainSize.x / w, (max - min), terrainSize.z / h));
-            //    //Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(_assetsFolder, heightmapFileName)));
-            //    //using (var imageFile = File.Open(Path.Combine(_assetsFolder, heightmapFileName), FileMode.Create, FileAccess.Write,
-            //    //    FileShare.Read))
-            //    //{
-            //    //    using (var binaryWriter = new BinaryWriter(imageFile))
-            //    //    {
-            //    //        binaryWriter.Write((byte)0);
-            //    //        binaryWriter.Write((byte)0);
-            //    //        binaryWriter.Write((byte)3);
-            //    //        binaryWriter.Write((short)0);
-            //    //        binaryWriter.Write((short)0);
-            //    //        binaryWriter.Write((byte)0);
-            //    //        binaryWriter.Write((short)0);
-            //    //        binaryWriter.Write((short)0);
-            //    //        binaryWriter.Write((short)w);
-            //    //        binaryWriter.Write((short)h);
-            //    //        binaryWriter.Write((byte)8);
-            //    //        binaryWriter.Write((byte)0);
-            //    //        for (int y = h - 1; y >= 0; --y)
-            //    //        {
-            //    //            for (int x = 0; x < w; ++x)
-            //    //            {
-            //    //                var height = (heights[w - x - 1, y] - min) / (max - min) * 255.0f;
-            //    //                binaryWriter.Write((byte)height);
-            //    //            }
-            //    //        }
-            //    //    }
-            //    //}
-            //    EndElement(writer, subPrefix);
-            //    EndElement(writer, subPrefix);
-            //}
+            ExportTerrain(writer, obj, asset, terrain, subPrefix, subSubPrefix);
 
             if (lodGroup != null)
             {
@@ -350,7 +283,7 @@ namespace Urho3DExporter
 
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
-                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList);
+                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset);
 
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
@@ -358,5 +291,214 @@ namespace Urho3DExporter
             writer.WriteWhitespace("\n");
         }
 
+        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain, string subPrefix,
+            string subSubPrefix)
+        {
+            if (terrain == null) return;
+
+            var terrainSize = terrain.terrainData.size;
+            writer.WriteWhitespace(subPrefix);
+            writer.WriteStartElement("node");
+            writer.WriteAttributeString("id", (++_id).ToString());
+            writer.WriteWhitespace("\n");
+
+            var folderAndName = asset.RelPath + "/" +
+                                Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
+            var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
+            var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
+
+            (float min, float max, Vector2 size) = WriteHeightMap(asset, heightmapFileName, terrain);
+
+            WriteAttribute(writer, subPrefix, "Position", new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
+
+            StartCompoent(writer, subPrefix, "Terrain");
+
+            WriteAttribute(writer, subSubPrefix, "Height Map", "Image;" + heightmapFileName);
+            WriteAttribute(writer, subSubPrefix, "Material", "Material;" + materialFileName);
+            WriteTerrainMaterial(terrain, asset, materialFileName, "Textures/Terrains/" + folderAndName + ".Weights.tga");
+            WriteAttribute(writer, subSubPrefix, "Vertex Spacing",
+                new Vector3(terrainSize.x / size.x, 2.0f*(max - min), terrainSize.z / size.y));
+            EndElement(writer, subPrefix);
+            EndElement(writer, subPrefix);
+        }
+
+        private static (float min, float max, Vector2 size) WriteHeightMap(AssetContext asset, string heightmapFileName, Terrain terrain)
+        {
+            var heightmapFilePath = Path.Combine(asset.UrhoDataFolder, heightmapFileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(heightmapFilePath));
+            var w = terrain.terrainData.heightmapResolution;
+            var h = terrain.terrainData.heightmapResolution;
+            var max = float.MinValue;
+            var min = float.MaxValue;
+            var heights = terrain.terrainData.GetHeights(0, 0, w, h);
+            foreach (var height in heights)
+            {
+                if (height > max) max = height;
+                if (height < min) min = height;
+            }
+
+            if (max < min)
+            {
+                max = 1;
+                min = 0;
+            }
+            else if (max == min)
+            {
+                max = min + 0.1f;
+            }
+
+            using (var imageFile = File.Open(heightmapFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                using (var binaryWriter = new BinaryWriter(imageFile))
+                {
+                    WriteTgaHeader(binaryWriter, 8, w, h);
+                    for (int y = h - 1; y >= 0; --y)
+                    {
+                        for (int x = 0; x < w; ++x)
+                        {
+                            var height = (heights[h-y-1, x] - min) / (max - min) * 255.0f;
+                            binaryWriter.Write((byte) height);
+                        }
+                    }
+                }
+            }
+
+            return (min, max, new Vector2(w, h));
+        }
+
+        private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath, string weightsTextureName)
+        {
+            var materialFilePath = Path.Combine(asset.UrhoDataFolder, materialPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(materialFilePath));
+
+            var layers = terrain.terrainData.terrainLayers;
+            if (layers.Length > 3)
+            {
+                layers = layers.Take(3).ToArray();
+            }
+
+            //if (File.Exists(asset.UrhoFileName))
+            //    return;
+
+            using (XmlTextWriter writer = new XmlTextWriter(materialFilePath, new UTF8Encoding(false)))
+            {
+                writer.WriteStartDocument();
+                writer.WriteStartElement("material");
+                writer.WriteWhitespace(Environment.NewLine);
+                {
+                    writer.WriteStartElement("technique");
+                    writer.WriteAttributeString("name", "Techniques/TerrainBlend.xml");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
+                {
+                    writer.WriteStartElement("texture");
+                    writer.WriteAttributeString("unit", "0");
+                    writer.WriteAttributeString("name", weightsTextureName);
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+
+                    WriteTerrainWeightsTexture(asset, weightsTextureName, terrain);
+                }
+                for (int layerIndex=0; layerIndex<layers.Length; ++layerIndex)
+                {
+                    var layer = layers[layerIndex];
+                    
+                    writer.WriteStartElement("texture");
+                    writer.WriteAttributeString("unit", (layerIndex+1).ToString(CultureInfo.InvariantCulture));
+                    if (layer.diffuseTexture != null)
+                    {
+                        string urhoAssetName;
+                        if (_assets.TryGetTexturePath(layer.diffuseTexture, out urhoAssetName))
+                        {
+                            writer.WriteAttributeString("name", urhoAssetName);
+                        }
+                    }
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
+                {
+                    writer.WriteStartElement("parameter");
+                    writer.WriteAttributeString("name", "MatSpecColor");
+                    writer.WriteAttributeString("value", "0.5 0.5 0.5 16");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
+                {
+                    writer.WriteStartElement("parameter");
+                    writer.WriteAttributeString("name", "DetailTiling");
+                    writer.WriteAttributeString("value", "32 32");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+        }
+
+        private void WriteTerrainWeightsTexture(AssetContext asset, string weightsTextureName, Terrain terrain)
+        {
+            var weightsFilePath = Path.Combine(asset.UrhoDataFolder, weightsTextureName);
+            Directory.CreateDirectory(Path.GetDirectoryName(weightsFilePath));
+            
+            var layers = terrain.terrainData.terrainLayers;
+            var w = terrain.terrainData.alphamapWidth;
+            var h = terrain.terrainData.alphamapHeight;
+            float[,,] alphamaps = terrain.terrainData.GetAlphamaps(0, 0, w, h);
+            int numAlphamaps = alphamaps.GetLength(2);
+
+            //Urho3D doesn't support more than 3 textures
+            if (numAlphamaps > 3) numAlphamaps = 3;
+
+            using (var imageFile = File.Open(weightsFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                using (var binaryWriter = new BinaryWriter(imageFile))
+                {
+                    var weights = new byte[4];
+                    weights[3] = 255;
+                    WriteTgaHeader(binaryWriter, weights.Length*8, w, h);
+                    for (int y = h - 1; y >= 0; --y)
+                    {
+                        for (int x = 0; x < w; ++x)
+                        {
+                            int sum = 0;
+                            for (int i = 0; i < weights.Length; ++i)
+                            {
+                                if (numAlphamaps > i && layers.Length > i)
+                                {
+                                    var weight = (byte) (alphamaps[h-y-1, x, i] * 255.0f);
+                                    sum += weight;
+                                    weights[i] = weight;
+                                }
+                            }
+
+                            if (sum == 0)
+                                weights[0] = 255;
+
+                            binaryWriter.Write((byte)weights[2]); //B
+                            binaryWriter.Write((byte)weights[1]); //G
+                            binaryWriter.Write((byte)weights[0]); //R
+                            binaryWriter.Write((byte)weights[3]); //A
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
+        {
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) (bitsPerPixel == 8 ? 3 : 2));
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) w);
+            binaryWriter.Write((short) h);
+            binaryWriter.Write((byte) bitsPerPixel);
+            binaryWriter.Write((byte) 0);
+        }
     }
 }

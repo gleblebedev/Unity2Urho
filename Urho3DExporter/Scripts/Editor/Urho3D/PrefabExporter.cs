@@ -18,7 +18,7 @@ namespace Urho3DExporter
             using (XmlTextWriter writer = CreateXmlFile(asset))
             {
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(asset.AssetPath);
-                WriteObject(writer, "", go, new HashSet<Renderer>());
+                WriteObject(writer, "", go, new HashSet<Renderer>(), asset);
             }
         }
      
