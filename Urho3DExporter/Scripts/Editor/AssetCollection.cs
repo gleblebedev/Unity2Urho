@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -14,9 +15,9 @@ namespace Urho3DExporter
 
         public AssetCollection(string urhoDataPath, IEnumerable<AssetContext> assets)
         {
-            _urhoDataPath = urhoDataPath.Replace('/','\\');
-            if (!_urhoDataPath.EndsWith("\\"))
-                _urhoDataPath += '\\';
+            _urhoDataPath = urhoDataPath.Replace('/', Path.DirectorySeparatorChar);
+            if (!_urhoDataPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                _urhoDataPath += Path.DirectorySeparatorChar;
             _assets = assets.ToList();
             foreach (var assetContext in assets.Where(_=>_.Type == typeof(Material)))
             {
@@ -39,7 +40,7 @@ namespace Urho3DExporter
         {
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
                 fileName = fileName.Substring(_urhoDataPath.Length);
-            fileName = fileName.Replace('\\', '/');
+            fileName = fileName.Replace(Path.DirectorySeparatorChar, '/');
             TryAdd(_meshPaths, mesh, mesh.name, fileName);
         }
 
@@ -72,7 +73,7 @@ namespace Urho3DExporter
         {
 
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).Replace('\\', '/');
+                fileName = fileName.Substring(_urhoDataPath.Length).Replace(Path.DirectorySeparatorChar, '/');
             TryAdd(_materialPaths, material, material.name, fileName);
         }
 
@@ -94,7 +95,7 @@ namespace Urho3DExporter
         {
 
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).Replace('\\', '/');
+                fileName = fileName.Substring(_urhoDataPath.Length).Replace(Path.DirectorySeparatorChar, '/');
             TryAdd(_texturePaths, material, material.name, fileName);
         }
 

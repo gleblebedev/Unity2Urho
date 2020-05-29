@@ -51,7 +51,7 @@ namespace Urho3DExporter
         {
             if (!ResolveDataPath(out var urhoDataPath)) return;
 
-            if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).Replace('\\','/'), StringComparison.InvariantCultureIgnoreCase))
+            if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).Replace(Path.DirectorySeparatorChar, '/'), StringComparison.InvariantCultureIgnoreCase))
             {
                 EditorUtility.DisplayDialog("Error",
                     "Selected path is inside Unity folder. Please select a different folder.", "Ok");
