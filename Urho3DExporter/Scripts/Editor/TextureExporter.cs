@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Path = System.IO.Path;
 
 namespace Urho3DExporter
 {

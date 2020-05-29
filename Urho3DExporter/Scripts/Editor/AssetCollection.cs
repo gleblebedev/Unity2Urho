@@ -15,7 +15,7 @@ namespace Urho3DExporter
 
         public AssetCollection(string urhoDataPath, IEnumerable<AssetContext> assets)
         {
-            _urhoDataPath = urhoDataPath.Replace('/', Path.DirectorySeparatorChar);
+            _urhoDataPath = urhoDataPath.FixDirectorySeparator();
             if (!_urhoDataPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
                 _urhoDataPath += Path.DirectorySeparatorChar;
             _assets = assets.ToList();
@@ -40,7 +40,7 @@ namespace Urho3DExporter
         {
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
                 fileName = fileName.Substring(_urhoDataPath.Length);
-            fileName = fileName.Replace(Path.DirectorySeparatorChar, '/');
+            fileName = fileName.FixAssetSeparator();
             TryAdd(_meshPaths, mesh, mesh.name, fileName);
         }
 
@@ -73,7 +73,7 @@ namespace Urho3DExporter
         {
 
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).Replace(Path.DirectorySeparatorChar, '/');
+                fileName = fileName.Substring(_urhoDataPath.Length).FixAssetSeparator();
             TryAdd(_materialPaths, material, material.name, fileName);
         }
 
@@ -95,7 +95,7 @@ namespace Urho3DExporter
         {
 
             if (fileName.StartsWith(_urhoDataPath, StringComparison.InvariantCultureIgnoreCase))
-                fileName = fileName.Substring(_urhoDataPath.Length).Replace(Path.DirectorySeparatorChar, '/');
+                fileName = fileName.Substring(_urhoDataPath.Length).FixAssetSeparator();
             TryAdd(_texturePaths, material, material.name, fileName);
         }
 

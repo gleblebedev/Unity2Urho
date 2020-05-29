@@ -11,7 +11,7 @@ namespace Urho3DExporter
         public string UrhoFileName
         {
             get { return _urhoFileName; }
-            private set { _urhoFileName = value.Replace('/', Path.DirectorySeparatorChar); }
+            private set { _urhoFileName = value.FixDirectorySeparator(); }
         }
 
         public string UrhoAssetName { get; private set; }
@@ -19,7 +19,7 @@ namespace Urho3DExporter
         public string FullPath
         {
             get { return _fullPath; }
-            private set { _fullPath = value.Replace('/', Path.DirectorySeparatorChar); }
+            private set { _fullPath = value.FixDirectorySeparator(); }
         }
 
         public string RelPath { get; private set; }
@@ -33,7 +33,7 @@ namespace Urho3DExporter
         public string ContentFolder
         {
             get { return _contentFolder; }
-            private set { _contentFolder = value.Replace('/', Path.DirectorySeparatorChar); }
+            private set { _contentFolder = value.FixDirectorySeparator(); }
         }
 
         public bool Is3DAsset { get; private set; }

@@ -51,7 +51,7 @@ namespace Urho3DExporter
         {
             if (!ResolveDataPath(out var urhoDataPath)) return;
 
-            if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).Replace(Path.DirectorySeparatorChar, '/'), StringComparison.InvariantCultureIgnoreCase))
+            if (urhoDataPath.StartsWith(Path.GetDirectoryName(Application.dataPath).FixAssetSeparator(), StringComparison.InvariantCultureIgnoreCase))
             {
                 EditorUtility.DisplayDialog("Error",
                     "Selected path is inside Unity folder. Please select a different folder.", "Ok");
@@ -189,8 +189,7 @@ namespace Urho3DExporter
 
         public static FileStream CreateFile(string path, string dataFolder, string extension)
         {
-            var fileName = Path.Combine(Path.Combine(dataFolder, Path.GetDirectoryName(path)),
-                Path.GetFileNameWithoutExtension(path) + extension);
+            var fileName = Path.Combine(Path.Combine(dataFolder, Path.GetDirectoryName(path)), Path.GetFileNameWithoutExtension(path) + extension);
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
             var xmlFile = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read);
             return xmlFile;
