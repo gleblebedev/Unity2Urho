@@ -46,7 +46,7 @@ namespace Urho3DExporter
         //    if (!ResolveDataPath(out var urhoDataPath)) return;
         //}
 
-        public static void ExportToUrho(string targetPath, bool overrideFiles)
+        public static void ExportToUrho(string targetPath, bool overrideFiles, bool exportSelected)
         {
             if (string.IsNullOrWhiteSpace(targetPath))
                 return;
@@ -54,7 +54,7 @@ namespace Urho3DExporter
             var urhoDataPath = new DestinationFolder(targetPath, overrideFiles);
 
             AssetCollection assets;
-            if (Selection.assetGUIDs.Length == 0)
+            if (Selection.assetGUIDs.Length == 0 || !exportSelected)
             {
                 assets = new AssetCollection(urhoDataPath, AssetDatabase.FindAssets("").Select(_ => AssetContext.Create(_, urhoDataPath)).Where(_ => _.Type != null));
             }
@@ -65,7 +65,10 @@ namespace Urho3DExporter
                 {
                     AddSelection(assetGuiD, selectedAssets);
                 }
-                assets = new AssetCollection(urhoDataPath, selectedAssets.Select(_ => AssetContext.Create(_, urhoDataPath)).Where(_ => _.Type != null));
+
+                var enumerable = selectedAssets.Select(_ => AssetContext.Create(_, urhoDataPath)).ToList();
+                var assetContexts = enumerable.Where(_ => _.Type != null).ToList();
+                assets = new AssetCollection(urhoDataPath, assetContexts);
             }
             _id = 0;
 
@@ -125,7 +128,8 @@ namespace Urho3DExporter
         {
             new MeshExporter(assets).ExportAsset(assetContext);
 
-            new PrefabExporter(assets).ExportAsset(assetContext);
+            if (assetContext.Type != typeof(Mesh))
+                new PrefabExporter(assets).ExportAsset(assetContext);
         }
     }
 }

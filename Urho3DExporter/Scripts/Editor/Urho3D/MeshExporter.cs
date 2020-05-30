@@ -120,6 +120,10 @@ namespace Urho3DExporter
                 ExportMesh(asset, go);
                 _skeletons.Add(go);
             }
+            foreach (var go in allAssets.Select(_ => _ as Mesh))
+            {
+                ExportMeshModel(asset, go, null);
+            }
 
             var assetComponents = allAssets
                 .Select(_=>_ as GameObject)
@@ -504,11 +508,29 @@ namespace Urho3DExporter
                 mesh = meshFilter.sharedMesh;
             }
 
+            ExportMeshModel(asset, mesh, skinnedMeshRenderer);
+            
+            for (var i=0; i<go.transform.childCount; ++i)
+            {
+                ExportMesh(asset, go.transform.GetChild(i).gameObject);
+            }
+        }
+
+        private void ExportMeshModel(AssetContext asset, Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
+        {
             if (mesh != null && _meshes.Add(mesh))
             {
                 var name = GetSafeFileName(mesh.name);
 
-                var contentName = Path.Combine(asset.ContentFolderName, name + ".mdl").FixAssetSeparator();
+                string contentName;
+                if (asset.UrhoAssetName.EndsWith(".mdl"))
+                {
+                    contentName = asset.UrhoAssetName;
+                }
+                else
+                {
+                    contentName = Path.Combine(asset.ContentFolderName, name + ".mdl").FixAssetSeparator();
+                }
 
                 _assetCollection.AddMeshPath(mesh, contentName);
 
@@ -522,11 +544,6 @@ namespace Urho3DExporter
                         }
                     }
                 }
-            }
-            
-            for (var i=0; i<go.transform.childCount; ++i)
-            {
-                ExportMesh(asset, go.transform.GetChild(i).gameObject);
             }
         }
 

@@ -9,8 +9,10 @@ namespace Urho3DExporter
     {
         private static readonly string _dataPathKey = "Urho3DExporter.DataPath";
         private static readonly string _overrideKey = "Urho3DExporter.Override";
+        private static readonly string _selectedKey = "Urho3DExporter.Selected";
         string _exportFolder = "";
         private bool _override = true;
+        private bool _selected = true;
 
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
         static void Init()
@@ -32,11 +34,18 @@ namespace Urho3DExporter
             }
             _override = EditorGUILayout.Toggle("Override existing files", _override);
 
+            bool selected = false;
+            if (Selection.assetGUIDs.Length != 0)
+            {
+                _selected = EditorGUILayout.Toggle("Export selected assets", _selected);
+                selected = _selected;
+            }
+
             if (!string.IsNullOrWhiteSpace(_exportFolder))
             {
                 if (GUILayout.Button("Export"))
                 {
-                    ExportAssets.ExportToUrho(_exportFolder, _override);
+                    ExportAssets.ExportToUrho(_exportFolder, _override, selected);
                     this.Close();
                 }
             }
@@ -78,6 +87,8 @@ namespace Urho3DExporter
                 _exportFolder = EditorPrefs.GetString(_dataPathKey);
             if (EditorPrefs.HasKey(_overrideKey))
                 _override = EditorPrefs.GetBool(_overrideKey);
+            if (EditorPrefs.HasKey(_selectedKey))
+                _selected = EditorPrefs.GetBool(_selectedKey);
         }
 
         void OnLostFocus()
@@ -88,6 +99,8 @@ namespace Urho3DExporter
         private void SaveConfig()
         {
             EditorPrefs.SetString(_dataPathKey, _exportFolder);
+            EditorPrefs.SetBool(_overrideKey, _override);
+            EditorPrefs.SetBool(_selectedKey, _selected);
         }
 
         void OnDestroy()

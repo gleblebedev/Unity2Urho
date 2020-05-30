@@ -67,13 +67,23 @@ namespace Urho3DExporter
                 res.FileExtension = System.IO.Path.GetExtension(res.AssetPath).ToLower();
                 res.UrhoAssetName = res.RelPath;
                 if (res.Type == typeof(Material))
+                {
                     res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
+                }
+                else if (res.Type == typeof(Mesh))
+                {
+                    res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".mdl");
+                    res.Is3DAsset = true;
+                }
                 else if (res.Type == typeof(GameObject))
                 {
                     res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
-                    res.Is3DAsset = _supported3DFormats.Contains(res.FileExtension);
+                    res.Is3DAsset = DetectMeshAsset(res);
                 }
-                else if (res.Type == typeof(SceneAsset)) res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
+                else if (res.Type == typeof(SceneAsset))
+                {
+                    res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
+                }
                 res.DestinationFolder = urhoDataFolder;
                 {
                     var dotIndex = res.UrhoAssetName.LastIndexOf('.');
@@ -90,6 +100,16 @@ namespace Urho3DExporter
             }
 
             return res;
+        }
+
+        private static bool DetectMeshAsset(AssetContext res)
+        {
+            if (string.Equals(res.FileExtension, ".asset", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (res.Type == typeof(UnityEngine.Mesh))
+                    return true;
+            }
+            return _supported3DFormats.Contains(res.FileExtension);
         }
 
         public DestinationFolder DestinationFolder { get; set; }
