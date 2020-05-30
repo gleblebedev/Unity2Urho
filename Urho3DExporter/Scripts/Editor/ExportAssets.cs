@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace Urho3DExporter
 {
+
     public class ExportAssets
     {
         private static readonly string assetsPrefix = "Assets/";
@@ -38,7 +39,6 @@ namespace Urho3DExporter
             return ifFalse;
         }
 
-        static string _prevFolder = "";
 
         //[MenuItem("CONTEXT/Terrain/Export Terrain To Urho3D")]
         //static void ExportTerrain(MenuCommand command)
@@ -46,19 +46,12 @@ namespace Urho3DExporter
         //    if (!ResolveDataPath(out var urhoDataPath)) return;
         //}
 
-        [MenuItem("Assets/Export Assets and Scene To Urho3D")]
-        private static void ExportToUrho()
+        public static void ExportToUrho(string targetPath, bool overrideFiles)
         {
-            var urhoDataPath = ResolveDataPath();
-            if (urhoDataPath == null) return;
-
-            if (urhoDataPath.ToString().StartsWith(Path.GetDirectoryName(Application.dataPath).FixDirectorySeparator(), StringComparison.InvariantCultureIgnoreCase))
-            {
-                EditorUtility.DisplayDialog("Error", "Selected path is inside Unity folder. Please select a different folder.", "Ok");
+            if (string.IsNullOrWhiteSpace(targetPath))
                 return;
-            }
 
-            _prevFolder = urhoDataPath.ToString();
+            var urhoDataPath = new DestinationFolder(targetPath, overrideFiles);
 
             AssetCollection assets;
             if (Selection.assetGUIDs.Length == 0)
@@ -90,17 +83,6 @@ namespace Urho3DExporter
             {
                 ProcessAsset(assets, assetContext);
             }
-        }
-
-        private static DestinationFolder ResolveDataPath()
-        {
-            var urhoDataPath = EditorUtility.SaveFolderPanel("Save assets to Data folder", _prevFolder, "");
-            if (!string.IsNullOrEmpty(urhoDataPath))
-            {
-                return new DestinationFolder(urhoDataPath);
-            }
-
-            return null;
         }
 
         private static void AddSelection(string assetGuiD, HashSet<string> guids)

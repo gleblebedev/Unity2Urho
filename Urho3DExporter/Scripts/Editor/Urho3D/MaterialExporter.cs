@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using System.Xml;
+using Assets.Urho3DExporter.Scripts.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -124,10 +125,8 @@ namespace Urho3DExporter
         }
         private void ExportStandardMaterial(Material material, XmlWriter writer)
         {
-            if (material.name.IndexOf("BottleTall_mtl") >= 0)
-            {
+            var mat = new MaterialDescription(material);
 
-            }
             {
                 var matEmissionEnabled = material.IsKeywordEnabled("_EMISSION");
                 var matDiffColor = Color.white;
