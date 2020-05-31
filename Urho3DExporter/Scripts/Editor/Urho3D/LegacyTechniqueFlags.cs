@@ -1,6 +1,6 @@
 ﻿namespace Urho3DExporter
 {
-    public class MaterialFlags
+    public class LegacyTechniqueFlags
     {
         public bool hasAlpha;
         public bool hasDiffuse;
@@ -8,7 +8,7 @@
         public bool hasNormal;
         public bool hasSpecular;
 
-        public static int operator -(MaterialFlags a, MaterialFlags b)
+        public static int operator -(LegacyTechniqueFlags a, LegacyTechniqueFlags b)
         {
             return GetDistance(a.hasDiffuse, b.hasDiffuse) + GetDistance(a.hasSpecular, b.hasSpecular) +
                    GetDistance(a.hasNormal, b.hasNormal) + GetDistance(a.hasEmissive, b.hasEmissive) +
@@ -20,7 +20,7 @@
             return a != b ? 1 : 0;
         }
 
-        public bool Fits(MaterialFlags b)
+        public bool Fits(LegacyTechniqueFlags b)
         {
             return (!hasDiffuse || b.hasDiffuse)
                    && (!hasSpecular || b.hasSpecular)

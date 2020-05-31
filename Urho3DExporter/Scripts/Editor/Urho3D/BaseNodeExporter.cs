@@ -77,6 +77,15 @@ namespace Urho3DExporter
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.r, pos.g, pos.b, pos.a);
         }
 
+        public static string FormatRGB(Color pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", pos.r, pos.g, pos.b);
+        }
+        public static string Format(float pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}", pos);
+        }
+
         public static string Format(Vector4 pos)
         {
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);

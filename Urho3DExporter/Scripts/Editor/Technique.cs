@@ -2,7 +2,7 @@
 {
     public class Technique
     {
-        public MaterialFlags Material;
+        public LegacyTechniqueFlags Material;
         public string Name;
     }
 }
