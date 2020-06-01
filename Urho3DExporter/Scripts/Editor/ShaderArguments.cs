@@ -9,6 +9,9 @@ namespace Assets.Urho3DExporter.Scripts.Editor
         public bool HasEmission { get; set; }
 
         public bool Transparent { get; set; }
+        public float Cutoff { get; set; } = 0.5f;
+
+        public float BumpScale { get; set; } = 1.0f;
         public Color EmissiveColor { get; set; } = Color.black;
         public Texture Occlusion { get; set; }
         public Texture Bump { get; set; }

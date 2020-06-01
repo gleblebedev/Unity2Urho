@@ -10,7 +10,7 @@ namespace Urho3DExporter
     {
         private readonly AssetCollection _assets;
 
-        public MaterialExporter(AssetCollection assets) : base()
+        public MaterialExporter(AssetCollection assets, TextureMetadataCollection textureMetadataCollection) : base()
         {
             _assets = assets;
         }
@@ -175,9 +175,13 @@ namespace Urho3DExporter
                                 bestTechniqueDistance = d;
                             }
                         }
-                    WriteTechnique(writer, "Techniques/NoTextureUnlit.xml");
+                    WriteTechnique(writer, "Techniques/"+bestTechnique.Name);
                 }
-                writer.WriteEndElement();   
+                if (arguments.Diffuse != null) WriteTexture(arguments.Diffuse, writer, "diffuse");
+                if (arguments.Specular != null) WriteTexture(arguments.Specular, writer, "specular");
+                if (arguments.Bump != null) WriteTexture(arguments.Bump, writer, "normal");
+                if (arguments.Emission != null) WriteTexture(arguments.Bump, writer, "emissive");
+                writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
         }
@@ -233,7 +237,13 @@ namespace Urho3DExporter
                                 WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffSpec.xml");
                             }
                         }
-                        WriteTexture(BuildMetallicRoughMap(asset, arguments), writer, "specular");
+
+                        if (_assets.TryGetTexturePath(arguments.MetallicGloss, out var baseAssetName))
+                        {
+                            var textureReferences = new TextureReferences(TextureSemantic.MetallicGlossiness, 1.0f, (arguments.SmoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha) ? arguments.Albedo : arguments.MetallicGloss, arguments.SmoothnessTextureChannel);
+                            var textureOutputName = TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
+                            WriteTexture(textureOutputName, writer, "specular");
+                        }
                     }
                     else
                     {   // Albedo, No MetallicGloss
@@ -292,7 +302,7 @@ namespace Urho3DExporter
                 WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.AlbedoColor));
                 WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
                 WriteParameter(writer, "MatEnvMapColor", BaseNodeExporter.FormatRGB(Color.white));
-                WriteParameter(writer, "MatSpecColor", BaseNodeExporter.Format(Color.white));
+                WriteParameter(writer, "MatSpecColor", BaseNodeExporter.Format(Vector4.zero));
                 if (arguments.MetallicGloss != null)
                 {
                     WriteParameter(writer, "Roughness", BaseNodeExporter.Format(0));
@@ -308,64 +318,6 @@ namespace Urho3DExporter
             }
         }
 
-        private string BuildMetallicRoughMap(AssetContext asset, MetallicRoughnessShaderArguments arguments)
-        {
-            var metallicGloss = arguments.MetallicGloss as Texture2D;
-            var smoothnessTextureChannel = arguments.SmoothnessTextureChannel;
-            var smoothnessSource = metallicGloss;
-            if (smoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha)
-            {
-                smoothnessSource = arguments.Albedo as Texture2D;
-                EnsureReadableTexture(smoothnessSource);
-            }
-
-            EnsureReadableTexture(metallicGloss);
-
-            var metallicRoughMapName = asset.UrhoAssetName + ".mr.png";
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName))
-            {
-                if (fileStream != null)
-                {
-                    var width = Math.Max(metallicGloss.width, smoothnessSource.width);
-                    var height = Math.Max(metallicGloss.height, smoothnessSource.height);
-                    var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                    tmpTexture.hideFlags = HideFlags.HideAndDontSave;
-                    for (int y = 0; y < height; ++y)
-                    {
-                        for (int x = 0; x < width; ++x)
-                        {
-                            tmpTexture.SetPixel(x, y, new Color(1.0f-Get(smoothnessSource,x,y,width,height).a, Get(metallicGloss, x, y, width, height).r, 0,1),0);
-                        }
-                    }
-                    var bytes = tmpTexture.EncodeToPNG();
-                    fileStream.Write(bytes,0,bytes.Length);
-                }
-            }
-            return metallicRoughMapName;
-        }
-
-        private void EnsureReadableTexture(Texture2D texture)
-        {
-            if (null == texture) return;
-
-            string assetPath = AssetDatabase.GetAssetPath(texture);
-            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (tImporter != null)
-            {
-                tImporter.textureType = TextureImporterType.Advanced;
-                if (tImporter.isReadable != true)
-                {
-                    tImporter.isReadable = true;
-                    AssetDatabase.ImportAsset(assetPath);
-                    AssetDatabase.Refresh();
-                }
-            }
-        }
-
-        private Color Get(Texture2D texture, int x, int y, int width, int height)
-        {
-            return texture.GetPixel(x * texture.width / width, y * texture.height / height);
-        }
 
         private void ExportSpecularGlossiness(AssetContext asset, SpecularGlossinessShaderArguments arguments)
         {
@@ -375,7 +327,126 @@ namespace Urho3DExporter
                     return;
                 writer.WriteStartDocument(); writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("material"); writer.WriteWhitespace(Environment.NewLine);
-                WriteTechnique(writer, "Techniques/NoTextureUnlit.xml");
+
+                if (arguments.Albedo != null)
+                {   // Albedo
+                    if (arguments.PBRSpecular != null)
+                    {   // Albedo, MetallicGloss
+                        if (arguments.Bump != null)
+                        {   // Albedo, MetallicGloss, Normal
+                            if (arguments.Emission)
+                            {   // Albedo, MetallicGloss, Normal, Emission
+                                if (arguments.Transparent)
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpecEmissiveAlpha.xml");
+                                }
+                                else
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpecEmissive.xml");
+                                }
+                                WriteTexture(arguments.Emission, writer, "emissive");
+                            }
+                            else
+                            {   // Albedo, MetallicGloss, Normal, No Emission
+                                if (arguments.Transparent)
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpecAlpha.xml");
+                                }
+                                else
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpec.xml");
+                                }
+                            }
+                            WriteTexture(arguments.Bump, writer, "normal");
+                        }
+                        else
+                        {   // Albedo, MetallicGloss, No Normal
+                            if (arguments.Transparent)
+                            {
+                                WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffSpecAlpha.xml");
+                            }
+                            else
+                            {
+                                WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffSpec.xml");
+                            }
+                        }
+
+                        if (_assets.TryGetTexturePath(arguments.PBRSpecular, out var baseAssetName))
+                        {
+                            var textureReferences = new TextureReferences(TextureSemantic.SpecularGlossiness, 1.0f, (arguments.SmoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha) ? arguments.Albedo : arguments.PBRSpecular, arguments.SmoothnessTextureChannel);
+                            var textureOutputName = TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
+                            WriteTexture(textureOutputName, writer, "specular");
+                        }
+                    }
+                    else
+                    {   // Albedo, No MetallicGloss
+                        if (arguments.Bump != null)
+                        {   // Albedo, No MetallicGloss, Normal
+                            if (arguments.Emission != null)
+                            {   // Albedo, No MetallicGloss, Normal, Emission
+                                if (arguments.Transparent)
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRDiffNormalEmissiveAlpha.xml");
+                                }
+                                else
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRDiffNormalEmissive.xml");
+                                }
+                                WriteTexture(arguments.Emission, writer, "emissive");
+                            }
+                            else
+                            {   // Albedo, No MetallicGloss, Normal, No Emission
+                                if (arguments.Transparent)
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRDiffNormalAlpha.xml");
+                                }
+                                else
+                                {
+                                    WriteTechnique(writer, "Techniques/PBR/PBRDiffNormal.xml");
+                                }
+                            }
+                            WriteTexture(arguments.Bump, writer, "normal");
+                        }
+                        else
+                        {   // Albedo, No MetallicGloss, No Normal
+                            if (arguments.Transparent)
+                            {
+                                WriteTechnique(writer, "Techniques/PBR/PBRDiffAlpha.xml");
+                            }
+                            else
+                            {
+                                WriteTechnique(writer, "Techniques/PBR/PBRDiff.xml");
+                            }
+                        }
+                    }
+                    WriteTexture(arguments.Albedo, writer, "diffuse");
+                }
+                else
+                {   // No albedo
+                    if (arguments.Transparent)
+                    {
+                        WriteTechnique(writer, "Techniques/PBR/PBRNoTextureAlpha.xml");
+                    }
+                    else
+                    {
+                        WriteTechnique(writer, "Techniques/PBR/PBRNoTexture.xml");
+                    }
+                }
+                WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.DiffuseColor));
+                WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
+                WriteParameter(writer, "MatEnvMapColor", BaseNodeExporter.FormatRGB(Color.white));
+                WriteParameter(writer, "MatSpecColor", BaseNodeExporter.Format(Vector4.zero));
+                if (arguments.PBRSpecular != null)
+                {
+                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(0));
+                    WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0));
+                }
+                else
+                {
+                    ////TODO: Evaluate correct parameters:
+                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(0.0f)); 
+                    WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0.0f));
+                }
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }

@@ -2,7 +2,7 @@
 {
     public enum SmoothnessTextureChannel
     {
-        MetallicAlpha = 0,
+        MetallicOrSpecularAlpha = 0,
         AlbedoAlpha = 1,
     }
 }

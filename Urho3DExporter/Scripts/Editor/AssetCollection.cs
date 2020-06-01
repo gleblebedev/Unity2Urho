@@ -17,6 +17,7 @@ namespace Urho3DExporter
         {
             _urhoDataPath = urhoDataPath;
             _assets = assets.ToList();
+
             foreach (var assetContext in assets.Where(_=>_.Type == typeof(Material)))
             {
                 AddMaterialPath(AssetDatabase.LoadAssetAtPath<Material>(assetContext.AssetPath),
@@ -85,22 +86,22 @@ namespace Urho3DExporter
 
 
 
-        public void AddTexturePath(Texture material, string fileName)
+        public void AddTexturePath(Texture texture, string fileName)
         {
             fileName = fileName.FixAssetSeparator();
-            TryAdd(_texturePaths, material, material.name, fileName);
+            TryAdd(_texturePaths, texture, texture.name, fileName);
         }
 
         Dictionary<string, string> _texturePaths = new Dictionary<string, string>();
 
-        public bool TryGetTexturePath(Texture sharedTexture, out string materialPath)
+        public bool TryGetTexturePath(Texture sharedTexture, out string texturePath)
         {
-            materialPath = null;
+            texturePath = null;
             if (sharedTexture == null)
                 return false;
             var path = AssetDatabase.GetAssetPath(sharedTexture);
             var id = path + "#" + sharedTexture.name;
-            return _texturePaths.TryGetValue(id, out materialPath);
+            return _texturePaths.TryGetValue(id, out texturePath);
         }
     }
 }

@@ -61,7 +61,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                             var value = material.GetFloat(propertyName);
                             switch (propertyName)
                             {
-                                case "_BumpScale": break;
+                                case "BumpScale": arguments.BumpScale = value; break;
                                 case "_DetailNormalMapScale": break;
                                 case "_DstBlend": break;
                                 case "_GlossyReflections": break;
@@ -79,9 +79,10 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         }
                     case ShaderUtil.ShaderPropertyType.Range:
                         {
+                            var value = material.GetFloat(propertyName);
                             switch (propertyName)
                             {
-                                case "_Cutoff": break;
+                                case "_Cutoff": arguments.Cutoff = value; break;
                                 case "_GlossMapScale": break;
                                 case "_Glossiness": break;
                                 case "_OcclusionStrength": break;
@@ -149,22 +150,23 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                             var color = material.GetColor(propertyName);
                             switch (propertyName)
                             {
-                                case "_Color": break;
-                                case "_EmissionColor": break;
-                                case "_SpecColor": break;
+                                case "_Color": arguments.DiffuseColor = color; break;
+                                case "_EmissionColor": if (arguments.HasEmission) arguments.EmissiveColor = color; break;
+                                case "_SpecColor": arguments.SpecularColor = color; break;
                             }
                             break;
                         }
                     case ShaderUtil.ShaderPropertyType.Float:
                         {
+                            var value = material.GetFloat(propertyName);
                             switch (propertyName)
                             {
-                                case "_BumpScale": break;
+                                case "_BumpScale": arguments.BumpScale = value; break;
                                 case "_DetailNormalMapScale": break;
                                 case "_DstBlend": break;
                                 case "_GlossyReflections": break;
                                 case "_Mode": break;
-                                case "_SmoothnessTextureChannel": break;
+                                case "_SmoothnessTextureChannel": arguments.SmoothnessTextureChannel = (SmoothnessTextureChannel)value; break;
                                 case "_SpecularHighlights": break;
                                 case "_SrcBlend": break;
                                 case "_UVSec": break;
@@ -174,9 +176,10 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         }
                     case ShaderUtil.ShaderPropertyType.Range:
                         {
+                            var value = material.GetFloat(propertyName);
                             switch (propertyName)
                             {
-                                case "_Cutoff": break;
+                                case "_Cutoff": arguments.Cutoff = value; break;
                                 case "_GlossMapScale": break;
                                 case "_Glossiness": break;
                                 case "_OcclusionStrength": break;
@@ -186,17 +189,18 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         }
                     case ShaderUtil.ShaderPropertyType.TexEnv:
                         {
+                            var texture = material.GetTexture(propertyName);
                             switch (propertyName)
                             {
-                                case "_BumpMap": break;
-                                case "_DetailAlbedoMap": break;
-                                case "_DetailMask": break;
-                                case "_DetailNormalMap": break;
-                                case "_EmissionMap": break;
-                                case "_MainTex": break;
-                                case "_OcclusionMap": break;
-                                case "_ParallaxMap": break;
-                                case "_SpecGlossMap": break;
+                                case "_BumpMap": arguments.Bump = texture; break;
+                                case "_DetailAlbedoMap": arguments.DetailAlbedo = texture; break;
+                                case "_DetailMask": arguments.Detail = texture; break;
+                                case "_DetailNormalMap": arguments.DetailNormal = texture; break;
+                                case "_EmissionMap": arguments.Emission = texture; break;
+                                case "_MainTex": arguments.Albedo = texture; break;
+                                case "_OcclusionMap": arguments.Occlusion = texture; break;
+                                case "_ParallaxMap": arguments.Parallax = texture; break;
+                                case "_SpecGlossMap": arguments.PBRSpecular = texture; break;
                             }
                             break;
                         }
@@ -229,7 +233,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         switch (propertyName)
                         {
                             case "_Color": arguments.AlbedoColor = color; break;
-                            case "_EmissionColor": arguments.EmissiveColor = color; break;
+                            case "_EmissionColor": if (arguments.HasEmission) arguments.EmissiveColor = color; break;
                         }
                         break;
                     }
@@ -238,7 +242,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         var value = material.GetFloat(propertyName);
                         switch (propertyName)
                         {
-                            case "_BumpScale": break;
+                            case "_BumpScale": arguments.BumpScale = value; break;
                             case "_DetailNormalMapScale": break;
                             case "_DstBlend": break;
                             case "_GlossyReflections": break;
@@ -256,7 +260,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                         var value = material.GetFloat(propertyName);
                         switch (propertyName)
                         {
-                            case "_Cutoff": break;
+                            case "_Cutoff": arguments.Cutoff = value; break;
                             case "_GlossMapScale": break;
                             case "_Glossiness": arguments.Glossiness = value; break;
                             case "_Metallic": arguments.Metallic = value; break;
