@@ -5,36 +5,30 @@ using UnityEngine;
 
 namespace Urho3DExporter
 {
-    public class ExportOptions: EditorWindow
+    public class ExportOptions : EditorWindow
     {
         private static readonly string _dataPathKey = "Urho3DExporter.DataPath";
         private static readonly string _overrideKey = "Urho3DExporter.Override";
         private static readonly string _selectedKey = "Urho3DExporter.Selected";
-        string _exportFolder = "";
+        private string _exportFolder = "";
         private bool _override = true;
         private bool _selected = true;
 
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
-        static void Init()
+        private static void Init()
         {
-            ExportOptions window = (ExportOptions)EditorWindow.GetWindow(typeof(ExportOptions));
+            var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
         }
 
-        void OnGUI()
+        private void OnGUI()
         {
-            if (string.IsNullOrWhiteSpace(_exportFolder))
-            {
-                PickFolder();
-            }
+            if (string.IsNullOrWhiteSpace(_exportFolder)) PickFolder();
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
-            if (GUILayout.Button("Pick"))
-            {
-                PickFolder();
-            }
+            if (GUILayout.Button("Pick")) PickFolder();
             _override = EditorGUILayout.Toggle("Override existing files", _override);
 
-            bool selected = false;
+            var selected = false;
             if (Selection.assetGUIDs.Length != 0)
             {
                 _selected = EditorGUILayout.Toggle("Export selected assets", _selected);
@@ -42,13 +36,11 @@ namespace Urho3DExporter
             }
 
             if (!string.IsNullOrWhiteSpace(_exportFolder))
-            {
                 if (GUILayout.Button("Export"))
                 {
                     ExportAssets.ExportToUrho(_exportFolder, _override, selected);
-                    this.Close();
+                    Close();
                 }
-            }
 
             //EditorGUILayout.BeginHorizontal();
             //EditorGUILayout.EndHorizontal();
@@ -65,9 +57,11 @@ namespace Urho3DExporter
             }
             else
             {
-                if (exportFolder.StartsWith(Path.GetDirectoryName(Application.dataPath).FixDirectorySeparator(), StringComparison.InvariantCultureIgnoreCase))
+                if (exportFolder.StartsWith(Path.GetDirectoryName(Application.dataPath).FixDirectorySeparator(),
+                    StringComparison.InvariantCultureIgnoreCase))
                 {
-                    EditorUtility.DisplayDialog("Error", "Selected path is inside Unity folder. Please select a different folder.", "Ok");
+                    EditorUtility.DisplayDialog("Error",
+                        "Selected path is inside Unity folder. Please select a different folder.", "Ok");
                     goto retry;
                 }
 
@@ -76,7 +70,7 @@ namespace Urho3DExporter
             }
         }
 
-        void OnFocus()
+        private void OnFocus()
         {
             LoadConfig();
         }
@@ -91,7 +85,7 @@ namespace Urho3DExporter
                 _selected = EditorPrefs.GetBool(_selectedKey);
         }
 
-        void OnLostFocus()
+        private void OnLostFocus()
         {
             SaveConfig();
         }
@@ -103,7 +97,7 @@ namespace Urho3DExporter
             EditorPrefs.SetBool(_selectedKey, _selected);
         }
 
-        void OnDestroy()
+        private void OnDestroy()
         {
             SaveConfig();
         }

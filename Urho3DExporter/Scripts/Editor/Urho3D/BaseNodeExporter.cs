@@ -3,11 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.ExceptionServices;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Xml;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -19,32 +15,94 @@ namespace Urho3DExporter
 
         private int _id;
 
-        public class Element:IDisposable
-        {
-            private XmlWriter _writer;
-
-            public Element(XmlWriter writer)
-            {
-                this._writer = writer;
-            }
-
-            public static IDisposable Start(XmlWriter writer, string localName)
-            {
-                writer.WriteStartElement(localName);
-                return new Element(writer);
-
-            }
-
-            public void Dispose()
-            {
-                _writer.WriteEndElement();
-            }
-        }
-
         public BaseNodeExporter(AssetCollection assets)
         {
             _assets = assets;
         }
+
+        public static string Format(Color pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.r, pos.g, pos.b, pos.a);
+        }
+
+        public static string FormatRGB(Color pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", pos.r, pos.g, pos.b);
+        }
+
+        public static string Format(float pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}", pos);
+        }
+
+        public static string Format(Vector4 pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
+        }
+
+        private static (float min, float max, Vector2 size) WriteHeightMap(AssetContext asset, string heightmapFileName,
+            Terrain terrain)
+        {
+            var w = terrain.terrainData.heightmapResolution;
+            var h = terrain.terrainData.heightmapResolution;
+            var max = float.MinValue;
+            var min = float.MaxValue;
+            var heights = terrain.terrainData.GetHeights(0, 0, w, h);
+            foreach (var height in heights)
+            {
+                if (height > max) max = height;
+                if (height < min) min = height;
+            }
+
+            if (max < min)
+            {
+                max = 1;
+                min = 0;
+            }
+            else if (max == min)
+            {
+                max = min + 0.1f;
+            }
+
+            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName))
+            {
+                if (imageFile != null)
+                    using (var binaryWriter = new BinaryWriter(imageFile))
+                    {
+                        WriteTgaHeader(binaryWriter, 32, w, h);
+                        for (var y = h - 1; y >= 0; --y)
+                        for (var x = 0; x < w; ++x)
+                        {
+                            var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
+                            var msb = (byte) height;
+                            var lsb = (byte) ((height - msb) * 255.0f);
+                            binaryWriter.Write((byte) 0); //B - none
+                            binaryWriter.Write(lsb); //G - LSB
+                            binaryWriter.Write(msb); //R - MSB
+                            binaryWriter.Write((byte) 255); //A - none
+                        }
+                    }
+            }
+
+            return (min, max, new Vector2(w, h));
+        }
+
+        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
+        {
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) (bitsPerPixel == 8 ? 3 : 2));
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) w);
+            binaryWriter.Write((short) h);
+            binaryWriter.Write((byte) bitsPerPixel);
+            binaryWriter.Write((byte) 0);
+        }
+
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, float pos)
         {
             WriteAttribute(writer, prefix, name, string.Format(CultureInfo.InvariantCulture, "{0}", pos));
@@ -70,35 +128,6 @@ namespace Urho3DExporter
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, Color pos)
         {
             WriteAttribute(writer, prefix, name, Format(pos));
-        }
-
-        public static string Format(Color pos)
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.r, pos.g, pos.b, pos.a);
-        }
-
-        public static string FormatRGB(Color pos)
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", pos.r, pos.g, pos.b);
-        }
-        public static string Format(float pos)
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0}", pos);
-        }
-
-        public static string Format(Vector4 pos)
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
-        }
-
-        private void WriteAttribute(XmlWriter writer, string prefix, string name, bool flag)
-        {
-            WriteAttribute(writer, prefix, name, flag ? "true" : "false");
-        }
-
-        private void WriteAttribute(XmlWriter writer, string prefix, string name, int flag)
-        {
-            WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
         }
 
         protected void EndElement(XmlWriter writer, string prefix)
@@ -224,13 +253,12 @@ namespace Urho3DExporter
             {
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
-                    foreach (var renderer in lod.renderers)
-                        localExcludeList.Add(renderer);
+                foreach (var renderer in lod.renderers)
+                    localExcludeList.Add(renderer);
                 //lods[0].renderers
             }
 
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
-            {
                 if (meshFilter != null)
                 {
                     StartCompoent(writer, subPrefix, "StaticModel");
@@ -238,9 +266,7 @@ namespace Urho3DExporter
                     var sharedMesh = meshFilter.sharedMesh;
                     string meshPath;
                     if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
-                    {
                         WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
-                    }
 
                     var materials = "Material";
                     foreach (var material in meshRenderer.sharedMaterials)
@@ -257,7 +283,6 @@ namespace Urho3DExporter
 
                     EndElement(writer, subPrefix);
                 }
-            }
 
             if (skinnedMeshRenderer != null && !localExcludeList.Contains(skinnedMeshRenderer))
             {
@@ -266,9 +291,7 @@ namespace Urho3DExporter
                 var sharedMesh = skinnedMeshRenderer.sharedMesh;
                 string meshPath;
                 if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
-                {
                     WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
-                }
 
                 var materials = "Material";
                 foreach (var material in skinnedMeshRenderer.sharedMaterials)
@@ -300,7 +323,18 @@ namespace Urho3DExporter
             writer.WriteWhitespace("\n");
         }
 
-        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain, string subPrefix,
+        private void WriteAttribute(XmlWriter writer, string prefix, string name, bool flag)
+        {
+            WriteAttribute(writer, prefix, name, flag ? "true" : "false");
+        }
+
+        private void WriteAttribute(XmlWriter writer, string prefix, string name, int flag)
+        {
+            WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain,
+            string subPrefix,
             string subSubPrefix)
         {
             if (terrain == null) return;
@@ -316,83 +350,33 @@ namespace Urho3DExporter
             var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
             var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
 
-            (float min, float max, Vector2 size) = WriteHeightMap(asset, heightmapFileName, terrain);
+            var (min, max, size) = WriteHeightMap(asset, heightmapFileName, terrain);
 
-            WriteAttribute(writer, subPrefix, "Position", new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
+            WriteAttribute(writer, subPrefix, "Position",
+                new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
 
             StartCompoent(writer, subPrefix, "Terrain");
 
             WriteAttribute(writer, subSubPrefix, "Height Map", "Image;" + heightmapFileName);
             WriteAttribute(writer, subSubPrefix, "Material", "Material;" + materialFileName);
-            WriteTerrainMaterial(terrain, asset, materialFileName, "Textures/Terrains/" + folderAndName + ".Weights.tga");
+            WriteTerrainMaterial(terrain, asset, materialFileName,
+                "Textures/Terrains/" + folderAndName + ".Weights.tga");
             WriteAttribute(writer, subSubPrefix, "Vertex Spacing",
-                new Vector3(terrainSize.x / size.x, 2.0f*(max - min), terrainSize.z / size.y));
+                new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
             EndElement(writer, subPrefix);
             EndElement(writer, subPrefix);
         }
 
-        private static (float min, float max, Vector2 size) WriteHeightMap(AssetContext asset, string heightmapFileName, Terrain terrain)
+        private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath,
+            string weightsTextureName)
         {
-            var w = terrain.terrainData.heightmapResolution;
-            var h = terrain.terrainData.heightmapResolution;
-            var max = float.MinValue;
-            var min = float.MaxValue;
-            var heights = terrain.terrainData.GetHeights(0, 0, w, h);
-            foreach (var height in heights)
-            {
-                if (height > max) max = height;
-                if (height < min) min = height;
-            }
-
-            if (max < min)
-            {
-                max = 1;
-                min = 0;
-            }
-            else if (max == min)
-            {
-                max = min + 0.1f;
-            }
-
-            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName))
-            {
-                if (imageFile != null)
-                {
-                    using (var binaryWriter = new BinaryWriter(imageFile))
-                    {
-                        WriteTgaHeader(binaryWriter, 32, w, h);
-                        for (int y = h - 1; y >= 0; --y)
-                        {
-                            for (int x = 0; x < w; ++x)
-                            {
-                                var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
-                                var msb = (byte) height;
-                                var lsb = (byte) ((height - msb) * 255.0f);
-                                binaryWriter.Write((byte) 0); //B - none
-                                binaryWriter.Write((byte) lsb); //G - LSB
-                                binaryWriter.Write((byte) msb); //R - MSB
-                                binaryWriter.Write((byte) 255); //A - none
-                            }
-                        }
-                    }
-                }
-            }
-
-            return (min, max, new Vector2(w, h));
-        }
-
-        private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath, string weightsTextureName)
-        {
-            using (XmlTextWriter writer = asset.DestinationFolder.CreateXml(materialPath))
+            using (var writer = asset.DestinationFolder.CreateXml(materialPath))
             {
                 if (writer == null)
                     return;
 
                 var layers = terrain.terrainData.terrainLayers;
-                if (layers.Length > 3)
-                {
-                    layers = layers.Take(3).ToArray();
-                }
+                if (layers.Length > 3) layers = layers.Take(3).ToArray();
 
                 writer.WriteStartDocument();
                 writer.WriteStartElement("material");
@@ -412,23 +396,23 @@ namespace Urho3DExporter
 
                     WriteTerrainWeightsTexture(asset, weightsTextureName, terrain);
                 }
-                for (int layerIndex=0; layerIndex<layers.Length; ++layerIndex)
+                for (var layerIndex = 0; layerIndex < layers.Length; ++layerIndex)
                 {
                     var layer = layers[layerIndex];
-                    
+
                     writer.WriteStartElement("texture");
-                    writer.WriteAttributeString("unit", (layerIndex+1).ToString(CultureInfo.InvariantCulture));
+                    writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
                     if (layer.diffuseTexture != null)
                     {
                         string urhoAssetName;
                         if (_assets.TryGetTexturePath(layer.diffuseTexture, out urhoAssetName))
-                        {
                             writer.WriteAttributeString("name", urhoAssetName);
-                        }
                     }
+
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
                 }
+
                 {
                     writer.WriteStartElement("parameter");
                     writer.WriteAttributeString("name", "MatSpecColor");
@@ -453,8 +437,8 @@ namespace Urho3DExporter
             var layers = terrain.terrainData.terrainLayers;
             var w = terrain.terrainData.alphamapWidth;
             var h = terrain.terrainData.alphamapHeight;
-            float[,,] alphamaps = terrain.terrainData.GetAlphamaps(0, 0, w, h);
-            int numAlphamaps = alphamaps.GetLength(2);
+            var alphamaps = terrain.terrainData.GetAlphamaps(0, 0, w, h);
+            var numAlphamaps = alphamaps.GetLength(2);
 
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
@@ -467,49 +451,50 @@ namespace Urho3DExporter
                 {
                     var weights = new byte[4];
                     weights[3] = 255;
-                    WriteTgaHeader(binaryWriter, weights.Length*8, w, h);
-                    for (int y = h - 1; y >= 0; --y)
+                    WriteTgaHeader(binaryWriter, weights.Length * 8, w, h);
+                    for (var y = h - 1; y >= 0; --y)
+                    for (var x = 0; x < w; ++x)
                     {
-                        for (int x = 0; x < w; ++x)
-                        {
-                            int sum = 0;
-                            for (int i = 0; i < weights.Length; ++i)
+                        var sum = 0;
+                        for (var i = 0; i < weights.Length; ++i)
+                            if (numAlphamaps > i && layers.Length > i)
                             {
-                                if (numAlphamaps > i && layers.Length > i)
-                                {
-                                    var weight = (byte) (alphamaps[h-y-1, x, i] * 255.0f);
-                                    sum += weight;
-                                    weights[i] = weight;
-                                }
+                                var weight = (byte) (alphamaps[h - y - 1, x, i] * 255.0f);
+                                sum += weight;
+                                weights[i] = weight;
                             }
 
-                            if (sum == 0)
-                                weights[0] = 255;
+                        if (sum == 0)
+                            weights[0] = 255;
 
-                            binaryWriter.Write((byte)weights[2]); //B
-                            binaryWriter.Write((byte)weights[1]); //G
-                            binaryWriter.Write((byte)weights[0]); //R
-                            binaryWriter.Write((byte)weights[3]); //A
-                        }
+                        binaryWriter.Write(weights[2]); //B
+                        binaryWriter.Write(weights[1]); //G
+                        binaryWriter.Write(weights[0]); //R
+                        binaryWriter.Write(weights[3]); //A
                     }
                 }
             }
         }
 
-        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
+        public class Element : IDisposable
         {
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((byte) (bitsPerPixel == 8 ? 3 : 2));
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) w);
-            binaryWriter.Write((short) h);
-            binaryWriter.Write((byte) bitsPerPixel);
-            binaryWriter.Write((byte) 0);
+            private readonly XmlWriter _writer;
+
+            public Element(XmlWriter writer)
+            {
+                _writer = writer;
+            }
+
+            public static IDisposable Start(XmlWriter writer, string localName)
+            {
+                writer.WriteStartElement(localName);
+                return new Element(writer);
+            }
+
+            public void Dispose()
+            {
+                _writer.WriteEndElement();
+            }
         }
     }
 }

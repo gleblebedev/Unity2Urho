@@ -3,8 +3,10 @@
     public enum TextureSemantic
     {
         Other,
-        MetallicGlossiness,
-        SpecularGlossiness,
+        PBRBaseColor,
+        PBRDiffuse,
+        PBRMetallicGlossiness,
+        PBRSpecularGlossiness,
         MainTexture,
         MainTextureDetail,
         Specular,
@@ -13,6 +15,6 @@
         Detail,
         DetailNormal,
         Emission,
-        Parallax,
+        Parallax
     }
 }

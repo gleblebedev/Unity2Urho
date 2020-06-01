@@ -2,12 +2,11 @@
 using System.Text;
 using System.Xml;
 using UnityEditor;
-using UnityEngine;
 
 namespace Urho3DExporter
 {
     /// <summary>
-    /// Destination folder helper.
+    ///     Destination folder helper.
     /// </summary>
     public class DestinationFolder
     {
@@ -24,6 +23,11 @@ namespace Urho3DExporter
             _overrideFiles = overrideFiles;
         }
 
+        public override string ToString()
+        {
+            return _folder;
+        }
+
         public void CopyFile(string sourceFilePath, string destinationFilePath)
         {
             if (destinationFilePath == null)
@@ -32,24 +36,16 @@ namespace Urho3DExporter
             if (File.Exists(targetPath))
             {
                 if (!_overrideFiles.HasValue)
-                {
-                    _overrideFiles = EditorUtility.DisplayDialog("File already exists", "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
-                }
+                    _overrideFiles = EditorUtility.DisplayDialog("File already exists",
+                        "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
 
-                if (!_overrideFiles.Value)
-                {
-                    return;
-                }
+                if (!_overrideFiles.Value) return;
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);
-            if (directoryName != null)
-            {
-                Directory.CreateDirectory(directoryName);
-            }
+            if (directoryName != null) Directory.CreateDirectory(directoryName);
 
             File.Copy(sourceFilePath, targetPath, true);
-
         }
 
         public FileStream Create(string relativePath)
@@ -61,28 +57,16 @@ namespace Urho3DExporter
             if (File.Exists(targetPath))
             {
                 if (!_overrideFiles.HasValue)
-                {
-                    _overrideFiles = EditorUtility.DisplayDialog("File already exists", "Destination file "+ targetPath + " already exist.", "Override all", "Skip all");
-                }
+                    _overrideFiles = EditorUtility.DisplayDialog("File already exists",
+                        "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
 
-                if (!_overrideFiles.Value)
-                {
-                    return null;
-                }
+                if (!_overrideFiles.Value) return null;
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);
-            if (directoryName != null)
-            {
-                Directory.CreateDirectory(directoryName);
-            }
+            if (directoryName != null) Directory.CreateDirectory(directoryName);
 
             return File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
-        }
-
-        public override string ToString()
-        {
-            return _folder;
         }
 
         public XmlTextWriter CreateXml(string relativePath)
@@ -92,7 +76,5 @@ namespace Urho3DExporter
                 return null;
             return new XmlTextWriter(fileStream, new UTF8Encoding(false));
         }
-
-     
     }
 }

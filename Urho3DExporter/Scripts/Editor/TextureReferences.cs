@@ -1,5 +1,4 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Urho3DExporter.Scripts.Editor
 {
@@ -15,16 +14,19 @@ namespace Assets.Urho3DExporter.Scripts.Editor
             Semantic = semantic;
             Scale = 1.0f;
             SmoothnessSource = null;
-            SmoothnessTextureChannel = (SmoothnessTextureChannel)0;
+            SmoothnessTextureChannel = 0;
         }
+
         public TextureReferences(TextureSemantic semantic, float scale)
         {
             Semantic = semantic;
             Scale = scale;
             SmoothnessSource = null;
-            SmoothnessTextureChannel = (SmoothnessTextureChannel)0;
+            SmoothnessTextureChannel = 0;
         }
-        public TextureReferences(TextureSemantic semantic, float scale, Texture source, SmoothnessTextureChannel smoothnessTextureChannel)
+
+        public TextureReferences(TextureSemantic semantic, float scale, Texture source,
+            SmoothnessTextureChannel smoothnessTextureChannel)
         {
             Semantic = semantic;
             Scale = scale;

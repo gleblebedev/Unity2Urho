@@ -9,12 +9,28 @@ namespace Urho3DExporter
 {
     public class AssetContext
     {
+        private static readonly HashSet<string> _supported3DFormats = new HashSet<string>
+        {
+            ".fbx",
+            ".obj",
+            ".dae",
+            ".3ds",
+            ".dxf",
+            ".max",
+            ".ma",
+            ".mb",
+            ".blend"
+        };
+
+        private string _contentFolderName;
+        private string _urhoFileName;
+        private string _fullPath;
         public string UrhoAssetName { get; private set; }
 
         public string FullPath
         {
-            get { return _fullPath; }
-            private set { _fullPath = value.FixDirectorySeparator(); }
+            get => _fullPath;
+            private set => _fullPath = value.FixDirectorySeparator();
         }
 
         public string RelPath { get; private set; }
@@ -27,28 +43,15 @@ namespace Urho3DExporter
 
         public string ContentFolderName
         {
-            get { return _contentFolderName; }
-            private set { _contentFolderName = value.FixDirectorySeparator(); }
+            get => _contentFolderName;
+            private set => _contentFolderName = value.FixDirectorySeparator();
         }
 
         public bool Is3DAsset { get; private set; }
 
-        private static readonly HashSet<string> _supported3DFormats = new HashSet<string>()
-        {
-            ".fbx",
-            ".obj",
-            ".dae",
-            ".3ds",
-            ".dxf",
-            ".max",
-            ".ma",
-            ".mb",
-            ".blend",
-        };
+        public DestinationFolder DestinationFolder { get; set; }
 
-        private string _contentFolderName;
-        private string _urhoFileName;
-        private string _fullPath;
+        public string FileExtension { get; private set; }
 
         public static AssetContext Create(string guid, DestinationFolder urhoDataFolder)
         {
@@ -64,7 +67,7 @@ namespace Urho3DExporter
                 if (res.RelPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
                     res.RelPath = res.RelPath.Substring("Assets/".Length);
                 res.FullPath = Path.Combine(Application.dataPath, res.RelPath);
-                res.FileExtension = System.IO.Path.GetExtension(res.AssetPath).ToLower();
+                res.FileExtension = Path.GetExtension(res.AssetPath).ToLower();
                 res.UrhoAssetName = res.RelPath;
                 if (res.Type == typeof(Material))
                 {
@@ -84,18 +87,15 @@ namespace Urho3DExporter
                 {
                     res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
                 }
+
                 res.DestinationFolder = urhoDataFolder;
                 {
                     var dotIndex = res.UrhoAssetName.LastIndexOf('.');
                     var lastSlash = res.UrhoAssetName.LastIndexOf('/');
                     if (dotIndex > lastSlash)
-                    {
                         res.ContentFolderName = res.UrhoAssetName.Substring(0, dotIndex);
-                    }
                     else
-                    {
                         res.ContentFolderName = res.UrhoAssetName + ".Content";
-                    }
                 }
             }
 
@@ -105,20 +105,14 @@ namespace Urho3DExporter
         private static bool DetectMeshAsset(AssetContext res)
         {
             if (string.Equals(res.FileExtension, ".asset", StringComparison.InvariantCultureIgnoreCase))
-            {
-                if (res.Type == typeof(UnityEngine.Mesh))
+                if (res.Type == typeof(Mesh))
                     return true;
-            }
             return _supported3DFormats.Contains(res.FileExtension);
         }
 
-        public DestinationFolder DestinationFolder { get; set; }
-
-        public string FileExtension { get; private set; }
-
         private static string RepaceExtension(string resUrhoAssetName, string newExt)
         {
-            var ext = System.IO.Path.GetExtension(resUrhoAssetName);
+            var ext = Path.GetExtension(resUrhoAssetName);
             return resUrhoAssetName.Substring(0, resUrhoAssetName.Length - ext.Length) + newExt;
         }
 
@@ -126,10 +120,10 @@ namespace Urho3DExporter
         {
             return DestinationFolder.CreateXml(UrhoAssetName);
         }
+
         public FileStream Create()
         {
             return DestinationFolder.Create(UrhoAssetName);
         }
-
     }
 }

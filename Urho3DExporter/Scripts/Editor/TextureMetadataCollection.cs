@@ -9,9 +9,11 @@ namespace Urho3DExporter
     public class TextureMetadataCollection
     {
         public Dictionary<Texture, TextureMetadata> _textures = new Dictionary<Texture, TextureMetadata>();
+
         public TextureMetadataCollection(DestinationFolder urhoDataFolder)
         {
-            var allMaterials = AssetDatabase.FindAssets("").Select(_=>AssetContext.Create(_, urhoDataFolder)).Where(_=>_.Type == typeof(Material));
+            var allMaterials = AssetDatabase.FindAssets("").Select(_ => AssetContext.Create(_, urhoDataFolder))
+                .Where(_ => _.Type == typeof(Material));
             foreach (var asset in allMaterials)
             {
                 var material = AssetDatabase.LoadAssetAtPath<Material>(asset.AssetPath);
@@ -21,26 +23,39 @@ namespace Urho3DExporter
                     var metallicRoughness = description.MetallicRoughness;
                     if (metallicRoughness.MetallicGloss != null)
                     {
-                        var meta = AddTexture(metallicRoughness.MetallicGloss, new TextureReferences(TextureSemantic.MetallicGlossiness, 1.0f,
-                            (metallicRoughness.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
+                        var meta = AddTexture(metallicRoughness.MetallicGloss, new TextureReferences(
+                            TextureSemantic.PBRMetallicGlossiness, 1.0f,
+                            metallicRoughness.SmoothnessTextureChannel ==
+                            SmoothnessTextureChannel.MetallicOrSpecularAlpha
                                 ? metallicRoughness.MetallicGloss
-                                : metallicRoughness.Albedo, metallicRoughness.SmoothnessTextureChannel));
+                                : metallicRoughness.BaseColor, metallicRoughness.SmoothnessTextureChannel));
                     }
-                    AddTexture(metallicRoughness.Albedo, new TextureReferences(TextureSemantic.MainTexture));
-                    AddTexture(metallicRoughness.Albedo, new TextureReferences(TextureSemantic.MainTextureDetail));
+
+                    AddTexture(metallicRoughness.BaseColor, new TextureReferences(TextureSemantic.PBRBaseColor));
+                    AddTexture(metallicRoughness.DetailBaseColor,
+                        new TextureReferences(TextureSemantic.MainTextureDetail));
                 }
                 else if (description.SpecularGlossiness != null)
                 {
                     var specularGlossiness = description.SpecularGlossiness;
                     if (specularGlossiness.PBRSpecular != null)
                     {
-                        var meta = AddTexture(specularGlossiness.PBRSpecular, new TextureReferences(TextureSemantic.SpecularGlossiness, 1.0f,
-                            (specularGlossiness.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
-                                ? specularGlossiness.PBRSpecular
-                                : specularGlossiness.Albedo, specularGlossiness.SmoothnessTextureChannel));
+                        AddTexture(specularGlossiness.PBRSpecular, new TextureReferences(
+                            TextureSemantic.PBRSpecularGlossiness, 1.0f,
+                            specularGlossiness.Diffuse, specularGlossiness.SmoothnessTextureChannel));
+                        AddTexture(specularGlossiness.Diffuse,
+                            new TextureReferences(TextureSemantic.PBRDiffuse, 1.0f, specularGlossiness.PBRSpecular,
+                                specularGlossiness.SmoothnessTextureChannel));
                     }
-                    AddTexture(specularGlossiness.Albedo, new TextureReferences(TextureSemantic.MainTexture));
-                    AddTexture(specularGlossiness.Albedo, new TextureReferences(TextureSemantic.MainTextureDetail));
+                    else
+                    {
+                        AddTexture(specularGlossiness.Diffuse,
+                            new TextureReferences(TextureSemantic.PBRDiffuse, 1.0f, specularGlossiness.PBRSpecular,
+                                specularGlossiness.SmoothnessTextureChannel));
+                    }
+
+                    AddTexture(specularGlossiness.DetailDiffuse,
+                        new TextureReferences(TextureSemantic.MainTextureDetail));
                 }
                 else
                 {
@@ -50,6 +65,15 @@ namespace Urho3DExporter
                     AddCommonTextures(legacy);
                 }
             }
+        }
+
+        public IEnumerable<TextureReferences> ResolveReferences(Texture texture)
+        {
+            if (_textures.TryGetValue(texture, out var references))
+                foreach (var reference in references.References)
+                    yield return reference;
+            else
+                yield return new TextureReferences(TextureSemantic.Other);
         }
 
         private void AddCommonTextures(ShaderArguments legacy)
@@ -68,7 +92,7 @@ namespace Urho3DExporter
                 return null;
             if (_textures.TryGetValue(tex, out var meta))
                 return meta;
-            meta = new TextureMetadata(){Texture = tex};
+            meta = new TextureMetadata {Texture = tex};
             _textures.Add(tex, meta);
             return meta;
         }
@@ -79,21 +103,6 @@ namespace Urho3DExporter
             if (meta == null)
                 return false;
             return meta.References.Add(reference);
-        }
-
-        public IEnumerable<TextureReferences> ResolveReferences(Texture texture)
-        {
-            if (_textures.TryGetValue(texture, out var references))
-            {
-                foreach (var reference in references.References)
-                {
-                    yield return reference;
-                }
-            }
-            else
-            {
-                yield return new TextureReferences(TextureSemantic.Other);
-            }
         }
     }
 }

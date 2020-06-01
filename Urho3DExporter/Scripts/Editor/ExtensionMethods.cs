@@ -2,7 +2,7 @@
 
 namespace Urho3DExporter
 {
-    static class ExtensionMethods
+    internal static class ExtensionMethods
     {
         internal static string FixDirectorySeparator(this string path)
         {
@@ -12,6 +12,7 @@ namespace Urho3DExporter
                 return path.Replace('\\', Path.DirectorySeparatorChar);
             return path.Replace('/', Path.DirectorySeparatorChar);
         }
+
         internal static string FixAssetSeparator(this string path)
         {
             if (path == null)
