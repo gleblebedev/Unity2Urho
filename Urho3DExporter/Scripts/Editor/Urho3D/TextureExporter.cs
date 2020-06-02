@@ -100,7 +100,7 @@ namespace Urho3DExporter
             var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
             if (tImporter != null)
             {
-                tImporter.textureType = TextureImporterType.Advanced;
+                tImporter.textureType = TextureImporterType.Default;
                 if (tImporter.isReadable != true)
                 {
                     tImporter.isReadable = true;
@@ -122,24 +122,27 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var specWidth = specularGlossiness?.width ?? 1;
-                    var specHeight = specularGlossiness?.height ?? 1;
-                    var smoothnessColors = specularGlossiness?.GetPixels32(0) ?? new[] {new Color32(0, 0, 0, 255)};
-                    var width = Math.Max(diffuse.width, specWidth);
-                    var height = Math.Max(diffuse.height, specHeight);
-                    var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                    tmpTexture.hideFlags = HideFlags.HideAndDontSave;
-
-                    var diffuseColors = diffuse.GetPixels32(0);
-                    var pixels = new Color32[width * height];
+                    var tmpTexture = CreateTargetTexture(diffuse, specularGlossiness);
+                    var specularColors = new PixelSource(specularGlossiness, tmpTexture.width, tmpTexture.height, Color.black);
+                    var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
+                    var smoothnessSource =
+                        reference.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
+                            ? specularColors
+                            : diffuseColors;
+                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
                     var index = 0;
-                    for (var y = 0; y < height; ++y)
-                    for (var x = 0; x < width; ++x)
+                    for (var y = 0; y < tmpTexture.height; ++y)
+                    for (var x = 0; x < tmpTexture.width; ++x)
                     {
-                        var specular = Get(smoothnessColors, specWidth, specHeight, x, y, width, height);
-                        var diffuseColor = Get(diffuseColors, diffuse.width, diffuse.height, x, y, width, height);
-                        pixels[index] = new Color(diffuseColor.r + specular.r, diffuseColor.g + specular.g,
-                            diffuseColor.b + specular.b, diffuseColor.a);
+                        var diffuseColor = diffuseColors.GetAt(x, y);
+                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness()
+                        {
+                            diffuse = diffuseColor,
+                            specular = specularColors.GetAt(x, y),
+                            glossiness = smoothnessSource.GetAt(x, y).a,
+                            opacity = diffuseColor.a,
+                        });
+                        pixels[index] = new Color(mr.baseColor.r, mr.baseColor.g, mr.baseColor.b, mr.opacity);
                         ++index;
                     }
 
@@ -150,6 +153,69 @@ namespace Urho3DExporter
             }
         }
 
+        struct PixelSource
+        {
+            private Color[] _colors;
+            private int _texWidth;
+            private int _texHeight;
+            private int _targetWidth;
+            private int _targetHeight;
+
+            public PixelSource(
+                Color[] colors,
+                int texWidth,
+                int texHeight,
+                int targetWidth,
+                int targetHeight)
+            {
+                _colors = colors;
+                _texWidth = texWidth;
+                _texHeight = texHeight;
+                _targetWidth = targetWidth;
+                _targetHeight = targetHeight;
+            }
+            public PixelSource(
+                Texture2D texture,
+                int targetWidth,
+                int targetHeight)
+            {
+                _colors = texture.GetPixels(0);
+                _texWidth = texture.width;
+                _texHeight = texture.height;
+                _targetWidth = targetWidth;
+                _targetHeight = targetHeight;
+            }
+            public PixelSource(
+                Texture2D texture,
+                int targetWidth,
+                int targetHeight,
+                Color defaultColor)
+            {
+                if (texture != null)
+                {
+                    _colors = texture.GetPixels(0);
+                    _texWidth = texture.width;
+                    _texHeight = texture.height;
+                }
+                else
+                {
+                    _colors = new Color[]{defaultColor};
+                    _texWidth = 1;
+                    _texHeight = 1;
+                }
+
+                _targetWidth = targetWidth;
+                _targetHeight = targetHeight;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Color GetAt(int x, int y)
+            {
+                var xx = x * _texWidth / _targetWidth;
+                var yy = y * _texHeight / _targetHeight;
+                return _colors[xx + yy * _texWidth];
+            }
+        }
         private void TransformMetallicGlossiness(AssetContext asset, Texture texture, TextureReferences reference)
         {
             var metallicGloss = texture as Texture2D;
@@ -162,23 +228,19 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var width = Math.Max(metallicGloss.width, smoothnessSource.width);
-                    var height = Math.Max(metallicGloss.height, smoothnessSource.height);
-                    var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                    tmpTexture.hideFlags = HideFlags.HideAndDontSave;
+                    var tmpTexture = CreateTargetTexture(metallicGloss, reference.SmoothnessSource as Texture2D);
 
-                    var metallicColors = metallicGloss.GetPixels32(0);
+                    var metallicColors = new PixelSource(metallicGloss, tmpTexture.width, tmpTexture.height, new Color(0,0,0,0));
                     var smoothnessColors = metallicGloss == smoothnessSource
                         ? metallicColors
-                        : smoothnessSource.GetPixels32(0);
-                    var pixels = new Color32[width * height];
+                        : new PixelSource(smoothnessSource, tmpTexture.width, tmpTexture.height, new Color(0,0,0,0));
+                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
                     var index = 0;
-                    for (var y = 0; y < height; ++y)
-                    for (var x = 0; x < width; ++x)
+                    for (var y = 0; y < tmpTexture.height; ++y)
+                    for (var x = 0; x < tmpTexture.width; ++x)
                     {
-                        var r = 1.0f - Get(smoothnessColors, smoothnessSource.width, smoothnessSource.height, x, y,
-                                    width, height).a;
-                        var m = Get(metallicColors, metallicGloss.width, metallicGloss.height, x, y, width, height).r;
+                        var r = 1.0f - smoothnessColors.GetAt(x, y).a;
+                        var m = metallicColors.GetAt(x, y).r;
                         pixels[index] = new Color(r, m, 0, 1);
                         ++index;
                     }
@@ -206,28 +268,25 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var width = Math.Max(specularGloss.width, smoothnessSource.width);
-                    var height = Math.Max(specularGloss.height, smoothnessSource.height);
-                    var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-                    tmpTexture.hideFlags = HideFlags.HideAndDontSave;
-
-                    var metallicColors = specularGloss.GetPixels32(0);
-                    var diffuseColors = diffuse.GetPixels32(0);
+                    var tmpTexture = CreateTargetTexture(specularGloss, diffuse);
+                    var specularColors = new PixelSource(specularGloss, tmpTexture.width, tmpTexture.height, Color.black);
+                    var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
                     var smoothnessColors = specularGloss == smoothnessSource
-                        ? metallicColors
-                        : smoothnessSource.GetPixels32(0);
-                    var pixels = new Color32[width * height];
+                        ? specularColors
+                        : diffuseColors;
+                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
                     var index = 0;
-                    for (var y = 0; y < height; ++y)
-                    for (var x = 0; x < width; ++x)
+                    for (var y = 0; y < tmpTexture.height; ++y)
+                    for (var x = 0; x < tmpTexture.width; ++x)
                     {
-                        var r = 1.0f - Get(smoothnessColors, smoothnessSource.width, smoothnessSource.height, x, y,
-                                    width, height).a;
-                        var d = GetLuminance(Get(diffuseColors, diffuse.width, diffuse.height, x, y, width, height));
-                        var s = GetLuminance(Get(metallicColors, specularGloss.width, specularGloss.height, x, y, width,
-                            height));
-                        var m = s / (d + s);
-                        pixels[index] = new Color(r, m, 0, 1);
+                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness()
+                        {
+                            diffuse = diffuseColors.GetAt(x, y),
+                            specular = specularColors.GetAt(x, y),
+                            glossiness = smoothnessColors.GetAt(x, y).a,
+                            opacity = 1.0f,
+                        });
+                        pixels[index] = new Color(mr.roughness, mr.metallic, 0, 1);
                         ++index;
                     }
 
@@ -236,6 +295,25 @@ namespace Urho3DExporter
                     fileStream.Write(bytes, 0, bytes.Length);
                 }
             }
+        }
+
+        private static Texture2D CreateTargetTexture(Texture2D a, Texture2D b)
+        {
+            var width = 1;
+            var height = 1;
+            if (a != null)
+            {
+                if (a.width > width) width = a.width;
+                if (a.height > height) height = a.height;
+            }
+            if (b != null)
+            {
+                if (b.width > width) width = b.width;
+                if (b.height > height) height = b.height;
+            }
+            var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            tmpTexture.hideFlags = HideFlags.HideAndDontSave;
+            return tmpTexture;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
