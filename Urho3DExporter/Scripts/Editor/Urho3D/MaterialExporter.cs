@@ -220,6 +220,10 @@ namespace Urho3DExporter
                 WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.DiffColor));
                 if (arguments.HasEmission)
                     WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
+                if (arguments.AlphaTest)
+                {
+                    WriteAlphaTest(writer);
+                }
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
@@ -348,10 +352,22 @@ namespace Urho3DExporter
                     WriteParameter(writer, "Roughness", BaseNodeExporter.Format(1.0f - arguments.Glossiness));
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(arguments.Metallic));
                 }
-
+                if (arguments.AlphaTest)
+                {
+                    WriteAlphaTest(writer);
+                }
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
+        }
+
+        private static void WriteAlphaTest(XmlTextWriter writer)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("shader");
+            writer.WriteAttributeString("psdefines", "ALPHAMASK");
+            writer.WriteEndElement();
+            writer.WriteWhitespace("\n");
         }
 
 
@@ -486,6 +502,10 @@ namespace Urho3DExporter
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0.0f));
                 }
 
+                if (arguments.AlphaTest)
+                {
+                    WriteAlphaTest(writer);
+                }
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
