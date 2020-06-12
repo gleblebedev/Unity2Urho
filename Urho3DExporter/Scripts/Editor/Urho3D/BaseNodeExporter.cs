@@ -237,8 +237,55 @@ namespace Urho3DExporter
                 {
                     ExportTerrain(writer, obj, asset, terrain, subPrefix);
                 }
+                else if (component is Rigidbody rigidbody)
+                {
+                    StartCompoent(writer, subPrefix, "RigidBody");
+                    WriteAttribute(writer, subSubPrefix, "Physics Position", obj.transform.localPosition);
+                    WriteAttribute(writer, subSubPrefix, "Mass", rigidbody.mass);
+                    EndElement(writer, subPrefix);
+                }
                 else if (component is MeshCollider meshCollider)
                 {
+                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    WriteAttribute(writer, subSubPrefix, "Shape Type", "TriangleMesh");
+                    if (meshCollider.sharedMesh != null)
+                    {
+                        var sharedMesh = meshCollider.sharedMesh;
+                        string meshPath;
+                        if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
+                        {
+                            WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
+                        }
+                    }
+                    EndElement(writer, subPrefix);
+                }
+                else if (component is BoxCollider boxCollider)
+                {
+                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    WriteAttribute(writer, subSubPrefix, "Size", "1 1 1");
+                    EndElement(writer, subPrefix);
+                }
+                else if (component is SphereCollider sphereCollider)
+                {
+                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
+                    EndElement(writer, subPrefix);
+                }
+                else if (component is CapsuleCollider capsuleCollider)
+                {
+                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    if (component.name == "Cylinder")
+                        WriteAttribute(writer, subSubPrefix, "Shape Type", "Cylinder");
+                    else
+                        WriteAttribute(writer, subSubPrefix, "Shape Type", "Capsule");
+                    var d = capsuleCollider.radius * 2.0f;
+                    WriteAttribute(writer, subSubPrefix, "Size", new Vector3(d, capsuleCollider.height, d));
+                    EndElement(writer, subPrefix);
+                }
+                else if (component is Collider collider)
+                {
+                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    EndElement(writer, subPrefix);
                 }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
