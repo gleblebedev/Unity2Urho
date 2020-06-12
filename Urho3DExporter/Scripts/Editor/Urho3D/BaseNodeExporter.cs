@@ -64,7 +64,7 @@ namespace Urho3DExporter
                 max = min + 0.1f;
             }
 
-            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName))
+            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName, DateTime.MaxValue))
             {
                 if (imageFile != null)
                     using (var binaryWriter = new BinaryWriter(imageFile))
@@ -197,65 +197,80 @@ namespace Urho3DExporter
             WriteAttribute(writer, subPrefix, "Rotation", obj.transform.localRotation);
             WriteAttribute(writer, subPrefix, "Scale", obj.transform.localScale);
 
+            foreach (var component in obj.GetComponents<Component>())
+            {
+                if (component is IComponentToExport customComponent)
+                {
+                    ExportCustomComponent(writer, subPrefix, customComponent);
+                }
+                else if (component is Camera camera)
+                {
+                    if (camera != null)
+                    {
+                        StartCompoent(writer, subPrefix, "Camera");
+
+                        WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
+                        WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
+
+                        EndElement(writer, subPrefix);
+                    }
+                }
+                else if (component is Light light)
+                {
+                    if (light != null && light.type != LightType.Area)
+                    {
+                        StartCompoent(writer, subPrefix, "Light");
+                        if (light.type == LightType.Directional)
+                            WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
+                        else if (light.type == LightType.Spot)
+                            WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
+                        else if (light.type == LightType.Point)
+                            WriteAttribute(writer, subSubPrefix, "Range", light.range);
+                        WriteAttribute(writer, subSubPrefix, "Color", light.color);
+                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity);
+                        WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
+
+                        EndElement(writer, subPrefix);
+                    }
+                }
+                else if (component is Terrain terrain)
+                {
+                    ExportTerrain(writer, obj, asset, terrain, subPrefix);
+                }
+                else if (component is MeshCollider meshCollider)
+                {
+                }
+                else if (component is ReflectionProbe reflectionProbe)
+                {
+                    //    StartCompoent(subPrefix, "Zone");
+
+                    //    WriteAttribute(subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
+                    //    WriteAttribute(subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
+                    //    var cubemap = reflectionProbe.bakedTexture as Cubemap;
+                    //    if (cubemap != null)
+                    //    {
+                    //        var name = SaveCubemap(cubemap);
+                    //        WriteAttribute(subSubPrefix, "Zone Texture", "TextureCube;" + name);
+                    //    }
+                    //    EndElement(subPrefix);
+                }
+            }
+
             var meshFilter = obj.GetComponent<MeshFilter>();
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
             var lodGroup = obj.GetComponent<LODGroup>();
-            var meshCollider = obj.GetComponent<MeshCollider>();
-            var terrain = obj.GetComponent<Terrain>();
-            var light = obj.GetComponent<Light>();
-            var camera = obj.GetComponent<Camera>();
-            var reflectionProbe = obj.GetComponent<ReflectionProbe>();
-
-            //if (reflectionProbe != null)
-            //{
-            //    StartCompoent(subPrefix, "Zone");
-
-            //    WriteAttribute(subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
-            //    WriteAttribute(subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
-            //    var cubemap = reflectionProbe.bakedTexture as Cubemap;
-            //    if (cubemap != null)
-            //    {
-            //        var name = SaveCubemap(cubemap);
-            //        WriteAttribute(subSubPrefix, "Zone Texture", "TextureCube;" + name);
-            //    }
-            //    EndElement(subPrefix);
-            //}
-            if (camera != null)
-            {
-                StartCompoent(writer, subPrefix, "Camera");
-
-                WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
-                WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
-
-                EndElement(writer, subPrefix);
-            }
-
-            if (light != null && light.type != LightType.Area)
-            {
-                StartCompoent(writer, subPrefix, "Light");
-                if (light.type == LightType.Directional)
-                    WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
-                else if (light.type == LightType.Spot)
-                    WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
-                else if (light.type == LightType.Point)
-                    WriteAttribute(writer, subSubPrefix, "Range", light.range);
-                WriteAttribute(writer, subSubPrefix, "Color", light.color);
-                WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity);
-                WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
-
-                EndElement(writer, subPrefix);
-            }
-
-            ExportTerrain(writer, obj, asset, terrain, subPrefix, subSubPrefix);
 
             if (lodGroup != null)
             {
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
-                foreach (var renderer in lod.renderers)
-                    localExcludeList.Add(renderer);
-                //lods[0].renderers
+                {
+                    foreach (var renderer in lod.renderers)
+                    {
+                        localExcludeList.Add(renderer);
+                    }
+                }
             }
 
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
@@ -309,10 +324,6 @@ namespace Urho3DExporter
                 EndElement(writer, subPrefix);
             }
 
-            if (meshCollider != null)
-            {
-            }
-
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
                     WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset);
@@ -321,6 +332,19 @@ namespace Urho3DExporter
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private void ExportCustomComponent(XmlWriter writer, string subPrefix, IComponentToExport customComponent)
+        {
+            if (customComponent == null) return;
+
+            var subSubPrefix = subPrefix + "\t";
+            StartCompoent(writer, subPrefix, customComponent.GetExportType());
+            foreach (var keyValuePair in customComponent.GetAttributesToExport())
+            {
+                WriteAttribute(writer, subSubPrefix, keyValuePair.Key, keyValuePair.Value);
+            }
+            EndElement(writer, subPrefix);
         }
 
         private void WriteAttribute(XmlWriter writer, string prefix, string name, bool flag)
@@ -333,11 +357,12 @@ namespace Urho3DExporter
             WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
         }
 
-        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain,
-            string subPrefix,
-            string subSubPrefix)
+        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain, string subPrefix)
         {
             if (terrain == null) return;
+
+            var subSubPrefix = subPrefix + "\t";
+
 
             var terrainSize = terrain.terrainData.size;
             writer.WriteWhitespace(subPrefix);
@@ -370,7 +395,7 @@ namespace Urho3DExporter
         private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath,
             string weightsTextureName)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(materialPath))
+            using (var writer = asset.DestinationFolder.CreateXml(materialPath, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -443,7 +468,7 @@ namespace Urho3DExporter
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
 
-            using (var imageFile = asset.DestinationFolder.Create(weightsTextureName))
+            using (var imageFile = asset.DestinationFolder.Create(weightsTextureName, DateTime.MaxValue))
             {
                 if (imageFile == null)
                     return;

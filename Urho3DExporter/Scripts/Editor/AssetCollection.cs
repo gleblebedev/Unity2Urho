@@ -1,8 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Urho3DExporter
 {
@@ -46,12 +48,28 @@ namespace Urho3DExporter
 
         public bool TryGetMeshPath(Mesh sharedMesh, out string meshPath)
         {
-            meshPath = null;
             if (sharedMesh == null)
+            {
+                meshPath = null;
                 return false;
+            }
+
             var path = AssetDatabase.GetAssetPath(sharedMesh);
             var id = path + "#" + sharedMesh.name;
-            return _meshPaths.TryGetValue(id, out meshPath);
+            if (_meshPaths.TryGetValue(id, out meshPath))
+            {
+                return true;
+            }
+            if (string.IsNullOrEmpty(path) || path == "Library/unity default resources")
+            {
+                var sharedMeshName = "UnityBuiltIn/"+sharedMesh.name+".mdl";
+                meshPath = sharedMeshName;
+                new MeshExporter(null).ExportMeshModel(this._urhoDataPath, sharedMeshName, sharedMesh, null, DateTime.MinValue);
+                _meshPaths.Add(id, sharedMeshName);
+                return true;
+            }
+
+            return false;
         }
 
         public void AddMaterialPath(Material material, string fileName)

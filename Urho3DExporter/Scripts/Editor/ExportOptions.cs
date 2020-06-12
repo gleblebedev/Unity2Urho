@@ -78,7 +78,13 @@ namespace Urho3DExporter
         private void LoadConfig()
         {
             if (EditorPrefs.HasKey(_dataPathKey))
+            {
                 _exportFolder = EditorPrefs.GetString(_dataPathKey);
+            }
+            else
+            {
+                _exportFolder = Application.dataPath;
+            }
             if (EditorPrefs.HasKey(_overrideKey))
                 _override = EditorPrefs.GetBool(_overrideKey);
             if (EditorPrefs.HasKey(_selectedKey))

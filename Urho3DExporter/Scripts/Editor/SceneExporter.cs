@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,12 +15,19 @@ namespace Urho3DExporter
         public void ExportAsset(AssetContext asset, Scene scene)
         {
             var exlusion = new HashSet<Renderer>();
+            var scenesPrefix = "Scenes/";
             var sceneAssetName = asset.UrhoAssetName;
+            if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
             {
                 //Fix scene path
-                sceneAssetName = "Scenes/" + sceneAssetName.Replace('/', '_');
+                sceneAssetName = scenesPrefix + sceneAssetName.Substring(scenesPrefix.Length).Replace('/', '_');
             }
-            using (var writer = asset.DestinationFolder.CreateXml(sceneAssetName))
+            else
+            {
+                //Fix scene path
+                sceneAssetName = scenesPrefix + sceneAssetName.Replace('/', '_');
+            }
+            using (var writer = asset.DestinationFolder.CreateXml(sceneAssetName, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 using System.Xml;
 using UnityEditor;
@@ -48,7 +49,7 @@ namespace Urho3DExporter
             File.Copy(sourceFilePath, targetPath, true);
         }
 
-        public FileStream Create(string relativePath)
+        public FileStream Create(string relativePath, DateTime sourceFileTimestampUTC)
         {
             if (relativePath == null)
                 return null;
@@ -69,9 +70,9 @@ namespace Urho3DExporter
             return File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
         }
 
-        public XmlTextWriter CreateXml(string relativePath)
+        public XmlTextWriter CreateXml(string relativePath, DateTime sourceFileTimestampUTC)
         {
-            var fileStream = Create(relativePath);
+            var fileStream = Create(relativePath, sourceFileTimestampUTC);
             if (fileStream == null)
                 return null;
             return new XmlTextWriter(fileStream, new UTF8Encoding(false));

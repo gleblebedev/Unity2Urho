@@ -182,7 +182,7 @@ namespace Urho3DExporter
 
         private void ExportLegacy(AssetContext asset, LegacyShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName))
+            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -231,7 +231,7 @@ namespace Urho3DExporter
 
         private void ExportMetallicRoughness(AssetContext asset, MetallicRoughnessShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName))
+            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -373,7 +373,7 @@ namespace Urho3DExporter
 
         private void ExportSpecularGlossiness(AssetContext asset, SpecularGlossinessShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName))
+            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;

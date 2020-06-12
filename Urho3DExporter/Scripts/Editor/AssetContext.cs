@@ -118,12 +118,7 @@ namespace Urho3DExporter
 
         public XmlTextWriter CreateXml()
         {
-            return DestinationFolder.CreateXml(UrhoAssetName);
-        }
-
-        public FileStream Create()
-        {
-            return DestinationFolder.Create(UrhoAssetName);
+            return DestinationFolder.CreateXml(UrhoAssetName, DateTime.MaxValue);
         }
     }
 }

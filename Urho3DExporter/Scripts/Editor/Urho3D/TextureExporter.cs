@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Assets.Urho3DExporter.Scripts.Editor;
 using UnityEditor;
@@ -138,7 +139,7 @@ namespace Urho3DExporter
             EnsureReadableTexture(specularGlossiness);
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
             {
                 if (fileStream != null)
                 {
@@ -182,7 +183,7 @@ namespace Urho3DExporter
             EnsureReadableTexture(smoothnessSource);
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
             {
                 if (fileStream != null)
                 {
@@ -223,7 +224,7 @@ namespace Urho3DExporter
                     : diffuse;
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
             {
                 if (fileStream != null)
                 {
