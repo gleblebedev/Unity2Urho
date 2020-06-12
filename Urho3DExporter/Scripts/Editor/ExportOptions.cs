@@ -23,7 +23,10 @@ namespace Urho3DExporter
 
         private void OnGUI()
         {
-            if (string.IsNullOrWhiteSpace(_exportFolder)) PickFolder();
+            // if (string.IsNullOrWhiteSpace(_exportFolder)) {
+            //    PickFolder();
+            // }
+
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
             if (GUILayout.Button("Pick")) PickFolder();
             _override = EditorGUILayout.Toggle("Override existing files", _override);
