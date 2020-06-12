@@ -221,7 +221,10 @@ namespace Urho3DExporter
                     {
                         StartCompoent(writer, subPrefix, "Light");
                         if (light.type == LightType.Directional)
+                        {
                             WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
+                            WriteAttribute(writer, subSubPrefix, "CSM Splits", "2 16 128 0");
+                        }
                         else if (light.type == LightType.Spot)
                             WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
                         else if (light.type == LightType.Point)
@@ -240,7 +243,9 @@ namespace Urho3DExporter
                 else if (component is Rigidbody rigidbody)
                 {
                     StartCompoent(writer, subPrefix, "RigidBody");
-                    WriteAttribute(writer, subSubPrefix, "Physics Position", obj.transform.localPosition);
+                    var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                    var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+                    WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                     WriteAttribute(writer, subSubPrefix, "Mass", rigidbody.mass);
                     EndElement(writer, subPrefix);
                 }
@@ -258,6 +263,14 @@ namespace Urho3DExporter
                         }
                     }
                     EndElement(writer, subPrefix);
+                    if (obj.GetComponent<Rigidbody>() == null)
+                    {
+                        StartCompoent(writer, subPrefix, "RigidBody");
+                        var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                        var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+                        WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                        EndElement(writer, subPrefix);
+                    }
                 }
                 else if (component is BoxCollider boxCollider)
                 {
