@@ -269,6 +269,8 @@ namespace Assets.Urho3DExporter.Scripts.Editor
             arguments.Transparent = material.renderQueue == (int) RenderQueue.Transparent;
             arguments.AlphaTest = material.renderQueue == (int) RenderQueue.AlphaTest;
             arguments.HasEmission = material.IsKeywordEnabled("_EMISSION");
+            arguments.MainTextureOffset = material.mainTextureOffset;
+            arguments.MainTextureScale = material.mainTextureScale;
         }
 
         private MetallicRoughnessShaderArguments SetupMetallicRoughnessPBR(Material material)
@@ -276,6 +278,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
             var arguments = new MetallicRoughnessShaderArguments();
             SetupFlags(material, arguments);
             var shader = material.shader;
+
             for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
             {
                 var propertyName = ShaderUtil.GetPropertyName(shader, i);

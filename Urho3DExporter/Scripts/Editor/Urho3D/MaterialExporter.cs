@@ -2,6 +2,7 @@
 using System.Xml;
 using Assets.Urho3DExporter.Scripts.Editor;
 using UnityEditor;
+using UnityEditor.Build.Content;
 using UnityEngine;
 
 namespace Urho3DExporter
@@ -220,10 +221,8 @@ namespace Urho3DExporter
                 WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.DiffColor));
                 if (arguments.HasEmission)
                     WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
-                if (arguments.AlphaTest)
-                {
-                    WriteAlphaTest(writer);
-                }
+                WriteCommonParameters(writer, arguments);
+
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
@@ -352,10 +351,8 @@ namespace Urho3DExporter
                     WriteParameter(writer, "Roughness", BaseNodeExporter.Format(1.0f - arguments.Glossiness));
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(arguments.Metallic));
                 }
-                if (arguments.AlphaTest)
-                {
-                    WriteAlphaTest(writer);
-                }
+                WriteCommonParameters(writer, arguments);
+
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
@@ -502,12 +499,19 @@ namespace Urho3DExporter
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0.0f));
                 }
 
-                if (arguments.AlphaTest)
-                {
-                    WriteAlphaTest(writer);
-                }
+                WriteCommonParameters(writer, arguments);
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
+            }
+        }
+
+        private void WriteCommonParameters(XmlTextWriter writer, ShaderArguments arguments)
+        {
+            WriteParameter(writer, "UOffset", BaseNodeExporter.Format(new Vector4(arguments.MainTextureScale.x,0,0, arguments.MainTextureOffset.x)));
+            WriteParameter(writer, "VOffset", BaseNodeExporter.Format(new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y)));
+            if (arguments.AlphaTest)
+            {
+                WriteAlphaTest(writer);
             }
         }
 

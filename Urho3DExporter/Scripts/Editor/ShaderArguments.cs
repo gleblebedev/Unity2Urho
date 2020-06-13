@@ -19,5 +19,7 @@ namespace Assets.Urho3DExporter.Scripts.Editor
         public Texture DetailNormal { get; set; }
         public Texture Emission { get; set; }
         public Texture Parallax { get; set; }
+        public Vector2 MainTextureOffset { get; set; }
+        public Vector2 MainTextureScale { get; set; } = Vector2.one;
     }
 }
