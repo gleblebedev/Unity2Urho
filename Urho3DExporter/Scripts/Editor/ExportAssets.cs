@@ -16,16 +16,17 @@ namespace Urho3DExporter
 
         private static int _id;
 
-        public static List<T> Split<T>(IEnumerable<T> source, Func<T, bool> predicate, Action<T> ifTrue)
+        public static SplitResult<T> Split<T>(IEnumerable<T> source, Func<T, bool> predicate)
         {
-            var ifFalse = new List<T>();
+            var res = new SplitResult<T>();
+            res.Rejected = new List<T>();
+            res.Selected = new List<T>();
             foreach (var item in source)
                 if (predicate(item))
-                    ifTrue(item);
+                    res.Selected.Add(item);
                 else
-                    ifFalse.Add(item);
-
-            return ifFalse;
+                    res.Rejected.Add(item);
+            return res;
         }
 
 
@@ -61,24 +62,58 @@ namespace Urho3DExporter
 
             _id = 0;
 
-            var other = Split(assets, _ => _.Is3DAsset, _ => Process3DAsset(assets, _));
-            Lazy<TextureMetadataCollection> textureMetadataCollection = new Lazy<TextureMetadataCollection>(()=>new TextureMetadataCollection(urhoDataPath));
-            Lazy<TextureExporter> textureExporter = new Lazy<TextureExporter>(()=>new TextureExporter(assets, textureMetadataCollection.Value));
-            other = Split(other,
-                _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D) || _.Type == typeof(Cubemap),
-                _ => textureExporter.Value.ExportAsset(_));
-            other = Split(other, _ => _.Type == typeof(Material),
-                _ => new MaterialExporter(assets, textureMetadataCollection.Value).ExportAsset(_));
-            var activeScene = SceneManager.GetActiveScene();
-
-            other = Split(other, _ => _.Type == typeof(SceneAsset), _ =>
+            IEnumerable<AssetContext> other = assets;
             {
-                if (_.AssetPath == activeScene.path)
+                var splitResult = Split(other, _ => _.Is3DAsset);
+                foreach (var assetContext in splitResult.Selected)
                 {
-                    //yield return new ProgressBarReport(_.AssetPath);
-                    ProcessSceneAsset(assets, _, activeScene);
+                    yield return new ProgressBarReport(assetContext.AssetPath);
+                    Process3DAsset(assets, assetContext);
                 }
-            });
+                other = splitResult.Rejected;
+            }
+
+            var textureMetadataCollection = new TextureMetadataCollection();
+            foreach (var report in textureMetadataCollection.Populate(urhoDataPath))
+            {
+                yield return report;
+            }
+            Lazy<TextureExporter> textureExporter = new Lazy<TextureExporter>(()=>new TextureExporter(assets, textureMetadataCollection));
+
+            {
+                var splitResult = Split(other, _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D) || _.Type == typeof(Cubemap));
+                foreach (var assetContext in splitResult.Selected)
+                {
+                    yield return new ProgressBarReport(assetContext.AssetPath);
+                    textureExporter.Value.ExportAsset(assetContext);
+                }
+                other = splitResult.Rejected;
+            }
+            {
+                var splitResult = Split(other, _ => _.Type == typeof(Material));
+                foreach (var assetContext in splitResult.Selected)
+                {
+                    yield return new ProgressBarReport(assetContext.AssetPath);
+                    new MaterialExporter(assets, textureMetadataCollection).ExportAsset(assetContext);
+                }
+                other = splitResult.Rejected;
+            }
+
+            var activeScene = SceneManager.GetActiveScene();
+            {
+                var splitResult = Split(other, _ => _.Type == typeof(SceneAsset));
+                foreach (var assetContext in splitResult.Selected)
+                {
+                    if (assetContext.AssetPath == activeScene.path)
+                    {
+                        yield return new ProgressBarReport(assetContext.AssetPath);
+                        //yield return new ProgressBarReport(_.AssetPath);
+                        ProcessSceneAsset(assets, assetContext, activeScene);
+                    }
+                }
+                other = splitResult.Rejected;
+            }
+
             foreach (var assetContext in other)
             {
                 yield return new ProgressBarReport(assetContext.AssetPath);

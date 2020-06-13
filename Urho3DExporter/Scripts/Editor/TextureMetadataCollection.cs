@@ -10,13 +10,18 @@ namespace Urho3DExporter
     {
         public Dictionary<Texture, TextureMetadata> _textures = new Dictionary<Texture, TextureMetadata>();
 
-        public TextureMetadataCollection(DestinationFolder urhoDataFolder)
+        public TextureMetadataCollection()
+        {
+
+        }
+        public IEnumerable<ProgressBarReport> Populate(DestinationFolder urhoDataFolder)
         {
             var allMaterials = AssetDatabase.FindAssets("").Select(_ => AssetContext.Create(_, urhoDataFolder))
                 .Where(_ => _.Type == typeof(Material));
             foreach (var asset in allMaterials)
             {
                 var material = AssetDatabase.LoadAssetAtPath<Material>(asset.AssetPath);
+                yield return new ProgressBarReport("Load "+ asset.AssetPath);
                 var description = new MaterialDescription(material);
                 if (description.MetallicRoughness != null)
                 {

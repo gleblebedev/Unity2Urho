@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -17,6 +18,10 @@ namespace Urho3DExporter
         private bool _override = true;
         private bool _selected = true;
         private Stopwatch _stopwatch = new Stopwatch();
+        private IEnumerator<ProgressBarReport> _progress;
+        private string _progressLabel;
+
+
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
         private static void Init()
         {
@@ -24,7 +29,6 @@ namespace Urho3DExporter
             window.Show();
         }
 
-        private IEnumerator<ProgressBarReport> _progress;
 
 
         private void OnGUI()
@@ -44,49 +48,66 @@ namespace Urho3DExporter
                 selected = _selected;
             }
 
-            if (_progress != null)
+            if (_progressLabel != null)
             {
-                try
-                {
-                    _stopwatch.Restart();
-                    while (_stopwatch.ElapsedMilliseconds < 20)
-                    {
-                        if (!_progress.MoveNext())
-                        {
-                            _progress.Dispose();
-                            _progress = null;
-                            break;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError(ex);
-                    _progress?.Dispose();
-                    _progress = null;
-                }
-                if (_progress != null)
-                {
-                    GUILayout.Label("Export in progress: " + _progress.Current.Message);
-                }
-                else
-                {
-                    Close();
-                }
+                GUILayout.Label(_progressLabel);
             }
-            else
+            if (_progress == null)
             {
                 if (!string.IsNullOrWhiteSpace(_exportFolder))
                 {
                     if (GUILayout.Button("Export"))
                     {
                         _progress = ExportAssets.ExportToUrho(_exportFolder, _override, selected).GetEnumerator();
+                        EditorApplication.update += Advance;
                     }
                 }
             }
 
             //EditorGUILayout.BeginHorizontal();
             //EditorGUILayout.EndHorizontal();
+        }
+
+        private void Advance()
+        {
+            try
+            {
+                _stopwatch.Restart();
+                do
+                {
+                    if (!_progress.MoveNext())
+                    {
+                        Stop();
+                        break;
+                    }
+                } while (_stopwatch.Elapsed.TotalMilliseconds < 16);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex);
+                Stop();
+                _progressLabel = "Error: " + ex.Message;
+            }
+            if (_progress != null)
+            {
+                _progressLabel = _progress.Current.Message;
+            }
+            else
+            {
+                //Close();
+            }
+        }
+
+        private void Stop()
+        {
+            if (_progress != null)
+            {
+                _progress.Dispose();
+                _progress = null;
+            }
+
+            _progressLabel = "Done.";
+            EditorApplication.update -= Advance;
         }
 
 
