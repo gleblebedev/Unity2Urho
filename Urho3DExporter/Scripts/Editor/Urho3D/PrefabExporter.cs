@@ -17,7 +17,7 @@ namespace Urho3DExporter
                 if (writer == null)
                     return;
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(asset.AssetPath);
-                WriteObject(writer, "", go, new HashSet<Renderer>(), asset);
+                WriteObject(writer, "", go, new HashSet<Renderer>(), asset, false);
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
@@ -12,16 +13,16 @@ namespace Urho3DExporter
     public class DestinationFolder
     {
         private readonly string _folder;
-        private bool? _overrideFiles;
+        private bool? _overrideAllFiles;
+        private HashSet<string> _createdFiles = new HashSet<string>();
 
-
-        public DestinationFolder(string folder, bool? overrideFiles = null)
+        public DestinationFolder(string folder, bool? overrideAllFiles = null)
         {
             _folder = folder.FixDirectorySeparator();
             if (!_folder.EndsWith(Path.DirectorySeparatorChar.ToString()))
                 _folder += Path.DirectorySeparatorChar;
 
-            _overrideFiles = overrideFiles;
+            _overrideAllFiles = overrideAllFiles;
         }
 
         public override string ToString()
@@ -34,13 +35,21 @@ namespace Urho3DExporter
             if (destinationFilePath == null)
                 return;
             var targetPath = Path.Combine(_folder, destinationFilePath.FixDirectorySeparator()).FixDirectorySeparator();
-            if (File.Exists(targetPath))
+
+            //Skip file if it already exported
+            if (!_createdFiles.Add(targetPath))
             {
-                if (!_overrideFiles.HasValue)
-                    _overrideFiles = EditorUtility.DisplayDialog("File already exists",
+                return;
+            }
+
+            //Skip file if override is disabled and file exists
+            if (_overrideAllFiles != true && File.Exists(targetPath))
+            {
+                if (!_overrideAllFiles.HasValue)
+                    _overrideAllFiles = EditorUtility.DisplayDialog("File already exists",
                         "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
 
-                if (!_overrideFiles.Value) return;
+                if (!_overrideAllFiles.Value) return;
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);
@@ -52,16 +61,26 @@ namespace Urho3DExporter
         public FileStream Create(string relativePath, DateTime sourceFileTimestampUTC)
         {
             if (relativePath == null)
+            {
                 return null;
+            }
 
             var targetPath = Path.Combine(_folder, relativePath.FixDirectorySeparator()).FixDirectorySeparator();
-            if (File.Exists(targetPath))
+
+            //Skip file if it already exported
+            if (!_createdFiles.Add(targetPath))
             {
-                if (!_overrideFiles.HasValue)
-                    _overrideFiles = EditorUtility.DisplayDialog("File already exists",
+                return null;
+            }
+
+            //Skip file if override is disabled and file exists
+            if (_overrideAllFiles != true && File.Exists(targetPath))
+            {
+                if (!_overrideAllFiles.HasValue)
+                    _overrideAllFiles = EditorUtility.DisplayDialog("File already exists",
                         "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
 
-                if (!_overrideFiles.Value) return null;
+                if (!_overrideAllFiles.Value) return null;
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);

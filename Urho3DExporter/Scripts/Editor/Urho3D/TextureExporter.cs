@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Assets.Urho3DExporter.Scripts.Editor;
@@ -11,6 +12,7 @@ namespace Urho3DExporter
     {
         private readonly AssetCollection _assets;
         private readonly TextureMetadataCollection _textureMetadata;
+        private readonly Dictionary<TempTextureKey, List<Texture2D>> _tmpTexturePool = new Dictionary<TempTextureKey, List<Texture2D>>();
 
         public TextureExporter(AssetCollection assets, TextureMetadataCollection textureMetadata)
         {
@@ -49,7 +51,7 @@ namespace Urho3DExporter
             return assetUrhoAssetName + newExt;
         }
 
-        private static Texture2D CreateTargetTexture(Texture2D a, Texture2D b)
+        private TempTexture CreateTargetTexture(Texture2D a, Texture2D b)
         {
             var width = 1;
             var height = 1;
@@ -65,10 +67,65 @@ namespace Urho3DExporter
                 if (b.height > height) height = b.height;
             }
 
-            var tmpTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            tmpTexture.hideFlags = HideFlags.HideAndDontSave;
-            return tmpTexture;
+            return BorrowTempTexture(new TempTextureKey(width, height, TextureFormat.RGBA32, false));
         }
+
+        struct TempTextureKey
+        {
+            public int width;
+            public int height;
+            public TextureFormat textureFormat;
+            public bool mips;
+
+            public TempTextureKey(int width, int height, TextureFormat textureFormat, bool mips)
+            {
+                this.width = width;
+                this.height = height;
+                this.textureFormat = textureFormat;
+                this.mips = mips;
+            }
+        }
+
+        private class TempTexture: IDisposable
+        {
+            private readonly Texture2D _texture;
+            private readonly List<Texture2D> _collection;
+
+            public TempTexture(Texture2D texture, List<Texture2D> collection)
+            {
+                _texture = texture;
+                _collection = collection;
+            }
+
+            public Texture2D Texture => _texture;
+
+            public void Dispose()
+            {
+                _collection.Add(_texture);
+            }
+        }
+
+        private TempTexture BorrowTempTexture(TempTextureKey key)
+        {
+            if (!_tmpTexturePool.TryGetValue(key, out var list))
+            {
+                list = new List<Texture2D>();
+                _tmpTexturePool.Add(key, list);
+            }
+
+            if (list.Count == 0)
+            {
+                var tmpTexture = new Texture2D(key.width, key.height, key.textureFormat, key.mips);
+                tmpTexture.hideFlags = HideFlags.HideAndDontSave;
+                return new TempTexture(tmpTexture, list);
+            }
+
+            var index = list.Count - 1;
+            var t = list[index];
+            list.RemoveAt(index);
+            return new TempTexture(t, list);
+        }
+
 
         public void ExportAsset(AssetContext asset)
         {
@@ -79,9 +136,8 @@ namespace Urho3DExporter
             }
 
             var texture = AssetDatabase.LoadAssetAtPath<Texture>(asset.AssetPath);
-            _assets.AddTexturePath(texture, asset.UrhoAssetName);
+            _assets.AddTexturePath(texture, ReplaceExtensionWithPngIfNeeded(asset.UrhoAssetName));
 
-            var fullCopy = false;
             foreach (var reference in _textureMetadata.ResolveReferences(texture))
                 switch (reference.Semantic)
                 {
@@ -102,15 +158,67 @@ namespace Urho3DExporter
                     }
                     default:
                     {
-                        if (!fullCopy)
-                        {
-                            asset.DestinationFolder.CopyFile(asset.FullPath, asset.UrhoAssetName);
-                            fullCopy = true;
-                        }
-
+                        CopyTexture(asset, texture);
                         break;
                     }
                 }
+        }
+
+        private string ReplaceExtensionWithPngIfNeeded(string assetUrhoAssetName)
+        {
+            var dotIndex = assetUrhoAssetName.LastIndexOf('.');
+            var slashIndex = assetUrhoAssetName.LastIndexOf('/');
+            if (dotIndex <= slashIndex)
+            {
+                return assetUrhoAssetName + ".png";
+            }
+
+            var ext = assetUrhoAssetName.Substring(dotIndex).ToLower();
+            switch (ext)
+            {
+                case ".tif":
+                    return assetUrhoAssetName.Substring(0, dotIndex) + ".png";
+            }
+
+            return assetUrhoAssetName;
+        }
+
+        private void CopyTexture(AssetContext asset, Texture texture)
+        {
+            var newName = ReplaceExtensionWithPngIfNeeded(asset.UrhoAssetName);
+            if (asset.UrhoAssetName != newName)
+            {
+                CopyTextureAsPng(asset, texture);
+            }
+            else
+            {
+                asset.DestinationFolder.CopyFile(asset.FullPath, asset.UrhoAssetName);
+            }
+        }
+
+        private void CopyTextureAsPng(AssetContext asset, Texture texture)
+        {
+            var diffuse = texture as Texture2D;
+            EnsureReadableTexture(diffuse);
+        
+            var metallicRoughMapName = ReplaceExtension(asset.UrhoAssetName, ".png");
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
+            {
+                if (fileStream != null)
+                {
+                    if (texture is Texture2D texture2d)
+                    {
+                        using (var tmpTextureRef = CreateTargetTexture(texture2d, null))
+                        {
+                            var tmpTexture = tmpTextureRef.Texture;
+                            var colors = texture2d.GetPixels(0);
+                            tmpTexture.SetPixels(colors);
+                            var bytes = tmpTexture.EncodeToPNG();
+                            fileStream.Write(bytes, 0, bytes.Length);
+                        }
+                    }
+                }
+            }
         }
 
         private void EnsureReadableTexture(Texture2D texture)
@@ -143,34 +251,39 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var tmpTexture = CreateTargetTexture(diffuse, specularGlossiness);
-                    var specularColors = new PixelSource(specularGlossiness, tmpTexture.width, tmpTexture.height,
-                        Color.black);
-                    var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
-                    var smoothnessSource =
-                        reference.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
-                            ? specularColors
-                            : diffuseColors;
-                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                    var index = 0;
-                    for (var y = 0; y < tmpTexture.height; ++y)
-                    for (var x = 0; x < tmpTexture.width; ++x)
+                    using (var tmpTextureRef = CreateTargetTexture(diffuse, specularGlossiness))
                     {
-                        var diffuseColor = diffuseColors.GetAt(x, y);
-                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
+                        var tmpTexture = tmpTextureRef.Texture;
+                        var specularColors = new PixelSource(specularGlossiness, tmpTexture.width, tmpTexture.height,
+                            Color.black);
+                        var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
+                        var smoothnessSource =
+                            reference.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
+                                ? specularColors
+                                : diffuseColors;
+                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
+                        var index = 0;
+                        for (var y = 0; y < tmpTexture.height; ++y)
                         {
-                            diffuse = diffuseColor,
-                            specular = specularColors.GetAt(x, y),
-                            glossiness = smoothnessSource.GetAt(x, y).a,
-                            opacity = diffuseColor.a
-                        });
-                        pixels[index] = new Color(mr.baseColor.r, mr.baseColor.g, mr.baseColor.b, mr.opacity);
-                        ++index;
-                    }
+                            for (var x = 0; x < tmpTexture.width; ++x)
+                            {
+                                var diffuseColor = diffuseColors.GetAt(x, y);
+                                var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
+                                {
+                                    diffuse = diffuseColor,
+                                    specular = specularColors.GetAt(x, y),
+                                    glossiness = smoothnessSource.GetAt(x, y).a,
+                                    opacity = diffuseColor.a
+                                });
+                                pixels[index] = new Color(mr.baseColor.r, mr.baseColor.g, mr.baseColor.b, mr.opacity);
+                                ++index;
+                            }
+                        }
 
-                    tmpTexture.SetPixels32(pixels, 0);
-                    var bytes = tmpTexture.EncodeToPNG();
-                    fileStream.Write(bytes, 0, bytes.Length);
+                        tmpTexture.SetPixels32(pixels, 0);
+                        var bytes = tmpTexture.EncodeToPNG();
+                        fileStream.Write(bytes, 0, bytes.Length);
+                    }
                 }
             }
         }
@@ -187,27 +300,30 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var tmpTexture = CreateTargetTexture(metallicGloss, reference.SmoothnessSource as Texture2D);
-
-                    var metallicColors = new PixelSource(metallicGloss, tmpTexture.width, tmpTexture.height,
-                        new Color(0, 0, 0, 0));
-                    var smoothnessColors = metallicGloss == smoothnessSource
-                        ? metallicColors
-                        : new PixelSource(smoothnessSource, tmpTexture.width, tmpTexture.height, new Color(0, 0, 0, 0));
-                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                    var index = 0;
-                    for (var y = 0; y < tmpTexture.height; ++y)
-                    for (var x = 0; x < tmpTexture.width; ++x)
+                    using (var tmpTextureRef = CreateTargetTexture(metallicGloss, reference.SmoothnessSource as Texture2D))
                     {
-                        var r = 1.0f - smoothnessColors.GetAt(x, y).a;
-                        var m = metallicColors.GetAt(x, y).r;
-                        pixels[index] = new Color(r, m, 0, 1);
-                        ++index;
-                    }
+                        var tmpTexture = tmpTextureRef.Texture;
+                        var metallicColors = new PixelSource(metallicGloss, tmpTexture.width, tmpTexture.height,
+                            new Color(0, 0, 0, 0));
+                        var smoothnessColors = metallicGloss == smoothnessSource
+                            ? metallicColors
+                            : new PixelSource(smoothnessSource, tmpTexture.width, tmpTexture.height,
+                                new Color(0, 0, 0, 0));
+                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
+                        var index = 0;
+                        for (var y = 0; y < tmpTexture.height; ++y)
+                        for (var x = 0; x < tmpTexture.width; ++x)
+                        {
+                            var r = 1.0f - smoothnessColors.GetAt(x, y).a;
+                            var m = metallicColors.GetAt(x, y).r;
+                            pixels[index] = new Color(r, m, 0, 1);
+                            ++index;
+                        }
 
-                    tmpTexture.SetPixels32(pixels, 0);
-                    var bytes = tmpTexture.EncodeToPNG();
-                    fileStream.Write(bytes, 0, bytes.Length);
+                        tmpTexture.SetPixels32(pixels, 0);
+                        var bytes = tmpTexture.EncodeToPNG();
+                        fileStream.Write(bytes, 0, bytes.Length);
+                    }
                 }
             }
         }
@@ -228,32 +344,35 @@ namespace Urho3DExporter
             {
                 if (fileStream != null)
                 {
-                    var tmpTexture = CreateTargetTexture(specularGloss, diffuse);
-                    var specularColors =
-                        new PixelSource(specularGloss, tmpTexture.width, tmpTexture.height, Color.black);
-                    var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
-                    var smoothnessColors = specularGloss == smoothnessSource
-                        ? specularColors
-                        : diffuseColors;
-                    var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                    var index = 0;
-                    for (var y = 0; y < tmpTexture.height; ++y)
-                    for (var x = 0; x < tmpTexture.width; ++x)
+                    using (var tmpTextureRef = CreateTargetTexture(specularGloss, diffuse))
                     {
-                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
+                        var tmpTexture = tmpTextureRef.Texture;
+                        var specularColors =
+                            new PixelSource(specularGloss, tmpTexture.width, tmpTexture.height, Color.black);
+                        var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
+                        var smoothnessColors = specularGloss == smoothnessSource
+                            ? specularColors
+                            : diffuseColors;
+                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
+                        var index = 0;
+                        for (var y = 0; y < tmpTexture.height; ++y)
+                        for (var x = 0; x < tmpTexture.width; ++x)
                         {
-                            diffuse = diffuseColors.GetAt(x, y),
-                            specular = specularColors.GetAt(x, y),
-                            glossiness = smoothnessColors.GetAt(x, y).a,
-                            opacity = 1.0f
-                        });
-                        pixels[index] = new Color(mr.roughness, mr.metallic, 0, 1);
-                        ++index;
-                    }
+                            var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
+                            {
+                                diffuse = diffuseColors.GetAt(x, y),
+                                specular = specularColors.GetAt(x, y),
+                                glossiness = smoothnessColors.GetAt(x, y).a,
+                                opacity = 1.0f
+                            });
+                            pixels[index] = new Color(mr.roughness, mr.metallic, 0, 1);
+                            ++index;
+                        }
 
-                    tmpTexture.SetPixels32(pixels, 0);
-                    var bytes = tmpTexture.EncodeToPNG();
-                    fileStream.Write(bytes, 0, bytes.Length);
+                        tmpTexture.SetPixels32(pixels, 0);
+                        var bytes = tmpTexture.EncodeToPNG();
+                        fileStream.Write(bytes, 0, bytes.Length);
+                    }
                 }
             }
         }

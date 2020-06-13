@@ -39,7 +39,7 @@ namespace Urho3DExporter
                     StartCompoent(writer, "\t", "DebugRenderer");
                     EndElement(writer, "\t");
                     foreach (var gameObject in scene.GetRootGameObjects())
-                        WriteObject(writer, "", gameObject, exlusion, asset);
+                        WriteObject(writer, "", gameObject, exlusion, asset, false);
                 }
             }
         }

@@ -178,7 +178,7 @@ namespace Urho3DExporter
         //    WriteAttribute(subSubPrefix, "Material", material.ToString());
         //}
         protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
-            AssetContext asset)
+            AssetContext asset, bool parentDisabled)
         {
             var localExcludeList = new HashSet<Renderer>(excludeList);
             if (!string.IsNullOrEmpty(prefix))
@@ -190,7 +190,8 @@ namespace Urho3DExporter
             var subPrefix = prefix + "\t";
             var subSubPrefix = subPrefix + "\t";
 
-            WriteAttribute(writer, subPrefix, "Is Enabled", obj.activeSelf);
+            var isEnabled = obj.activeSelf && !parentDisabled;
+            WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
             WriteAttribute(writer, subPrefix, "Name", obj.name);
             WriteAttribute(writer, subPrefix, "Tags", obj.tag);
             WriteAttribute(writer, subPrefix, "Position", obj.transform.localPosition);
@@ -386,7 +387,7 @@ namespace Urho3DExporter
 
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
-                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset);
+                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset, !isEnabled);
 
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);

@@ -62,12 +62,13 @@ namespace Urho3DExporter
             _id = 0;
 
             var other = Split(assets, _ => _.Is3DAsset, _ => Process3DAsset(assets, _));
-            var textureMetadataCollection = new TextureMetadataCollection(urhoDataPath);
+            Lazy<TextureMetadataCollection> textureMetadataCollection = new Lazy<TextureMetadataCollection>(()=>new TextureMetadataCollection(urhoDataPath));
+            Lazy<TextureExporter> textureExporter = new Lazy<TextureExporter>(()=>new TextureExporter(assets, textureMetadataCollection.Value));
             other = Split(other,
                 _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D) || _.Type == typeof(Cubemap),
-                _ => new TextureExporter(assets, textureMetadataCollection).ExportAsset(_));
+                _ => textureExporter.Value.ExportAsset(_));
             other = Split(other, _ => _.Type == typeof(Material),
-                _ => new MaterialExporter(assets, textureMetadataCollection).ExportAsset(_));
+                _ => new MaterialExporter(assets, textureMetadataCollection.Value).ExportAsset(_));
             var activeScene = SceneManager.GetActiveScene();
 
             other = Split(other, _ => _.Type == typeof(SceneAsset), _ =>
