@@ -53,6 +53,8 @@ namespace Urho3DExporter
 
         public string FileExtension { get; private set; }
 
+        public DateTime LastWriteTimeUtc { get; set; } = DateTime.MaxValue;
+
         public static AssetContext Create(string guid, DestinationFolder urhoDataFolder)
         {
             var res = new AssetContext
@@ -67,6 +69,10 @@ namespace Urho3DExporter
                 if (res.RelPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
                     res.RelPath = res.RelPath.Substring("Assets/".Length);
                 res.FullPath = Path.Combine(Application.dataPath, res.RelPath);
+                if (File.Exists(res.FullPath))
+                {
+                    res.LastWriteTimeUtc = File.GetLastWriteTimeUtc(res.FullPath);
+                }
                 res.FileExtension = Path.GetExtension(res.AssetPath).ToLower();
                 res.UrhoAssetName = res.RelPath;
                 if (res.Type == typeof(Material))

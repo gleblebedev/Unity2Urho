@@ -8,8 +8,11 @@ namespace Urho3DExporter
 {
     public class SceneExporter : BaseNodeExporter, IExporter
     {
-        public SceneExporter(AssetCollection assets) : base(assets)
+        private readonly bool _asPrefab;
+
+        public SceneExporter(AssetCollection assets, bool asPrefab, bool skipDisabled) : base(assets, skipDisabled)
         {
+            _asPrefab = asPrefab;
         }
 
         public void ExportAsset(AssetContext asset, Scene scene)
@@ -31,15 +34,43 @@ namespace Urho3DExporter
             {
                 if (writer == null)
                     return;
-                using (var sceneElement = Element.Start(writer, "scene"))
+                var rootGameObjects = scene.GetRootGameObjects();
+                if (_asPrefab)
                 {
-                    WriteAttribute(writer, "\t", "Name", scene.name);
-                    StartCompoent(writer, "\t", "Octree");
-                    EndElement(writer, "\t");
-                    StartCompoent(writer, "\t", "DebugRenderer");
-                    EndElement(writer, "\t");
-                    foreach (var gameObject in scene.GetRootGameObjects())
-                        WriteObject(writer, "", gameObject, exlusion, asset, false);
+                    if (rootGameObjects.Length > 1)
+                    {
+                        writer.WriteStartElement("node");
+                        writer.WriteAttributeString("id", (++_id).ToString());
+                        writer.WriteWhitespace("\n");
+                        foreach (var gameObject in rootGameObjects)
+                        {
+                            WriteObject(writer, "\t", gameObject, exlusion, asset, true);
+                        }
+                        writer.WriteEndElement();
+                        writer.WriteWhitespace("\n");
+                    }
+                    else
+                    {
+                        foreach (var gameObject in rootGameObjects)
+                        {
+                            WriteObject(writer, "", gameObject, exlusion, asset, true);
+                        }
+                    }
+                }
+                else
+                {
+                    using (var sceneElement = Element.Start(writer, "scene"))
+                    {
+                        WriteAttribute(writer, "\t", "Name", scene.name);
+                        StartCompoent(writer, "\t", "Octree");
+                        EndElement(writer, "\t");
+                        StartCompoent(writer, "\t", "DebugRenderer");
+                        EndElement(writer, "\t");
+                        foreach (var gameObject in rootGameObjects)
+                        {
+                            WriteObject(writer, "", gameObject, exlusion, asset, true);
+                        }
+                    }
                 }
             }
         }

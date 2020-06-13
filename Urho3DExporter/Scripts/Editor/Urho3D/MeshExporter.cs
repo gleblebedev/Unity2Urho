@@ -77,7 +77,7 @@ namespace Urho3DExporter
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
-            using (var file = asset.DestinationFolder.Create(Path.Combine(asset.ContentFolderName, name + ".ani"), DateTime.MaxValue))
+            using (var file = asset.DestinationFolder.Create(Path.Combine(asset.ContentFolderName, name + ".ani"), asset.LastWriteTimeUtc))
             {
                 if (file == null)
                     return;
@@ -306,7 +306,7 @@ namespace Urho3DExporter
                 else
                     contentName = Path.Combine(asset.ContentFolderName, name + ".mdl").FixAssetSeparator();
                 _assetCollection.AddMeshPath(mesh, contentName);
-                ExportMeshModel(asset.DestinationFolder, contentName, mesh, skinnedMeshRenderer, DateTime.MaxValue);
+                ExportMeshModel(asset.DestinationFolder, contentName, mesh, skinnedMeshRenderer, asset.LastWriteTimeUtc);
             }
         }
 

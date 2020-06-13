@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Urho3DExporter
 {
-    public class TextureExporter : IExporter
+    public class TextureExporter : IExporter, IDisposable
     {
         private readonly AssetCollection _assets;
         private readonly TextureMetadataCollection _textureMetadata;
@@ -202,7 +202,7 @@ namespace Urho3DExporter
             EnsureReadableTexture(diffuse);
         
             var metallicRoughMapName = ReplaceExtension(asset.UrhoAssetName, ".png");
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, asset.LastWriteTimeUtc))
             {
                 if (fileStream != null)
                 {
@@ -221,7 +221,25 @@ namespace Urho3DExporter
             }
         }
 
-        private void EnsureReadableTexture(Texture2D texture)
+        public static void EnsureReadableTexture(Texture2D texture)
+        {
+            if (null == texture) return;
+
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter != null)
+            {
+                tImporter.textureType = TextureImporterType.Default;
+                if (tImporter.isReadable != true)
+                {
+                    tImporter.isReadable = true;
+                    AssetDatabase.ImportAsset(assetPath);
+                    AssetDatabase.Refresh();
+                }
+            }
+        }
+
+        public static void EnsureReadableTexture(Cubemap texture)
         {
             if (null == texture) return;
 
@@ -247,7 +265,7 @@ namespace Urho3DExporter
             EnsureReadableTexture(specularGlossiness);
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, asset.LastWriteTimeUtc))
             {
                 if (fileStream != null)
                 {
@@ -296,7 +314,7 @@ namespace Urho3DExporter
             EnsureReadableTexture(smoothnessSource);
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, asset.LastWriteTimeUtc))
             {
                 if (fileStream != null)
                 {
@@ -340,7 +358,7 @@ namespace Urho3DExporter
                     : diffuse;
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
-            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, DateTime.MaxValue))
+            using (var fileStream = asset.DestinationFolder.Create(metallicRoughMapName, asset.LastWriteTimeUtc))
             {
                 if (fileStream != null)
                 {
@@ -448,6 +466,17 @@ namespace Urho3DExporter
                 var xx = x * _texWidth / _targetWidth;
                 var yy = y * _texHeight / _targetHeight;
                 return _colors[xx + yy * _texWidth];
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach (var tmpTexture in _tmpTexturePool)
+            {
+                foreach (var texture2D in tmpTexture.Value)
+                {
+                    //Destroy(texture2D);
+                }
             }
         }
     }

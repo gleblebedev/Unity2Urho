@@ -6,7 +6,7 @@ namespace Urho3DExporter
 {
     public class PrefabExporter : BaseNodeExporter, IExporter
     {
-        public PrefabExporter(AssetCollection assets) : base(assets)
+        public PrefabExporter(AssetCollection assets, bool skipDisabled) : base(assets, skipDisabled)
         {
         }
 
@@ -17,7 +17,7 @@ namespace Urho3DExporter
                 if (writer == null)
                     return;
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(asset.AssetPath);
-                WriteObject(writer, "", go, new HashSet<Renderer>(), asset, false);
+                WriteObject(writer, "", go, new HashSet<Renderer>(), asset, true);
             }
         }
     }

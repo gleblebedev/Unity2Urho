@@ -36,12 +36,12 @@ namespace Urho3DExporter
         //    if (!ResolveDataPath(out var urhoDataPath)) return;
         //}
 
-        public static IEnumerable<ProgressBarReport> ExportToUrho(string targetPath, bool overrideFiles, bool exportSelected)
+        public static IEnumerable<ProgressBarReport> ExportToUrho(string targetPath, DestinationFolder urhoDataPath,
+            bool exportSelected,
+            bool exportSceneAsPrefab, bool skipDisabled)
         {
             if (string.IsNullOrWhiteSpace(targetPath))
                 yield break;
-
-            var urhoDataPath = new DestinationFolder(targetPath, overrideFiles);
 
             AssetCollection assets;
             if (Selection.assetGUIDs.Length == 0 || !exportSelected)
@@ -68,7 +68,7 @@ namespace Urho3DExporter
                 foreach (var assetContext in splitResult.Selected)
                 {
                     yield return new ProgressBarReport(assetContext.AssetPath);
-                    Process3DAsset(assets, assetContext);
+                    Process3DAsset(assets, assetContext, skipDisabled);
                 }
                 other = splitResult.Rejected;
             }
@@ -108,7 +108,7 @@ namespace Urho3DExporter
                     {
                         yield return new ProgressBarReport(assetContext.AssetPath);
                         //yield return new ProgressBarReport(_.AssetPath);
-                        ProcessSceneAsset(assets, assetContext, activeScene);
+                        ProcessSceneAsset(assets, assetContext, activeScene, exportSceneAsPrefab, skipDisabled);
                     }
                 }
                 other = splitResult.Rejected;
@@ -117,7 +117,7 @@ namespace Urho3DExporter
             foreach (var assetContext in other)
             {
                 yield return new ProgressBarReport(assetContext.AssetPath);
-                ProcessAsset(assets, assetContext);
+                ProcessAsset(assets, assetContext, skipDisabled);
             }
         }
 
@@ -140,16 +140,16 @@ namespace Urho3DExporter
                 guids.Add(assetGuiD);
         }
 
-        private static void ProcessSceneAsset(AssetCollection assets, AssetContext assetContext, Scene scene)
+        private static void ProcessSceneAsset(AssetCollection assets, AssetContext assetContext, Scene scene, bool exportSceneAsPrefab, bool skipDisabled)
         {
-            new SceneExporter(assets).ExportAsset(assetContext, scene);
+            new SceneExporter(assets, exportSceneAsPrefab, skipDisabled).ExportAsset(assetContext, scene);
         }
 
-        private static void ProcessAsset(AssetCollection assets, AssetContext assetContext)
+        private static void ProcessAsset(AssetCollection assets, AssetContext assetContext, bool skipDisabled)
         {
             if (assetContext.Type == typeof(GameObject))
             {
-                new PrefabExporter(assets).ExportAsset(assetContext);
+                new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
             }
             else if (assetContext.Type == typeof(SceneAsset))
             {
@@ -157,12 +157,12 @@ namespace Urho3DExporter
             }
         }
 
-        private static void Process3DAsset(AssetCollection assets, AssetContext assetContext)
+        private static void Process3DAsset(AssetCollection assets, AssetContext assetContext, bool skipDisabled)
         {
             new MeshExporter(assets).ExportAsset(assetContext);
 
             if (assetContext.Type != typeof(Mesh))
-                new PrefabExporter(assets).ExportAsset(assetContext);
+                new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
         }
     }
 }

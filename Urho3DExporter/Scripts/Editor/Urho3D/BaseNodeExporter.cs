@@ -12,12 +12,14 @@ namespace Urho3DExporter
     public class BaseNodeExporter
     {
         private readonly AssetCollection _assets;
+        private readonly bool _skipDisabled;
 
-        private int _id;
+        protected int _id;
 
-        public BaseNodeExporter(AssetCollection assets)
+        public BaseNodeExporter(AssetCollection assets, bool skipDisabled)
         {
             _assets = assets;
+            _skipDisabled = skipDisabled;
         }
 
         public static string Format(Color pos)
@@ -178,8 +180,14 @@ namespace Urho3DExporter
         //    WriteAttribute(subSubPrefix, "Material", material.ToString());
         //}
         protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
-            AssetContext asset, bool parentDisabled)
+            AssetContext asset, bool parentEnabled)
         {
+            var isEnabled = obj.activeSelf && parentEnabled;
+            if (_skipDisabled && !isEnabled)
+            {
+                return;
+            }
+
             var localExcludeList = new HashSet<Renderer>(excludeList);
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
@@ -190,7 +198,6 @@ namespace Urho3DExporter
             var subPrefix = prefix + "\t";
             var subSubPrefix = subPrefix + "\t";
 
-            var isEnabled = obj.activeSelf && !parentDisabled;
             WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
             WriteAttribute(writer, subPrefix, "Name", obj.name);
             WriteAttribute(writer, subPrefix, "Tags", obj.tag);
@@ -307,12 +314,12 @@ namespace Urho3DExporter
 
                     //    WriteAttribute(subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
                     //    WriteAttribute(subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
-                    //    var cubemap = reflectionProbe.bakedTexture as Cubemap;
-                    //    if (cubemap != null)
-                    //    {
-                    //        var name = SaveCubemap(cubemap);
+                    var cubemap = reflectionProbe.bakedTexture as Cubemap;
+                    if (cubemap != null)
+                    {
+                        var name = SaveReflectionCubemap(cubemap);
                     //        WriteAttribute(subSubPrefix, "Zone Texture", "TextureCube;" + name);
-                    //    }
+                    }
                     //    EndElement(subPrefix);
                 }
             }
@@ -387,12 +394,20 @@ namespace Urho3DExporter
 
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
-                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset, !isEnabled);
+                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset, isEnabled);
 
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private string SaveReflectionCubemap(Cubemap cubemap)
+        {
+            //TODO: Get image from Cubemap
+            //TextureExporter.EnsureReadableTexture(cubemap);
+            //var pixels = cubemap.GetPixels(CubemapFace.PositiveX, 0);
+            return null;
         }
 
         private void ExportCustomComponent(XmlWriter writer, string subPrefix, IComponentToExport customComponent)

@@ -13,16 +13,16 @@ namespace Urho3DExporter
     public class DestinationFolder
     {
         private readonly string _folder;
-        private bool? _overrideAllFiles;
+        private bool _exportOnlyUpdated;
         private HashSet<string> _createdFiles = new HashSet<string>();
 
-        public DestinationFolder(string folder, bool? overrideAllFiles = null)
+        public DestinationFolder(string folder, bool exportOnlyUpdated = false)
         {
             _folder = folder.FixDirectorySeparator();
             if (!_folder.EndsWith(Path.DirectorySeparatorChar.ToString()))
                 _folder += Path.DirectorySeparatorChar;
 
-            _overrideAllFiles = overrideAllFiles;
+            _exportOnlyUpdated = exportOnlyUpdated;
         }
 
         public override string ToString()
@@ -34,6 +34,8 @@ namespace Urho3DExporter
         {
             if (destinationFilePath == null)
                 return;
+            if (!File.Exists(sourceFilePath))
+                return;
             var targetPath = Path.Combine(_folder, destinationFilePath.FixDirectorySeparator()).FixDirectorySeparator();
 
             //Skip file if it already exported
@@ -42,14 +44,16 @@ namespace Urho3DExporter
                 return;
             }
 
-            //Skip file if override is disabled and file exists
-            if (_overrideAllFiles != true && File.Exists(targetPath))
+            //Skip file if it is already up to date
+            if (_exportOnlyUpdated)
             {
-                if (!_overrideAllFiles.HasValue)
-                    _overrideAllFiles = EditorUtility.DisplayDialog("File already exists",
-                        "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
-
-                if (!_overrideAllFiles.Value) return;
+                if (File.Exists(targetPath))
+                {
+                    var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
+                    var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
+                    if (sourceLastWriteTimeUtc <= lastWriteTimeUtc)
+                        return;
+                }
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);
@@ -73,14 +77,15 @@ namespace Urho3DExporter
                 return null;
             }
 
-            //Skip file if override is disabled and file exists
-            if (_overrideAllFiles != true && File.Exists(targetPath))
+            //Skip file if it is already up to date
+            if (_exportOnlyUpdated)
             {
-                if (!_overrideAllFiles.HasValue)
-                    _overrideAllFiles = EditorUtility.DisplayDialog("File already exists",
-                        "Destination file " + targetPath + " already exist.", "Override all", "Skip all");
-
-                if (!_overrideAllFiles.Value) return null;
+                if (File.Exists(targetPath))
+                {
+                    var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
+                    if (sourceFileTimestampUTC <= lastWriteTimeUtc)
+                        return null;
+                }
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);

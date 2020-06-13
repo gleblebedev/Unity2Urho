@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEditor;
-using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -12,11 +11,15 @@ namespace Urho3DExporter
     public class ExportOptions : EditorWindow
     {
         private static readonly string _dataPathKey = "Urho3DExporter.DataPath";
-        private static readonly string _overrideKey = "Urho3DExporter.Override";
+        private static readonly string _exportUpdatedOnlyKey = "Urho3DExporter.UpdatedOnly";
         private static readonly string _selectedKey = "Urho3DExporter.Selected";
+        private static readonly string _exportSceneAsPrefabKey = "Urho3DExporter.SceneAsPrefab";
+        private static readonly string _skipDisabledKey = "Urho3DExporter.SkipDisabled";
         private string _exportFolder = "";
-        private bool _override = true;
+        private bool _exportUpdatedOnly = false;
         private bool _selected = true;
+        private bool _exportSceneAsPrefab = false;
+        private bool _skipDisabled = false;
         private Stopwatch _stopwatch = new Stopwatch();
         private IEnumerator<ProgressBarReport> _progress;
         private string _progressLabel;
@@ -39,7 +42,7 @@ namespace Urho3DExporter
 
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
             if (GUILayout.Button("Pick")) PickFolder();
-            _override = EditorGUILayout.Toggle("Override existing files", _override);
+            _exportUpdatedOnly = EditorGUILayout.Toggle("Export only updated resources", _exportUpdatedOnly);
 
             var selected = false;
             if (Selection.assetGUIDs.Length != 0)
@@ -47,6 +50,10 @@ namespace Urho3DExporter
                 _selected = EditorGUILayout.Toggle("Export selected assets", _selected);
                 selected = _selected;
             }
+
+            _exportSceneAsPrefab = EditorGUILayout.Toggle("Export scene as prefab", _exportSceneAsPrefab);
+
+            _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
 
             if (_progressLabel != null)
             {
@@ -58,7 +65,8 @@ namespace Urho3DExporter
                 {
                     if (GUILayout.Button("Export"))
                     {
-                        _progress = ExportAssets.ExportToUrho(_exportFolder, _override, selected).GetEnumerator();
+                        var urhoDataPath = new DestinationFolder(_exportFolder, _exportUpdatedOnly);
+                        _progress = ExportAssets.ExportToUrho(_exportFolder, urhoDataPath, selected, _exportSceneAsPrefab, _skipDisabled).GetEnumerator();
                         EditorApplication.update += Advance;
                     }
                 }
@@ -150,13 +158,17 @@ namespace Urho3DExporter
             {
                 _exportFolder = Application.dataPath;
             }
-            if (EditorPrefs.HasKey(_overrideKey))
-                _override = EditorPrefs.GetBool(_overrideKey);
+            if (EditorPrefs.HasKey(_exportUpdatedOnlyKey))
+                _exportUpdatedOnly = EditorPrefs.GetBool(_exportUpdatedOnlyKey);
             if (EditorPrefs.HasKey(_selectedKey))
                 _selected = EditorPrefs.GetBool(_selectedKey);
+            if (EditorPrefs.HasKey(_exportSceneAsPrefabKey))
+                _exportSceneAsPrefab = EditorPrefs.GetBool(_exportSceneAsPrefabKey);
+            if (EditorPrefs.HasKey(_skipDisabledKey))
+                _skipDisabled = EditorPrefs.GetBool(_skipDisabledKey);
         }
 
-        private void OnLostFocus()
+    private void OnLostFocus()
         {
             SaveConfig();
         }
@@ -164,8 +176,10 @@ namespace Urho3DExporter
         private void SaveConfig()
         {
             EditorPrefs.SetString(_dataPathKey, _exportFolder);
-            EditorPrefs.SetBool(_overrideKey, _override);
+            EditorPrefs.SetBool(_exportUpdatedOnlyKey, _exportUpdatedOnly);
             EditorPrefs.SetBool(_selectedKey, _selected);
+            EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
+            EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
         }
 
         private void OnDestroy()
