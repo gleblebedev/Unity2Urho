@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Urho3DExporter
 {
@@ -13,13 +16,16 @@ namespace Urho3DExporter
         private string _exportFolder = "";
         private bool _override = true;
         private bool _selected = true;
-
+        private Stopwatch _stopwatch = new Stopwatch();
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
         private static void Init()
         {
             var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
         }
+
+        private IEnumerator<ProgressBarReport> _progress;
+
 
         private void OnGUI()
         {
@@ -38,16 +44,51 @@ namespace Urho3DExporter
                 selected = _selected;
             }
 
-            if (!string.IsNullOrWhiteSpace(_exportFolder))
-                if (GUILayout.Button("Export"))
+            if (_progress != null)
+            {
+                try
                 {
-                    ExportAssets.ExportToUrho(_exportFolder, _override, selected);
+                    _stopwatch.Restart();
+                    while (_stopwatch.ElapsedMilliseconds < 20)
+                    {
+                        if (!_progress.MoveNext())
+                        {
+                            _progress.Dispose();
+                            _progress = null;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError(ex);
+                    _progress?.Dispose();
+                    _progress = null;
+                }
+                if (_progress != null)
+                {
+                    GUILayout.Label("Export in progress: " + _progress.Current.Message);
+                }
+                else
+                {
                     Close();
                 }
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(_exportFolder))
+                {
+                    if (GUILayout.Button("Export"))
+                    {
+                        _progress = ExportAssets.ExportToUrho(_exportFolder, _override, selected).GetEnumerator();
+                    }
+                }
+            }
 
             //EditorGUILayout.BeginHorizontal();
             //EditorGUILayout.EndHorizontal();
         }
+
 
         private void PickFolder()
         {

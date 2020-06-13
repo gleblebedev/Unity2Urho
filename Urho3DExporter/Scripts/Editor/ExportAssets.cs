@@ -35,10 +35,10 @@ namespace Urho3DExporter
         //    if (!ResolveDataPath(out var urhoDataPath)) return;
         //}
 
-        public static void ExportToUrho(string targetPath, bool overrideFiles, bool exportSelected)
+        public static IEnumerable<ProgressBarReport> ExportToUrho(string targetPath, bool overrideFiles, bool exportSelected)
         {
             if (string.IsNullOrWhiteSpace(targetPath))
-                return;
+                yield break;
 
             var urhoDataPath = new DestinationFolder(targetPath, overrideFiles);
 
@@ -74,9 +74,16 @@ namespace Urho3DExporter
             other = Split(other, _ => _.Type == typeof(SceneAsset), _ =>
             {
                 if (_.AssetPath == activeScene.path)
+                {
+                    //yield return new ProgressBarReport(_.AssetPath);
                     ProcessSceneAsset(assets, _, activeScene);
+                }
             });
-            foreach (var assetContext in other) ProcessAsset(assets, assetContext);
+            foreach (var assetContext in other)
+            {
+                yield return new ProgressBarReport(assetContext.AssetPath);
+                ProcessAsset(assets, assetContext);
+            }
         }
 
         internal static FileStream CreateFile(string urhoFileName)
