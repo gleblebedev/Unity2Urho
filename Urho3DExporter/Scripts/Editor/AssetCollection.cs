@@ -15,18 +15,12 @@ namespace Urho3DExporter
 
         private readonly Dictionary<string, string> _meshPaths = new Dictionary<string, string>();
 
-        private readonly Dictionary<string, string> _materialPaths = new Dictionary<string, string>();
-
         private readonly Dictionary<string, string> _texturePaths = new Dictionary<string, string>();
 
         public AssetCollection(DestinationFolder urhoDataPath, IEnumerable<AssetContext> assets)
         {
             _urhoDataPath = urhoDataPath;
             _assets = assets.ToList();
-
-            foreach (var assetContext in assets.Where(_ => _.Type == typeof(Material)))
-                AddMaterialPath(AssetDatabase.LoadAssetAtPath<Material>(assetContext.AssetPath),
-                    assetContext.UrhoAssetName);
         }
 
         public void AddMeshPath(Mesh mesh, string fileName)
@@ -72,20 +66,16 @@ namespace Urho3DExporter
             return false;
         }
 
-        public void AddMaterialPath(Material material, string fileName)
-        {
-            fileName = fileName.FixAssetSeparator();
-            TryAdd(_materialPaths, material, material.name, fileName);
-        }
-
         public bool TryGetMaterialPath(Material sharedMaterial, out string materialPath)
         {
-            materialPath = null;
-            if (sharedMaterial == null)
-                return false;
-            var path = AssetDatabase.GetAssetPath(sharedMaterial);
-            var id = path + "#" + sharedMaterial.name;
-            return _materialPaths.TryGetValue(id, out materialPath);
+            materialPath = MaterialExporter.GetUrhoPath(sharedMaterial);
+            return materialPath != null;
+            //materialPath = null;
+            //if (sharedMaterial == null)
+            //    return false;
+            //var path = AssetDatabase.GetAssetPath(sharedMaterial);
+            //var id = path + "#" + sharedMaterial.name;
+            //return _materialPaths.TryGetValue(id, out materialPath);
         }
 
 

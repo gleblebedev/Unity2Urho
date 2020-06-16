@@ -55,6 +55,13 @@ namespace Urho3DExporter
 
         public DateTime LastWriteTimeUtc { get; set; } = DateTime.MaxValue;
 
+        public static string GetRelPathFromAssetPath(string assetPath)
+        {
+            if (assetPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
+                return assetPath.Substring("Assets/".Length);
+            return assetPath;
+        }
+
         public static AssetContext Create(string guid, DestinationFolder urhoDataFolder)
         {
             var res = new AssetContext
@@ -65,9 +72,7 @@ namespace Urho3DExporter
             if (!string.IsNullOrEmpty(res.AssetPath))
             {
                 res.Type = AssetDatabase.GetMainAssetTypeAtPath(res.AssetPath);
-                res.RelPath = res.AssetPath;
-                if (res.RelPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
-                    res.RelPath = res.RelPath.Substring("Assets/".Length);
+                res.RelPath = GetRelPathFromAssetPath(res.AssetPath);
                 res.FullPath = Path.Combine(Application.dataPath, res.RelPath);
                 if (File.Exists(res.FullPath))
                 {
@@ -90,6 +95,10 @@ namespace Urho3DExporter
                     res.Is3DAsset = DetectMeshAsset(res);
                 }
                 else if (res.Type == typeof(SceneAsset))
+                {
+                    res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
+                }
+                else if (res.Type == typeof(Cubemap))
                 {
                     res.UrhoAssetName = RepaceExtension(res.UrhoAssetName, ".xml");
                 }
@@ -125,6 +134,15 @@ namespace Urho3DExporter
         public XmlTextWriter CreateXml()
         {
             return DestinationFolder.CreateXml(UrhoAssetName, DateTime.MaxValue);
+        }
+
+        public static string ReplaceExt(string path, string newExt)
+        {
+            var dot = path.LastIndexOf('.');
+            var slash = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+            if (dot <= slash)
+                return path + newExt;
+            return path.Substring(0, dot) + newExt;
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Urho3DExporter
                 return;
             if (!File.Exists(sourceFilePath))
                 return;
-            var targetPath = Path.Combine(_folder, destinationFilePath.FixDirectorySeparator()).FixDirectorySeparator();
+            var targetPath = GetTargetFilePath(destinationFilePath);
 
             //Skip file if it already exported
             if (!_createdFiles.Add(targetPath))
@@ -69,7 +69,7 @@ namespace Urho3DExporter
                 return null;
             }
 
-            var targetPath = Path.Combine(_folder, relativePath.FixDirectorySeparator()).FixDirectorySeparator();
+            var targetPath = GetTargetFilePath(relativePath);
 
             //Skip file if it already exported
             if (!_createdFiles.Add(targetPath))
@@ -92,6 +92,11 @@ namespace Urho3DExporter
             if (directoryName != null) Directory.CreateDirectory(directoryName);
 
             return File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        }
+
+        public string GetTargetFilePath(string relativePath)
+        {
+            return Path.Combine(_folder, relativePath.FixDirectorySeparator()).FixDirectorySeparator();
         }
 
         public XmlTextWriter CreateXml(string relativePath, DateTime sourceFileTimestampUTC)

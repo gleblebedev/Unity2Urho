@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Assets.Urho3DExporter.Scripts.Editor;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Urho3DExporter
 {
@@ -20,15 +21,7 @@ namespace Urho3DExporter
             _textureMetadata = textureMetadata;
         }
 
-        public static float GetLuminance(Color32 rgb)
-        {
-            var r = rgb.r / 255.0f;
-            var g = rgb.g / 255.0f;
-            var b = rgb.b / 255.0f;
-            return 0.2126f * r + 0.7152f * g + 0.0722f * b;
-        }
-
-        public static string GetTextureOutputName(string baseAssetName, TextureReferences reference)
+        public static string GetTextureOutputName(string baseAssetName, TextureReference reference)
         {
             switch (reference.Semantic)
             {
@@ -143,17 +136,17 @@ namespace Urho3DExporter
                 {
                     case TextureSemantic.PBRMetallicGlossiness:
                     {
-                        TransformMetallicGlossiness(asset, texture, reference);
+                        TransformMetallicGlossiness(asset, texture, (PBRMetallicGlossinessTextureReference)reference);
                         break;
                     }
                     case TextureSemantic.PBRSpecularGlossiness:
                     {
-                        TransformSpecularGlossiness(asset, texture, reference);
+                        TransformSpecularGlossiness(asset, texture, (PBRSpecularGlossinessTextureReference)reference);
                         break;
                     }
                     case TextureSemantic.PBRDiffuse:
                     {
-                        TransformDiffuse(asset, texture, reference);
+                        TransformDiffuse(asset, texture, (PBRDiffuseTextureReference)reference);
                         break;
                     }
                     default:
@@ -239,29 +232,12 @@ namespace Urho3DExporter
             }
         }
 
-        public static void EnsureReadableTexture(Cubemap texture)
-        {
-            if (null == texture) return;
-
-            var assetPath = AssetDatabase.GetAssetPath(texture);
-            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (tImporter != null)
-            {
-                tImporter.textureType = TextureImporterType.Default;
-                if (tImporter.isReadable != true)
-                {
-                    tImporter.isReadable = true;
-                    AssetDatabase.ImportAsset(assetPath);
-                    AssetDatabase.Refresh();
-                }
-            }
-        }
-
-        private void TransformDiffuse(AssetContext asset, Texture texture, TextureReferences reference)
+       
+        private void TransformDiffuse(AssetContext asset, Texture texture, PBRDiffuseTextureReference reference)
         {
             var diffuse = texture as Texture2D;
             EnsureReadableTexture(diffuse);
-            var specularGlossiness = reference.SmoothnessSource as Texture2D;
+            var specularGlossiness = reference.Specular as Texture2D;
             EnsureReadableTexture(specularGlossiness);
 
             var metallicRoughMapName = GetTextureOutputName(asset.UrhoAssetName, reference);
@@ -275,8 +251,7 @@ namespace Urho3DExporter
                         var specularColors = new PixelSource(specularGlossiness, tmpTexture.width, tmpTexture.height,
                             Color.black);
                         var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
-                        var smoothnessSource =
-                            reference.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
+                        var smoothnessSource = (reference.Smoothness == reference.Specular)
                                 ? specularColors
                                 : diffuseColors;
                         var pixels = new Color32[tmpTexture.width * tmpTexture.height];
@@ -290,7 +265,7 @@ namespace Urho3DExporter
                                 {
                                     diffuse = diffuseColor,
                                     specular = specularColors.GetAt(x, y),
-                                    glossiness = smoothnessSource.GetAt(x, y).a,
+                                    glossiness = smoothnessSource.GetAt(x, y).a * reference.SmoothnessScale,
                                     opacity = diffuseColor.a
                                 });
                                 pixels[index] = new Color(mr.baseColor.r, mr.baseColor.g, mr.baseColor.b, mr.opacity);
@@ -306,7 +281,7 @@ namespace Urho3DExporter
             }
         }
 
-        private void TransformMetallicGlossiness(AssetContext asset, Texture texture, TextureReferences reference)
+        private void TransformMetallicGlossiness(AssetContext asset, Texture texture, PBRMetallicGlossinessTextureReference reference)
         {
             var metallicGloss = texture as Texture2D;
             EnsureReadableTexture(metallicGloss);
@@ -332,7 +307,7 @@ namespace Urho3DExporter
                         for (var y = 0; y < tmpTexture.height; ++y)
                         for (var x = 0; x < tmpTexture.width; ++x)
                         {
-                            var r = 1.0f - smoothnessColors.GetAt(x, y).a;
+                            var r = 1.0f - smoothnessColors.GetAt(x, y).a * reference.SmoothnessScale;
                             var m = metallicColors.GetAt(x, y).r;
                             pixels[index] = new Color(r, m, 0, 1);
                             ++index;
@@ -346,14 +321,14 @@ namespace Urho3DExporter
             }
         }
 
-        private void TransformSpecularGlossiness(AssetContext asset, Texture texture, TextureReferences reference)
+        private void TransformSpecularGlossiness(AssetContext asset, Texture texture, PBRSpecularGlossinessTextureReference reference)
         {
             var specularGloss = texture as Texture2D;
             EnsureReadableTexture(specularGloss);
             var diffuse = reference.SmoothnessSource as Texture2D;
             EnsureReadableTexture(diffuse);
             var smoothnessSource =
-                reference.SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
+                (reference.SmoothnessSource == reference.Specular)
                     ? specularGloss
                     : diffuse;
 
@@ -380,7 +355,7 @@ namespace Urho3DExporter
                             {
                                 diffuse = diffuseColors.GetAt(x, y),
                                 specular = specularColors.GetAt(x, y),
-                                glossiness = smoothnessColors.GetAt(x, y).a,
+                                glossiness = smoothnessColors.GetAt(x, y).a * reference.SmoothnessScale,
                                 opacity = 1.0f
                             });
                             pixels[index] = new Color(mr.roughness, mr.metallic, 0, 1);
@@ -475,9 +450,35 @@ namespace Urho3DExporter
             {
                 foreach (var texture2D in tmpTexture.Value)
                 {
-                    //Destroy(texture2D);
+                    Object.DestroyImmediate(texture2D);
                 }
             }
+            _tmpTexturePool.Clear();
+        }
+
+        public static string GetUrhoPath(Texture texture)
+        {
+            if (texture == null)
+                return null;
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
+
+            var newExt = Path.GetExtension(assetPath);
+            if (texture is Cubemap)
+            {
+                newExt = ".xml";
+            }
+            else
+            {
+                switch (newExt)
+                {
+                    case ".tif":
+                        newExt = ".png";
+                        break;
+                }
+            }
+            return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), newExt);
         }
     }
 }

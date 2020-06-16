@@ -10,5 +10,10 @@ namespace Assets.Urho3DExporter.Scripts.Editor
         public Color DiffuseColor { get; set; }
         public Color SpecularColor { get; set; }
         public SmoothnessTextureChannel SmoothnessTextureChannel { get; set; }
+        public float GlossinessTextureScale { get; set; } = 1;
+
+        public Texture Smoothness => (SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
+            ? PBRSpecular
+            : Diffuse;
     }
 }

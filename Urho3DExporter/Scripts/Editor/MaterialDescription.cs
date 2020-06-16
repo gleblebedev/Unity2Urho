@@ -13,12 +13,38 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                 SpecularGlossiness = SetupSpecularGlossinessPBR(material);
             else if (material.shader.name == "Standard")
                 MetallicRoughness = SetupMetallicRoughnessPBR(material);
+            else if (material.shader.name.StartsWith("Skybox/"))
+                Skybox = SetupSkybox(material);
             else
                 Legacy = SetupLegacy(material);
         }
 
+        private SkyboxShaderArguments SetupSkybox(Material material)
+        {
+            var setupProceduralSkybox = new SkyboxShaderArguments();
+            var shader = material.shader;
+            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
+            {
+                var propertyName = ShaderUtil.GetPropertyName(shader, i);
+                var propertyType = ShaderUtil.GetPropertyType(shader, i);
+                if (propertyType == ShaderUtil.ShaderPropertyType.TexEnv)
+                {
+                    var texture = material.GetTexture(propertyName);
+                    switch (propertyName)
+                    {
+                        case "_Tex":
+                            setupProceduralSkybox.Skybox = texture;
+                            break;
+                    }
+                }
+            }
+
+            return setupProceduralSkybox;
+        }
+
         public MetallicRoughnessShaderArguments MetallicRoughness { get; set; }
         public SpecularGlossinessShaderArguments SpecularGlossiness { get; set; }
+        public SkyboxShaderArguments Skybox { get; set; }
         public LegacyShaderArguments Legacy { get; set; }
 
         private static void LogShaderParameters(Shader shader)
@@ -214,8 +240,12 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                             case "_Cutoff":
                                 arguments.Cutoff = value;
                                 break;
-                            case "_GlossMapScale": break;
-                            case "_Glossiness": break;
+                            case "_GlossMapScale":
+                                arguments.GlossinessTextureScale = value;
+                                break;
+                            case "_Glossiness":
+                                //arguments.Glossiness = value;
+                                break;
                             case "_OcclusionStrength": break;
                             case "_Parallax": break;
                         }
@@ -331,7 +361,9 @@ namespace Assets.Urho3DExporter.Scripts.Editor
                             case "_Cutoff":
                                 arguments.Cutoff = value;
                                 break;
-                            case "_GlossMapScale": break;
+                            case "_GlossMapScale":
+                                arguments.GlossinessTextureScale = value;
+                                    break;
                             case "_Glossiness":
                                 arguments.Glossiness = value;
                                 break;

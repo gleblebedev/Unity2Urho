@@ -10,6 +10,10 @@ namespace Assets.Urho3DExporter.Scripts.Editor
         public Color BaseColorColor { get; set; } = Color.white;
         public float Glossiness { get; set; }
         public float Metallic { get; set; }
+        public float GlossinessTextureScale { get; set; } = 1.0f;
         public SmoothnessTextureChannel SmoothnessTextureChannel { get; set; }
+        public Texture Smoothness => (SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
+            ? MetallicGloss
+            : BaseColor;
     }
 }

@@ -15,11 +15,13 @@ namespace Urho3DExporter
         private static readonly string _selectedKey = "Urho3DExporter.Selected";
         private static readonly string _exportSceneAsPrefabKey = "Urho3DExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "Urho3DExporter.SkipDisabled";
+        private static readonly string _exportReflectionProbesKey = "Urho3DExporter.ReflectionProbes";
         private string _exportFolder = "";
         private bool _exportUpdatedOnly = false;
         private bool _selected = true;
         private bool _exportSceneAsPrefab = false;
         private bool _skipDisabled = false;
+        private bool _exportReflectionProbes = false;
         private Stopwatch _stopwatch = new Stopwatch();
         private IEnumerator<ProgressBarReport> _progress;
         private string _progressLabel;
@@ -54,6 +56,8 @@ namespace Urho3DExporter
             _exportSceneAsPrefab = EditorGUILayout.Toggle("Export scene as prefab", _exportSceneAsPrefab);
 
             _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
+
+            _exportReflectionProbes = EditorGUILayout.Toggle("Export reflection probes", _exportReflectionProbes);
 
             if (_progressLabel != null)
             {
@@ -166,9 +170,11 @@ namespace Urho3DExporter
                 _exportSceneAsPrefab = EditorPrefs.GetBool(_exportSceneAsPrefabKey);
             if (EditorPrefs.HasKey(_skipDisabledKey))
                 _skipDisabled = EditorPrefs.GetBool(_skipDisabledKey);
+            if (EditorPrefs.HasKey(_exportReflectionProbesKey))
+                _exportReflectionProbes = EditorPrefs.GetBool(_exportReflectionProbesKey);
         }
 
-    private void OnLostFocus()
+        private void OnLostFocus()
         {
             SaveConfig();
         }
@@ -180,6 +186,8 @@ namespace Urho3DExporter
             EditorPrefs.SetBool(_selectedKey, _selected);
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
+            EditorPrefs.SetBool(_exportReflectionProbesKey, _exportReflectionProbes);
+            
         }
 
         private void OnDestroy()

@@ -28,67 +28,72 @@ namespace Urho3DExporter
                     var metallicRoughness = description.MetallicRoughness;
                     if (metallicRoughness.MetallicGloss != null)
                     {
-                        var meta = AddTexture(metallicRoughness.MetallicGloss, new TextureReferences(
-                            TextureSemantic.PBRMetallicGlossiness, 1.0f,
-                            metallicRoughness.SmoothnessTextureChannel ==
-                            SmoothnessTextureChannel.MetallicOrSpecularAlpha
-                                ? metallicRoughness.MetallicGloss
-                                : metallicRoughness.BaseColor, metallicRoughness.SmoothnessTextureChannel));
+                        var meta = AddTexture(metallicRoughness.MetallicGloss, new PBRMetallicGlossinessTextureReference(
+                            metallicRoughness.GlossinessTextureScale,
+                            metallicRoughness.Smoothness));
                     }
 
-                    AddTexture(metallicRoughness.BaseColor, new TextureReferences(TextureSemantic.PBRBaseColor));
-                    AddTexture(metallicRoughness.DetailBaseColor,
-                        new TextureReferences(TextureSemantic.MainTextureDetail));
+                    AddTexture(metallicRoughness.BaseColor, new PBRBaseColorTextureReference(TryGetOpacityMask(metallicRoughness.BaseColor)));
+                    AddTexture(metallicRoughness.DetailBaseColor, new TextureReference(TextureSemantic.MainTextureDetail));
                 }
                 else if (description.SpecularGlossiness != null)
                 {
                     var specularGlossiness = description.SpecularGlossiness;
+                    var smoothness = specularGlossiness.SmoothnessTextureChannel ==
+                                     SmoothnessTextureChannel.MetallicOrSpecularAlpha
+                        ? specularGlossiness.PBRSpecular
+                        : specularGlossiness.Diffuse;
                     if (specularGlossiness.PBRSpecular != null)
                     {
-                        AddTexture(specularGlossiness.PBRSpecular, new TextureReferences(
-                            TextureSemantic.PBRSpecularGlossiness, 1.0f,
-                            specularGlossiness.Diffuse, specularGlossiness.SmoothnessTextureChannel));
-                        AddTexture(specularGlossiness.Diffuse,
-                            new TextureReferences(TextureSemantic.PBRDiffuse, 1.0f, specularGlossiness.PBRSpecular,
-                                specularGlossiness.SmoothnessTextureChannel));
+                        AddTexture(specularGlossiness.PBRSpecular, new PBRSpecularGlossinessTextureReference(specularGlossiness.GlossinessTextureScale, smoothness, specularGlossiness.PBRSpecular));
+                        AddTexture(specularGlossiness.Diffuse, new PBRDiffuseTextureReference(specularGlossiness.PBRSpecular, smoothness, specularGlossiness.GlossinessTextureScale, TryGetOpacityMask(specularGlossiness.Diffuse)));
                     }
                     else
                     {
-                        AddTexture(specularGlossiness.Diffuse,
-                            new TextureReferences(TextureSemantic.PBRDiffuse, 1.0f, specularGlossiness.PBRSpecular,
-                                specularGlossiness.SmoothnessTextureChannel));
+                        AddTexture(specularGlossiness.Diffuse, new PBRDiffuseTextureReference(specularGlossiness.PBRSpecular, smoothness, specularGlossiness.GlossinessTextureScale, TryGetOpacityMask(specularGlossiness.Diffuse)));
                     }
 
                     AddTexture(specularGlossiness.DetailDiffuse,
-                        new TextureReferences(TextureSemantic.MainTextureDetail));
+                        new TextureReference(TextureSemantic.MainTextureDetail));
+                }
+                else if (description.Skybox != null)
+                {
+                    var legacy = description.Skybox;
+                    AddTexture(legacy.Skybox, new TextureReference(TextureSemantic.MainTexture));
+                    AddCommonTextures(legacy);
                 }
                 else
                 {
                     var legacy = description.Legacy;
-                    AddTexture(legacy.Diffuse, new TextureReferences(TextureSemantic.MainTexture));
-                    AddTexture(legacy.Specular, new TextureReferences(TextureSemantic.Specular));
+                    AddTexture(legacy.Diffuse, new TextureReference(TextureSemantic.MainTexture));
+                    AddTexture(legacy.Specular, new TextureReference(TextureSemantic.Specular));
                     AddCommonTextures(legacy);
                 }
             }
         }
 
-        public IEnumerable<TextureReferences> ResolveReferences(Texture texture)
+        private Texture TryGetOpacityMask(Texture metallicRoughnessBaseColor)
+        {
+            return null;
+        }
+
+        public IEnumerable<TextureReference> ResolveReferences(Texture texture)
         {
             if (_textures.TryGetValue(texture, out var references))
                 foreach (var reference in references.References)
                     yield return reference;
             else
-                yield return new TextureReferences(TextureSemantic.Other);
+                yield return new TextureReference(TextureSemantic.Other);
         }
 
         private void AddCommonTextures(ShaderArguments legacy)
         {
-            AddTexture(legacy.Occlusion, new TextureReferences(TextureSemantic.Occlusion));
-            AddTexture(legacy.Bump, new TextureReferences(TextureSemantic.Bump, legacy.BumpScale));
-            AddTexture(legacy.Detail, new TextureReferences(TextureSemantic.Detail));
-            AddTexture(legacy.DetailNormal, new TextureReferences(TextureSemantic.DetailNormal));
-            AddTexture(legacy.Emission, new TextureReferences(TextureSemantic.Emission));
-            AddTexture(legacy.Parallax, new TextureReferences(TextureSemantic.Parallax));
+            AddTexture(legacy.Occlusion, new TextureReference(TextureSemantic.Occlusion));
+            AddTexture(legacy.Bump, new TextureScaleReference(TextureSemantic.Bump, legacy.BumpScale));
+            AddTexture(legacy.Detail, new TextureReference(TextureSemantic.Detail));
+            AddTexture(legacy.DetailNormal, new TextureReference(TextureSemantic.DetailNormal));
+            AddTexture(legacy.Emission, new TextureReference(TextureSemantic.Emission));
+            AddTexture(legacy.Parallax, new TextureReference(TextureSemantic.Parallax));
         }
 
         private TextureMetadata EnsureTexture(Texture tex)
@@ -102,7 +107,7 @@ namespace Urho3DExporter
             return meta;
         }
 
-        private bool AddTexture(Texture tex, TextureReferences reference)
+        private bool AddTexture(Texture tex, TextureReference reference)
         {
             var meta = EnsureTexture(tex);
             if (meta == null)

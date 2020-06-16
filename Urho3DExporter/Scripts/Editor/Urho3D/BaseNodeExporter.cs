@@ -4,7 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using UnityEditor;
+using UnityEditor.Experimental.Rendering;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 namespace Urho3DExporter
@@ -303,6 +306,24 @@ namespace Urho3DExporter
                     WriteAttribute(writer, subSubPrefix, "Size", new Vector3(d, capsuleCollider.height, d));
                     EndElement(writer, subPrefix);
                 }
+                else if (component is Skybox skybox)
+                {
+                    StartCompoent(writer, subPrefix, "Skybox");
+                    {
+                        // Export cube
+                        GameObject gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
+                        Mesh mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                        GameObject.DestroyImmediate(gameObject);
+                        var sharedMeshName = "UnityBuiltIn/Cube.mdl";
+                        new MeshExporter(null).ExportMeshModel(asset.DestinationFolder, sharedMeshName, mesh, null,
+                            DateTime.MinValue);
+                    }
+                    WriteAttribute(writer, subSubPrefix, "Model", "Model;UnityBuiltIn/Cube.mdl");
+                    
+                    var materials = "Material;" + MaterialExporter.GetUrhoPath(skybox.material);
+                    WriteAttribute(writer, subSubPrefix, "Material", materials);
+                    EndElement(writer, subPrefix);
+                }
                 else if (component is Collider collider)
                 {
                     StartCompoent(writer, subPrefix, "CollisionShape");
@@ -310,17 +331,16 @@ namespace Urho3DExporter
                 }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
-                    //    StartCompoent(subPrefix, "Zone");
-
-                    //    WriteAttribute(subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
-                    //    WriteAttribute(subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
-                    var cubemap = reflectionProbe.bakedTexture as Cubemap;
-                    if (cubemap != null)
+                    switch (reflectionProbe.mode)
                     {
-                        var name = SaveReflectionCubemap(cubemap);
-                    //        WriteAttribute(subSubPrefix, "Zone Texture", "TextureCube;" + name);
+                        case ReflectionProbeMode.Baked:
+                            ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.bakedTexture as Cubemap);
+                            break;
+                        case ReflectionProbeMode.Custom:
+                            ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.customBakedTexture as Cubemap);
+                            break;
                     }
-                    //    EndElement(subPrefix);
+
                 }
             }
 
@@ -402,12 +422,27 @@ namespace Urho3DExporter
             writer.WriteWhitespace("\n");
         }
 
-        private string SaveReflectionCubemap(Cubemap cubemap)
+        private void ExportZone(XmlWriter writer, string subPrefix, ReflectionProbe reflectionProbe, Cubemap cubemap)
         {
-            //TODO: Get image from Cubemap
-            //TextureExporter.EnsureReadableTexture(cubemap);
-            //var pixels = cubemap.GetPixels(CubemapFace.PositiveX, 0);
-            return null;
+            if (cubemap == null)
+            {
+                return;
+            }
+
+            var assetPath = AssetDatabase.GetAssetPath(cubemap);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return;
+
+            var texName = AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath),".xml");
+
+            StartCompoent(writer, subPrefix, "Zone");
+
+            var subSubPrefix = subPrefix + "\t";
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
+
+            WriteAttribute(writer, subSubPrefix, "Zone Texture", "TextureCube;" + texName);
+            EndElement(writer, subPrefix);
         }
 
         private void ExportCustomComponent(XmlWriter writer, string subPrefix, IComponentToExport customComponent)

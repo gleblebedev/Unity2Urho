@@ -130,9 +130,21 @@ namespace Urho3DExporter
         public void ExportAsset(AssetContext asset)
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(asset.AssetPath);
-            _assets.AddMaterialPath(material, asset.UrhoAssetName);
+            //_assets.AddMaterialPath(material, asset.UrhoAssetName);
 
             ExportMaterial(asset, material);
+        }
+
+        public static string GetUrhoPath(Material material)
+        {
+            if (material == null)
+                return null;
+            var assetPath = AssetDatabase.GetAssetPath(material);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
+            if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
+                return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), ".xml");
+            return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), ".Mat."+material.name+".xml");
         }
 
         private void WriteTechnique(XmlWriter writer, string name)
@@ -170,20 +182,62 @@ namespace Urho3DExporter
             return true;
         }
 
-        private void ExportMaterial(AssetContext asset, Material material)
+        public void ExportMaterial(AssetContext asset, Material material)
         {
+            var path = GetUrhoPath(material);
             var mat = new MaterialDescription(material);
             if (mat.SpecularGlossiness != null)
-                ExportSpecularGlossiness(asset, mat.SpecularGlossiness);
+                ExportSpecularGlossiness(asset, path, mat.SpecularGlossiness);
             else if (mat.MetallicRoughness != null)
-                ExportMetallicRoughness(asset, mat.MetallicRoughness);
+                ExportMetallicRoughness(asset, path, mat.MetallicRoughness);
+            else if (mat.Skybox != null)
+                ExportSkybox(asset, path, mat.Skybox);
             else
-                ExportLegacy(asset, mat.Legacy ?? new LegacyShaderArguments());
+                ExportLegacy(asset, path, mat.Legacy ?? new LegacyShaderArguments());
         }
 
-        private void ExportLegacy(AssetContext asset, LegacyShaderArguments arguments)
+        private void ExportSkybox(AssetContext asset, string urhoPath, SkyboxShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
+            using (var writer = asset.DestinationFolder.CreateXml(urhoPath, DateTime.MaxValue))
+            {
+                if (writer == null)
+                    return;
+                writer.WriteStartDocument();
+                writer.WriteWhitespace(Environment.NewLine);
+                writer.WriteStartElement("material");
+                writer.WriteWhitespace(Environment.NewLine);
+                //WriteTechnique(writer, "Techniques/DiffSkyboxHDRScale.xml");
+                WriteTechnique(writer, "Techniques/DiffSkybox.xml");
+                if (arguments.Skybox != null)
+                {
+                    var name = TextureExporter.GetUrhoPath(arguments.Skybox);
+                    if (!string.IsNullOrWhiteSpace(name))
+                    {
+                        WriteTexture(name, writer, "diffuse");
+                    }
+                }
+                {
+                    writer.WriteWhitespace("\t");
+                    writer.WriteStartElement("cull");
+                    writer.WriteAttributeString("value", "none");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+
+                    writer.WriteWhitespace("\t");
+                    writer.WriteStartElement("shadowcull");
+                    writer.WriteAttributeString("value", "ccw");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
+
+                writer.WriteEndElement();
+                writer.WriteEndDocument();
+            }
+        }
+
+        private void ExportLegacy(AssetContext asset, string urhoPath, LegacyShaderArguments arguments)
+        {
+            using (var writer = asset.DestinationFolder.CreateXml(urhoPath, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -228,9 +282,9 @@ namespace Urho3DExporter
             }
         }
 
-        private void ExportMetallicRoughness(AssetContext asset, MetallicRoughnessShaderArguments arguments)
+        private void ExportMetallicRoughness(AssetContext asset, string urhoPath, MetallicRoughnessShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
+            using (var writer = asset.DestinationFolder.CreateXml(urhoPath, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -280,10 +334,7 @@ namespace Urho3DExporter
 
                         if (_assets.TryGetTexturePath(arguments.MetallicGloss, out var baseAssetName))
                         {
-                            var textureReferences = new TextureReferences(TextureSemantic.PBRMetallicGlossiness, 1.0f,
-                                arguments.SmoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha
-                                    ? arguments.BaseColor
-                                    : arguments.MetallicGloss, arguments.SmoothnessTextureChannel);
+                            var textureReferences = new PBRMetallicGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness);
                             var textureOutputName =
                                 TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
@@ -368,9 +419,9 @@ namespace Urho3DExporter
         }
 
 
-        private void ExportSpecularGlossiness(AssetContext asset, SpecularGlossinessShaderArguments arguments)
+        private void ExportSpecularGlossiness(AssetContext asset, string urhoPath, SpecularGlossinessShaderArguments arguments)
         {
-            using (var writer = asset.DestinationFolder.CreateXml(asset.UrhoAssetName, DateTime.MaxValue))
+            using (var writer = asset.DestinationFolder.CreateXml(urhoPath, DateTime.MaxValue))
             {
                 if (writer == null)
                     return;
@@ -420,10 +471,11 @@ namespace Urho3DExporter
 
                         if (_assets.TryGetTexturePath(arguments.PBRSpecular, out var baseAssetName))
                         {
-                            var textureReferences = new TextureReferences(TextureSemantic.PBRSpecularGlossiness, 1.0f,
+                            var textureReferences = new PBRSpecularGlossinessTextureReference(arguments.GlossinessTextureScale,
                                 arguments.SmoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha
                                     ? arguments.Diffuse
-                                    : arguments.PBRSpecular, arguments.SmoothnessTextureChannel);
+                                    : arguments.PBRSpecular,
+                                arguments.PBRSpecular);
                             var textureOutputName =
                                 TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
@@ -467,8 +519,7 @@ namespace Urho3DExporter
 
                     if (_assets.TryGetTexturePath(arguments.Diffuse, out var diffuseName))
                     {
-                        var textureReferences = new TextureReferences(TextureSemantic.PBRDiffuse, 1.0f,
-                            arguments.PBRSpecular, arguments.SmoothnessTextureChannel);
+                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, arguments.GlossinessTextureScale);
                         var textureOutputName = TextureExporter.GetTextureOutputName(diffuseName, textureReferences);
                         WriteTexture(textureOutputName, writer, "diffuse");
                     }
