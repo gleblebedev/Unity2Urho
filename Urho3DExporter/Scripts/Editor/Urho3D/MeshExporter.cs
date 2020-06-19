@@ -149,11 +149,17 @@ namespace Urho3DExporter
         {
             var trackBones = CloneTree(root).Select(_ => new BoneTrack(_)).ToList();
             var cloneRoot = trackBones[0].gameObject;
-            ISampler sampler;
+            ISampler sampler = null;
             if (clipAnimation.legacy)
                 sampler = new LegacySampler(cloneRoot, clipAnimation);
-            else
-                sampler = new AnimatorSampler(cloneRoot, clipAnimation);
+            else {
+
+                // sampler = new AnimatorSampler(cloneRoot, clipAnimation);
+            }
+
+            if (sampler == null) {
+                return;
+            }
             using (sampler)
             {
                 var timeStep = 1.0f / clipAnimation.frameRate;
@@ -372,6 +378,18 @@ namespace Urho3DExporter
             return name;
         }
 
+        private Vector4[] FlipW(Vector4[] tangents)
+        {
+            var res= new Vector4[tangents.Length];
+            for (var index = 0; index < tangents.Length; index++)
+            {
+                var tangent = tangents[index];
+                res[index] = new Vector4(tangent.x, tangent.y, tangent.z, -tangent.w);
+            }
+
+            return res;
+        }
+
         private void WriteMesh(BinaryWriter writer, Mesh _mesh, Urho3DBone[] bones)
         {
             writer.Write(Magic2);
@@ -415,7 +433,7 @@ namespace Urho3DExporter
                 //    elements.Add(new MeshColorStream(colors, VertexElementSemantic.SEM_COLOR));
                 //}
                 if (tangents.Length > 0)
-                    elements.Add(new MeshVector4Stream(tangents, VertexElementSemantic.SEM_TANGENT));
+                    elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
                 if (uvs.Length > 0)
                     elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
                 if (uvs2.Length > 0)
