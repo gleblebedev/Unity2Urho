@@ -519,7 +519,7 @@ namespace Urho3DExporter
 
                     if (_assets.TryGetTexturePath(arguments.Diffuse, out var diffuseName))
                     {
-                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, arguments.GlossinessTextureScale);
+                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, arguments.GlossinessTextureScale, null);
                         var textureOutputName = TextureExporter.GetTextureOutputName(diffuseName, textureReferences);
                         WriteTexture(textureOutputName, writer, "diffuse");
                     }
