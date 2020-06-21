@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
-    public class SceneExporter : BaseNodeExporter, IExporter
+    public class SceneExporter : BaseNodeExporter
     {
         private readonly bool _asPrefab;
 
-        public SceneExporter(AssetCollection assets, bool asPrefab, bool skipDisabled) : base(assets, skipDisabled)
+        public SceneExporter(Urho3DEngine engine, bool asPrefab, bool skipDisabled) : base(engine, skipDisabled)
         {
             _asPrefab = asPrefab;
         }
 
-        public void ExportAsset(AssetContext asset, Scene scene)
+        public string ResolveAssetPath(Scene asset)
         {
-            var exlusion = new HashSet<Renderer>();
+            var sceneAssetName = ExportUtils.ReplaceExtension(AssetInfo.GetRelPathFromAsset(asset), ".xml");
             var scenesPrefix = "Scenes/";
-            var sceneAssetName = asset.UrhoAssetName;
             if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
             {
                 //Fix scene path
@@ -30,10 +28,20 @@ namespace Urho3DExporter
                 //Fix scene path
                 sceneAssetName = scenesPrefix + sceneAssetName.Replace('/', '_');
             }
-            using (var writer = asset.DestinationFolder.CreateXml(sceneAssetName, DateTime.MaxValue))
+            return sceneAssetName;
+        }
+
+        public void ExportScene(Scene scene)
+        {
+            var exlusion = new HashSet<Renderer>();
+
+            var sceneAssetName = ResolveAssetPath(scene);
+            using (var writer = _engine.TryCreateXml(sceneAssetName, DateTime.MaxValue))
             {
                 if (writer == null)
+                {
                     return;
+                }
                 var rootGameObjects = scene.GetRootGameObjects();
                 if (_asPrefab)
                 {
@@ -44,7 +52,7 @@ namespace Urho3DExporter
                         writer.WriteWhitespace("\n");
                         foreach (var gameObject in rootGameObjects)
                         {
-                            WriteObject(writer, "\t", gameObject, exlusion, asset, true);
+                            WriteObject(writer, "\t", gameObject, exlusion, true);
                         }
                         writer.WriteEndElement();
                         writer.WriteWhitespace("\n");
@@ -53,7 +61,7 @@ namespace Urho3DExporter
                     {
                         foreach (var gameObject in rootGameObjects)
                         {
-                            WriteObject(writer, "", gameObject, exlusion, asset, true);
+                            WriteObject(writer, "", gameObject, exlusion, true);
                         }
                     }
                 }
@@ -68,24 +76,9 @@ namespace Urho3DExporter
                         EndElement(writer, "\t");
                         foreach (var gameObject in rootGameObjects)
                         {
-                            WriteObject(writer, "", gameObject, exlusion, asset, true);
+                            WriteObject(writer, "", gameObject, exlusion, true);
                         }
                     }
-                }
-            }
-        }
-
-        public void ExportAsset(AssetContext asset)
-        {
-            var go = AssetDatabase.LoadAssetAtPath<SceneAsset>(asset.AssetPath);
-
-            var exclusionSet = new HashSet<Renderer>();
-            using (var writer = asset.CreateXml())
-            {
-                if (writer == null)
-                    return;
-                using (var scene = Element.Start(writer, "scene"))
-                {
                 }
             }
         }

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Assets.Urho3DExporter.Scripts.Editor
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class ShaderArguments
     {

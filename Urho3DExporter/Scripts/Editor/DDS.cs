@@ -2,7 +2,7 @@
 using System.IO;
 using UnityEngine;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class DDS
     {

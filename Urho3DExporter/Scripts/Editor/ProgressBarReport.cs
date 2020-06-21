@@ -1,4 +1,4 @@
-﻿namespace Urho3DExporter
+﻿namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public struct ProgressBarReport
     {
@@ -7,6 +7,11 @@
         public ProgressBarReport(string message)
         {
             Message = message;
+        }
+
+        public static implicit operator ProgressBarReport(string message)
+        {
+            return new ProgressBarReport(message);
         }
 
         public override string ToString()

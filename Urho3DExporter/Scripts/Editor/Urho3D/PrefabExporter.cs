@@ -2,23 +2,27 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
-    public class PrefabExporter : BaseNodeExporter, IExporter
+    public class PrefabExporter : BaseNodeExporter
     {
-        public PrefabExporter(AssetCollection assets, bool skipDisabled) : base(assets, skipDisabled)
+        public PrefabExporter(Urho3DEngine engine, bool skipDisabled) : base(engine, skipDisabled)
         {
         }
 
-        public void ExportAsset(AssetContext asset)
+        public void ExportPrefab(string assetPath, GameObject gameObject)
         {
-            using (var writer = asset.CreateXml())
+            using (var writer = _engine.TryCreateXml(EvaluatePrefabName(assetPath), ExportUtils.GetLastWriteTimeUtc(assetPath)))
             {
                 if (writer == null)
                     return;
-                var go = AssetDatabase.LoadAssetAtPath<GameObject>(asset.AssetPath);
-                WriteObject(writer, "", go, new HashSet<Renderer>(), asset, true);
+                WriteObject(writer, "", gameObject, new HashSet<Renderer>(), true);
             }
+        }
+
+        public string EvaluatePrefabName(string assetPath)
+        {
+            return ExportUtils.ReplaceExtension( AssetInfo.GetRelPathFromAssetPath(assetPath), ".xml");
         }
     }
 }

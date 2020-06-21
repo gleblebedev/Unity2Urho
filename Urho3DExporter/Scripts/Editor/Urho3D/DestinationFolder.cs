@@ -5,7 +5,7 @@ using System.Text;
 using System.Xml;
 using UnityEditor;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
     /// <summary>
     ///     Destination folder helper.
@@ -32,34 +32,7 @@ namespace Urho3DExporter
 
         public void CopyFile(string sourceFilePath, string destinationFilePath)
         {
-            if (destinationFilePath == null)
-                return;
-            if (!File.Exists(sourceFilePath))
-                return;
-            var targetPath = GetTargetFilePath(destinationFilePath);
-
-            //Skip file if it already exported
-            if (!_createdFiles.Add(targetPath))
-            {
-                return;
-            }
-
-            //Skip file if it is already up to date
-            if (_exportOnlyUpdated)
-            {
-                if (File.Exists(targetPath))
-                {
-                    var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
-                    var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
-                    if (sourceLastWriteTimeUtc <= lastWriteTimeUtc)
-                        return;
-                }
-            }
-
-            var directoryName = Path.GetDirectoryName(targetPath);
-            if (directoryName != null) Directory.CreateDirectory(directoryName);
-
-            File.Copy(sourceFilePath, targetPath, true);
+           
         }
 
         public FileStream Create(string relativePath, DateTime sourceFileTimestampUTC)

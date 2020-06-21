@@ -1,42 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
+using UnityEngine.SceneManagement;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class ExportOptions : EditorWindow
     {
-        private static readonly string _dataPathKey = "Urho3DExporter.DataPath";
-        private static readonly string _exportUpdatedOnlyKey = "Urho3DExporter.UpdatedOnly";
-        private static readonly string _selectedKey = "Urho3DExporter.Selected";
-        private static readonly string _exportSceneAsPrefabKey = "Urho3DExporter.SceneAsPrefab";
-        private static readonly string _skipDisabledKey = "Urho3DExporter.SkipDisabled";
-        private static readonly string _exportReflectionProbesKey = "Urho3DExporter.ReflectionProbes";
+        private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";
+        private static readonly string _exportUpdatedOnlyKey = "UnityToCustomEngineExporter.UpdatedOnly";
+        private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
+        private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private string _exportFolder = "";
         private bool _exportUpdatedOnly = false;
-        private bool _selected = true;
         private bool _exportSceneAsPrefab = false;
         private bool _skipDisabled = false;
-        private bool _exportReflectionProbes = false;
-        private Stopwatch _stopwatch = new Stopwatch();
-        private IEnumerator<ProgressBarReport> _progress;
-        private string _progressLabel;
+        private Urho3DEngine _destinationEngine;
 
+        private IDestinationEngine _engine;
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _exportTask;
 
         [MenuItem("Assets/Export Assets and Scene To Urho3D")]
-        private static void Init()
+        public static void Init()
         {
             var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
         }
 
-
-
-        private void OnGUI()
+        public void OnGUI()
         {
             // if (string.IsNullOrWhiteSpace(_exportFolder)) {
             //    PickFolder();
@@ -46,82 +43,90 @@ namespace Urho3DExporter
             if (GUILayout.Button("Pick")) PickFolder();
             _exportUpdatedOnly = EditorGUILayout.Toggle("Export only updated resources", _exportUpdatedOnly);
 
-            var selected = false;
-            if (Selection.assetGUIDs.Length != 0)
-            {
-                _selected = EditorGUILayout.Toggle("Export selected assets", _selected);
-                selected = _selected;
-            }
-
             _exportSceneAsPrefab = EditorGUILayout.Toggle("Export scene as prefab", _exportSceneAsPrefab);
 
             _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
 
-            _exportReflectionProbes = EditorGUILayout.Toggle("Export reflection probes", _exportReflectionProbes);
+            GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
 
-            if (_progressLabel != null)
             {
-                GUILayout.Label(_progressLabel);
-            }
-            if (_progress == null)
-            {
-                if (!string.IsNullOrWhiteSpace(_exportFolder))
+                GUI.enabled = (_engine == null) && ValidateExportPath(_exportFolder);
+                if (Selection.assetGUIDs.Length > 0)
                 {
-                    if (GUILayout.Button("Export"))
+                    if (GUILayout.Button("Export selected (" + Selection.assetGUIDs.Length + ") assets"))
                     {
-                        var urhoDataPath = new DestinationFolder(_exportFolder, _exportUpdatedOnly);
-                        _progress = ExportAssets.ExportToUrho(_exportFolder, urhoDataPath, selected, _exportSceneAsPrefab, _skipDisabled).GetEnumerator();
-                        EditorApplication.update += Advance;
+                        StartExportAssets(Selection.assetGUIDs);
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Export all assets"))
+                    {
+                        StartExportAssets(AssetDatabase.FindAssets(""));
+                    }
+                }
+                if (GUILayout.Button("Export active scene "))
+                {
+                    StartExportScene();
+                }
+
+                GUI.enabled = true;
+            }
+            {
+                if (EditorTaskScheduler.Default.IsRunning)
+                {
+                    if (_cancellationTokenSource != null)
+                    {
+                        if (GUILayout.Button("Cancel"))
+                        {
+                            _cancellationTokenSource.Cancel();
+                        }
+                    }
+                }
+                else
+                {
+                    if (_engine != null)
+                    {
+                        _engine.Dispose();
+                        _engine = null;
+                        if (!_cancellationTokenSource.IsCancellationRequested)
+                            _cancellationTokenSource.Cancel();
+                        _cancellationTokenSource = null;
                     }
                 }
             }
-
             //EditorGUILayout.BeginHorizontal();
             //EditorGUILayout.EndHorizontal();
         }
 
-        private void Advance()
+        private void StartExportScene()
         {
-            try
+            var activeScene = SceneManager.GetActiveScene();
+            if (activeScene != null)
             {
-                _stopwatch.Restart();
-                do
+                _engine = CreateEngine();
+                EditorTaskScheduler.Default.ScheduleForegroundTask(() =>
                 {
-                    if (!_progress.MoveNext())
-                    {
-                        Stop();
-                        break;
-                    }
-                } while (_stopwatch.Elapsed.TotalMilliseconds < 16);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError(ex);
-                Stop();
-                _progressLabel = "Error: " + ex.Message;
-            }
-            if (_progress != null)
-            {
-                _progressLabel = _progress.Current.Message;
-            }
-            else
-            {
-                //Close();
+                    _engine.ExportScene(activeScene);
+                }, activeScene.path);
             }
         }
 
-        private void Stop()
+        private void StartExportAssets(string[] assetGuiDs)
         {
-            if (_progress != null)
-            {
-                _progress.Dispose();
-                _progress = null;
-            }
-
-            _progressLabel = "Done.";
-            EditorApplication.update -= Advance;
+            _engine = CreateEngine();
+            EditorTaskScheduler.Default.ScheduleForegroundTask(()=>_engine.ExportAssets(assetGuiDs));
         }
 
+        private IDestinationEngine CreateEngine()
+        {
+            if (_engine != null)
+            {
+                return null;
+            }
+            _cancellationTokenSource = new CancellationTokenSource();
+            return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, _exportUpdatedOnly, _exportSceneAsPrefab, _skipDisabled);
+        }
 
         private void PickFolder()
         {
@@ -134,8 +139,7 @@ namespace Urho3DExporter
             }
             else
             {
-                if (exportFolder.StartsWith(Path.GetDirectoryName(Application.dataPath).FixDirectorySeparator(),
-                    StringComparison.InvariantCultureIgnoreCase))
+                if (!ValidateExportPath(exportFolder))
                 {
                     EditorUtility.DisplayDialog("Error",
                         "Selected path is inside Unity folder. Please select a different folder.", "Ok");
@@ -145,6 +149,13 @@ namespace Urho3DExporter
                 _exportFolder = exportFolder;
                 SaveConfig();
             }
+        }
+
+        private static bool ValidateExportPath(string exportFolder)
+        {
+            var normalizedFolder = exportFolder.FixDirectorySeparator();
+            var dataPath = Application.dataPath.FixDirectorySeparator();
+            return !string.IsNullOrWhiteSpace(exportFolder) && !normalizedFolder.StartsWith(dataPath, StringComparison.InvariantCultureIgnoreCase);
         }
 
         private void OnFocus()
@@ -164,14 +175,10 @@ namespace Urho3DExporter
             }
             if (EditorPrefs.HasKey(_exportUpdatedOnlyKey))
                 _exportUpdatedOnly = EditorPrefs.GetBool(_exportUpdatedOnlyKey);
-            if (EditorPrefs.HasKey(_selectedKey))
-                _selected = EditorPrefs.GetBool(_selectedKey);
             if (EditorPrefs.HasKey(_exportSceneAsPrefabKey))
                 _exportSceneAsPrefab = EditorPrefs.GetBool(_exportSceneAsPrefabKey);
             if (EditorPrefs.HasKey(_skipDisabledKey))
                 _skipDisabled = EditorPrefs.GetBool(_skipDisabledKey);
-            if (EditorPrefs.HasKey(_exportReflectionProbesKey))
-                _exportReflectionProbes = EditorPrefs.GetBool(_exportReflectionProbesKey);
         }
 
         private void OnLostFocus()
@@ -183,12 +190,9 @@ namespace Urho3DExporter
         {
             EditorPrefs.SetString(_dataPathKey, _exportFolder);
             EditorPrefs.SetBool(_exportUpdatedOnlyKey, _exportUpdatedOnly);
-            EditorPrefs.SetBool(_selectedKey, _selected);
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
-            EditorPrefs.SetBool(_exportReflectionProbesKey, _exportReflectionProbes);
-            
-        }
+       }
 
         private void OnDestroy()
         {

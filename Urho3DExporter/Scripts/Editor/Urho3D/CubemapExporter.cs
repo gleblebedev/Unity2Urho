@@ -3,10 +3,16 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
-    public class CubemapExporter : IExporter
+    public class CubemapExporter
     {
+        private readonly Urho3DEngine _engine;
+
+        public CubemapExporter(Urho3DEngine engine)
+        {
+            _engine = engine;
+        }
         public void ExportAsset(AssetContext asset)
         {
             if (!File.Exists(asset.FullPath))
@@ -59,5 +65,9 @@ namespace Urho3DExporter
             return false;
         }
 
+        public string EvaluateCubemapName(Cubemap cubemap)
+        {
+            return AssetContext.ReplaceExt(AssetInfo.GetRelPathFromAsset(cubemap), ".dds");
+        }
     }
 }

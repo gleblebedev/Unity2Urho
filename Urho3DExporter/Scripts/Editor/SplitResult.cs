@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public struct SplitResult<T>
     {

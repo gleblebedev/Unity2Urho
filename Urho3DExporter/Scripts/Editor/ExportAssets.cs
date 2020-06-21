@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class ExportAssets
     {
@@ -36,100 +36,107 @@ namespace Urho3DExporter
         //    if (!ResolveDataPath(out var urhoDataPath)) return;
         //}
 
-        public static IEnumerable<ProgressBarReport> ExportToUrho(string targetPath, DestinationFolder urhoDataPath,
-            bool exportSelected,
-            bool exportSceneAsPrefab, bool skipDisabled)
-        {
-            if (string.IsNullOrWhiteSpace(targetPath))
-                yield break;
+        //public static async Task ExportToUrho(string targetPath, DestinationFolder urhoDataPath,
+        //    bool exportSelected,
+        //    bool exportSceneAsPrefab, bool skipDisabled)
+        //{
+        //    if (string.IsNullOrWhiteSpace(targetPath))
+        //        return;
 
-            AssetCollection assets;
-            if (Selection.assetGUIDs.Length == 0 || !exportSelected)
-            {
-                assets = new AssetCollection(urhoDataPath,
-                    AssetDatabase.FindAssets("").Select(_ => AssetContext.Create(_, urhoDataPath))
-                        .Where(_ => _.Type != null));
-            }
-            else
-            {
-                var selectedAssets = new HashSet<string>();
-                foreach (var assetGuiD in Selection.assetGUIDs) AddSelection(assetGuiD, selectedAssets);
+        //    using (var destinationEngine = new Urho3DEngine())
+        //    {
+        //        var sceneObjects = AssetDatabase.LoadAllAssetsAtPath(SceneManager.GetActiveScene().path);
+        //    }
+        //    yield break;
 
-                var enumerable = selectedAssets.Select(_ => AssetContext.Create(_, urhoDataPath)).ToList();
-                var assetContexts = enumerable.Where(_ => _.Type != null).ToList();
-                assets = new AssetCollection(urhoDataPath, assetContexts);
-            }
 
-            _id = 0;
+        //    AssetCollection assets;
+        //    if (Selection.assetGUIDs.Length == 0 || !exportSelected)
+        //    {
+        //        assets = new AssetCollection(urhoDataPath,
+        //            AssetDatabase.FindAssets("").Select(_ => AssetContext.Create(_, urhoDataPath))
+        //                .Where(_ => _.Type != null));
+        //    }
+        //    else
+        //    {
+        //        var selectedAssets = new HashSet<string>();
+        //        foreach (var assetGuiD in Selection.assetGUIDs) AddSelection(assetGuiD, selectedAssets);
 
-            var textureMetadataCollection = new TextureMetadataCollection();
-            foreach (var report in textureMetadataCollection.Populate(urhoDataPath))
-            {
-                yield return report;
-            }
+        //        var enumerable = selectedAssets.Select(_ => AssetContext.Create(_, urhoDataPath)).ToList();
+        //        var assetContexts = enumerable.Where(_ => _.Type != null).ToList();
+        //        assets = new AssetCollection(urhoDataPath, assetContexts);
+        //    }
 
-            IEnumerable<AssetContext> other = assets;
-            {
-                var splitResult = Split(other, _ => _.Is3DAsset);
-                foreach (var assetContext in splitResult.Selected)
-                {
-                    yield return new ProgressBarReport(assetContext.AssetPath);
-                    Process3DAsset(assets, assetContext, textureMetadataCollection, skipDisabled);
-                }
-                other = splitResult.Rejected;
-            }
+        //    _id = 0;
 
-            {
-                var exporter = new CubemapExporter();
-                var splitResult = Split(other, _ => _.Type == typeof(Cubemap));
-                foreach (var assetContext in splitResult.Selected)
-                {
-                    yield return new ProgressBarReport(assetContext.AssetPath);
-                    exporter.ExportAsset(assetContext);
-                }
-                other = splitResult.Rejected;
-            }
-            Lazy<TextureExporter> textureExporter = new Lazy<TextureExporter>(() => new TextureExporter(assets, textureMetadataCollection));
-            {
-                var splitResult = Split(other, _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D));
-                foreach (var assetContext in splitResult.Selected)
-                {
-                    yield return new ProgressBarReport(assetContext.AssetPath);
-                    textureExporter.Value.ExportAsset(assetContext);
-                }
-                other = splitResult.Rejected;
-            }
-            {
-                var splitResult = Split(other, _ => _.Type == typeof(Material));
-                foreach (var assetContext in splitResult.Selected)
-                {
-                    yield return new ProgressBarReport(assetContext.AssetPath);
-                    new MaterialExporter(assets, textureMetadataCollection).ExportAsset(assetContext);
-                }
-                other = splitResult.Rejected;
-            }
+        //    var textureMetadataCollection = new TextureMetadataCollection();
+        //    foreach (var report in textureMetadataCollection.Populate(urhoDataPath))
+        //    {
+        //        yield return report;
+        //    }
 
-            var activeScene = SceneManager.GetActiveScene();
-            {
-                var splitResult = Split(other, _ => _.Type == typeof(SceneAsset));
-                foreach (var assetContext in splitResult.Selected)
-                {
-                    if (assetContext.AssetPath == activeScene.path)
-                    {
-                        yield return new ProgressBarReport(assetContext.AssetPath);
-                        //yield return new ProgressBarReport(_.AssetPath);
-                        ProcessSceneAsset(assets, assetContext, activeScene, exportSceneAsPrefab, skipDisabled);
-                    }
-                }
-                other = splitResult.Rejected;
-            }
+        //    IEnumerable<AssetContext> other = assets;
+        //    {
+        //        var splitResult = Split(other, _ => _.Is3DAsset);
+        //        foreach (var assetContext in splitResult.Selected)
+        //        {
+        //            yield return new ProgressBarReport(assetContext.AssetPath);
+        //            Process3DAsset(assets, assetContext, textureMetadataCollection, skipDisabled);
+        //        }
+        //        other = splitResult.Rejected;
+        //    }
 
-            foreach (var assetContext in other)
-            {
-                yield return new ProgressBarReport(assetContext.AssetPath);
-                ProcessAsset(assets, assetContext, skipDisabled);
-            }
-        }
+        //    {
+        //        var exporter = new CubemapExporter();
+        //        var splitResult = Split(other, _ => _.Type == typeof(Cubemap));
+        //        foreach (var assetContext in splitResult.Selected)
+        //        {
+        //            yield return new ProgressBarReport(assetContext.AssetPath);
+        //            exporter.ExportAsset(assetContext);
+        //        }
+        //        other = splitResult.Rejected;
+        //    }
+        //    Lazy<TextureExporter> textureExporter = new Lazy<TextureExporter>(() => new TextureExporter(assets, textureMetadataCollection));
+        //    {
+        //        var splitResult = Split(other, _ => _.Type == typeof(Texture3D) || _.Type == typeof(Texture2D));
+        //        foreach (var assetContext in splitResult.Selected)
+        //        {
+        //            yield return new ProgressBarReport(assetContext.AssetPath);
+        //            textureExporter.Value.ExportAsset(assetContext);
+        //        }
+        //        other = splitResult.Rejected;
+        //    }
+        //    {
+        //        var splitResult = Split(other, _ => _.Type == typeof(Material));
+        //        foreach (var assetContext in splitResult.Selected)
+        //        {
+        //            yield return new ProgressBarReport(assetContext.AssetPath);
+        //            new MaterialExporter(assets, textureMetadataCollection).ExportAsset(assetContext);
+        //        }
+        //        other = splitResult.Rejected;
+        //    }
+
+        //    var activeScene = SceneManager.GetActiveScene();
+        //    {
+        //        var splitResult = Split(other, _ => _.Type == typeof(SceneAsset));
+        //        foreach (var assetContext in splitResult.Selected)
+        //        {
+        //            if (assetContext.AssetPath == activeScene.path)
+        //            {
+        //                yield return new ProgressBarReport(assetContext.AssetPath);
+        //                //yield return new ProgressBarReport(_.AssetPath);
+        //                ProcessSceneAsset(assets, assetContext, activeScene, exportSceneAsPrefab, skipDisabled);
+        //            }
+        //        }
+        //        other = splitResult.Rejected;
+        //    }
+
+        //    foreach (var assetContext in other)
+        //    {
+        //        yield return new ProgressBarReport(assetContext.AssetPath);
+        //        ProcessAsset(assets, assetContext, skipDisabled);
+        //    }
+        //}
 
         internal static FileStream CreateFile(string urhoFileName)
         {
@@ -150,46 +157,46 @@ namespace Urho3DExporter
                 guids.Add(assetGuiD);
         }
 
-        private static void ProcessSceneAsset(AssetCollection assets, AssetContext assetContext, Scene scene, bool exportSceneAsPrefab, bool skipDisabled)
-        {
-            new SceneExporter(assets, exportSceneAsPrefab, skipDisabled).ExportAsset(assetContext, scene);
-        }
+        //private static void ProcessSceneAsset(AssetCollection assets, AssetContext assetContext, Scene scene, bool exportSceneAsPrefab, bool skipDisabled)
+        //{
+        //    new SceneExporter(assets, exportSceneAsPrefab, skipDisabled).ExportAsset(assetContext, scene);
+        //}
 
-        private static void ProcessAsset(AssetCollection assets, AssetContext assetContext, bool skipDisabled)
-        {
-            if (assetContext.Type == typeof(GameObject))
-            {
-                new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
-            }
-            else if (assetContext.Type == typeof(SceneAsset))
-            {
-                //new SceneExporter(assets).ExportAsset(assetContext);
-            }
-        }
+        //private static void ProcessAsset(AssetCollection assets, AssetContext assetContext, bool skipDisabled)
+        //{
+        //    if (assetContext.Type == typeof(GameObject))
+        //    {
+        //        new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
+        //    }
+        //    else if (assetContext.Type == typeof(SceneAsset))
+        //    {
+        //        //new SceneExporter(assets).ExportAsset(assetContext);
+        //    }
+        //}
 
-        private static void Process3DAsset(AssetCollection assets, AssetContext assetContext, TextureMetadataCollection textureMetadataCollection, bool skipDisabled)
-        {
-            if (assetContext.Type == typeof(Mesh))
-            {
-                new MeshExporter(assets).ExportAsset(assetContext);
-            }
-            else if (assetContext.Type == typeof(GameObject))
-            {
-                new MeshExporter(assets).ExportAsset(assetContext);
-                var allAssets = AssetDatabase.LoadAllAssetsAtPath(assetContext.AssetPath);
-                foreach (var asset in allAssets)
-                {
-                    if (asset is Material material)
-                    {
-                        new MaterialExporter(assets, textureMetadataCollection).ExportMaterial(assetContext, material);
-                    }
-                }
-                new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
-            }
-            else
-            {
-                throw new NotImplementedException("Unknown asset type "+assetContext.Type);
-            }
-        }
+        //private static void Process3DAsset(AssetCollection assets, AssetContext assetContext, TextureMetadataCollection textureMetadataCollection, bool skipDisabled)
+        //{
+        //    if (assetContext.Type == typeof(Mesh))
+        //    {
+        //        new MeshExporter(assets).ExportAsset(assetContext);
+        //    }
+        //    else if (assetContext.Type == typeof(GameObject))
+        //    {
+        //        new MeshExporter(assets).ExportAsset(assetContext);
+        //        var allAssets = AssetDatabase.LoadAllAssetsAtPath(assetContext.AssetPath);
+        //        foreach (var asset in allAssets)
+        //        {
+        //            if (asset is Material material)
+        //            {
+        //                new MaterialExporter(assets, textureMetadataCollection).ExportMaterial(assetContext, material);
+        //            }
+        //        }
+        //        new PrefabExporter(assets, skipDisabled).ExportAsset(assetContext);
+        //    }
+        //    else
+        //    {
+        //        throw new NotImplementedException("Unknown asset type "+assetContext.Type);
+        //    }
+        //}
     }
 }

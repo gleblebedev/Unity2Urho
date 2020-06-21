@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class AssetContext
     {
@@ -105,12 +106,7 @@ namespace Urho3DExporter
 
                 res.DestinationFolder = urhoDataFolder;
                 {
-                    var dotIndex = res.UrhoAssetName.LastIndexOf('.');
-                    var lastSlash = res.UrhoAssetName.LastIndexOf('/');
-                    if (dotIndex > lastSlash)
-                        res.ContentFolderName = res.UrhoAssetName.Substring(0, dotIndex);
-                    else
-                        res.ContentFolderName = res.UrhoAssetName + ".Content";
+                    res.ContentFolderName = ExportUtils.ReplaceExtension(res.UrhoAssetName, ".Content");
                 }
             }
 

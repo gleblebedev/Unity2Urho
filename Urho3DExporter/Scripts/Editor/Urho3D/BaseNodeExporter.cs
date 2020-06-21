@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using UnityEditor;
-using UnityEditor.Experimental.Rendering;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class BaseNodeExporter
     {
-        private readonly AssetCollection _assets;
         private readonly bool _skipDisabled;
-
+        protected Urho3DEngine _engine;
         protected int _id;
+        protected EditorTaskScheduler BackgroundEditorTasks = new EditorTaskScheduler();
 
-        public BaseNodeExporter(AssetCollection assets, bool skipDisabled)
+        public BaseNodeExporter(Urho3DEngine engine, bool skipDisabled)
         {
-            _assets = assets;
+            _engine = engine;
             _skipDisabled = skipDisabled;
         }
 
@@ -45,69 +45,24 @@ namespace Urho3DExporter
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
         }
 
-        private static (float min, float max, Vector2 size) WriteHeightMap(AssetContext asset, string heightmapFileName,
-            Terrain terrain)
+        private (float min, float max, Vector2 size) GetTerrainSize(TerrainData terrain)
         {
-            var w = terrain.terrainData.heightmapResolution;
-            var h = terrain.terrainData.heightmapResolution;
+            var w = terrain.heightmapResolution;
+            var h = terrain.heightmapResolution;
             var max = float.MinValue;
             var min = float.MaxValue;
-            var heights = terrain.terrainData.GetHeights(0, 0, w, h);
+            var heights = terrain.GetHeights(0, 0, w, h);
             foreach (var height in heights)
             {
                 if (height > max) max = height;
                 if (height < min) min = height;
             }
-
-            if (max < min)
-            {
-                max = 1;
-                min = 0;
-            }
-            else if (max == min)
-            {
-                max = min + 0.1f;
-            }
-
-            using (var imageFile = asset.DestinationFolder.Create(heightmapFileName, DateTime.MaxValue))
-            {
-                if (imageFile != null)
-                    using (var binaryWriter = new BinaryWriter(imageFile))
-                    {
-                        WriteTgaHeader(binaryWriter, 32, w, h);
-                        for (var y = h - 1; y >= 0; --y)
-                        for (var x = 0; x < w; ++x)
-                        {
-                            var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
-                            var msb = (byte) height;
-                            var lsb = (byte) ((height - msb) * 255.0f);
-                            binaryWriter.Write((byte) 0); //B - none
-                            binaryWriter.Write(lsb); //G - LSB
-                            binaryWriter.Write(msb); //R - MSB
-                            binaryWriter.Write((byte) 255); //A - none
-                        }
-                    }
-            }
-
             return (min, max, new Vector2(w, h));
         }
 
-        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
-        {
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((byte) (bitsPerPixel == 8 ? 3 : 2));
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((byte) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) 0);
-            binaryWriter.Write((short) w);
-            binaryWriter.Write((short) h);
-            binaryWriter.Write((byte) bitsPerPixel);
-            binaryWriter.Write((byte) 0);
-        }
+       
 
+    
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, float pos)
         {
             WriteAttribute(writer, prefix, name, string.Format(CultureInfo.InvariantCulture, "{0}", pos));
@@ -182,8 +137,7 @@ namespace Urho3DExporter
         //    }
         //    WriteAttribute(subSubPrefix, "Material", material.ToString());
         //}
-        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
-            AssetContext asset, bool parentEnabled)
+        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList, bool parentEnabled)
         {
             var isEnabled = obj.activeSelf && parentEnabled;
             if (_skipDisabled && !isEnabled)
@@ -249,7 +203,7 @@ namespace Urho3DExporter
                 }
                 else if (component is Terrain terrain)
                 {
-                    ExportTerrain(writer, obj, asset, terrain, subPrefix);
+                   ExportTerrain(writer, terrain?.terrainData, subPrefix);
                 }
                 else if (component is Rigidbody rigidbody)
                 {
@@ -267,8 +221,10 @@ namespace Urho3DExporter
                     if (meshCollider.sharedMesh != null)
                     {
                         var sharedMesh = meshCollider.sharedMesh;
-                        string meshPath;
-                        if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
+                        ;
+                        _engine.ScheduleAssetExport(sharedMesh);
+                        string meshPath = _engine.Mesh.EvaluateMeshName(sharedMesh);
+                        if (!string.IsNullOrWhiteSpace(meshPath))
                         {
                             WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
                         }
@@ -314,13 +270,13 @@ namespace Urho3DExporter
                         GameObject gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
                         Mesh mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
                         GameObject.DestroyImmediate(gameObject);
-                        var sharedMeshName = "UnityBuiltIn/Cube.mdl";
-                        new MeshExporter(null).ExportMeshModel(asset.DestinationFolder, sharedMeshName, mesh, null,
-                            DateTime.MinValue);
+                        //var sharedMeshName = "UnityBuiltIn/Cube.mdl";
+                        _engine.ScheduleAssetExport(mesh);
+                        WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.Mesh.EvaluateMeshName(mesh));
                     }
-                    WriteAttribute(writer, subSubPrefix, "Model", "Model;UnityBuiltIn/Cube.mdl");
-                    
-                    var materials = "Material;" + MaterialExporter.GetUrhoPath(skybox.material);
+
+                    _engine.ScheduleAssetExport(skybox.material);
+                    var materials = "Material;" + _engine.Material.EvaluateMaterialName(skybox.material);
                     WriteAttribute(writer, subSubPrefix, "Material", materials);
                     EndElement(writer, subPrefix);
                 }
@@ -367,15 +323,16 @@ namespace Urho3DExporter
                     StartCompoent(writer, subPrefix, "StaticModel");
 
                     var sharedMesh = meshFilter.sharedMesh;
-                    string meshPath;
-                    if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
+                    _engine.ScheduleAssetExport(sharedMesh);
+                    string meshPath = _engine.Mesh.EvaluateMeshName(sharedMesh);
+                    if (!string.IsNullOrWhiteSpace(meshPath))
                         WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
 
                     var materials = "Material";
                     foreach (var material in meshRenderer.sharedMaterials)
                     {
-                        string path;
-                        _assets.TryGetMaterialPath(material, out path);
+                        _engine.ScheduleAssetExport(material);
+                        string path = _engine.Material.EvaluateMaterialName(material);
                         materials += ";" + path;
                     }
 
@@ -391,16 +348,18 @@ namespace Urho3DExporter
             {
                 StartCompoent(writer, subPrefix, "AnimatedModel");
 
+
                 var sharedMesh = skinnedMeshRenderer.sharedMesh;
-                string meshPath;
-                if (_assets.TryGetMeshPath(sharedMesh, out meshPath))
+                _engine.ScheduleAssetExport(sharedMesh);
+                string meshPath = _engine.Mesh.EvaluateMeshName(sharedMesh);
+                if (!string.IsNullOrWhiteSpace(meshPath))
                     WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
 
                 var materials = "Material";
                 foreach (var material in skinnedMeshRenderer.sharedMaterials)
                 {
-                    string path;
-                    _assets.TryGetMaterialPath(material, out path);
+                    _engine.ScheduleAssetExport(material);
+                    string path = _engine.Material.EvaluateMaterialName(material);
                     materials += ";" + path;
                 }
 
@@ -414,7 +373,7 @@ namespace Urho3DExporter
 
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
-                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, asset, isEnabled);
+                    WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, isEnabled);
 
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
@@ -468,148 +427,31 @@ namespace Urho3DExporter
             WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
         }
 
-        private void ExportTerrain(XmlWriter writer, GameObject obj, AssetContext asset, Terrain terrain, string subPrefix)
+        private void ExportTerrain(XmlWriter writer, TerrainData terrainData, string subPrefix)
         {
-            if (terrain == null) return;
+            if (terrainData == null) return;
 
             var subSubPrefix = subPrefix + "\t";
 
-
-            var terrainSize = terrain.terrainData.size;
+            var terrainSize = terrainData.size;
             writer.WriteWhitespace(subPrefix);
             writer.WriteStartElement("node");
             writer.WriteAttributeString("id", (++_id).ToString());
             writer.WriteWhitespace("\n");
 
-            var folderAndName = asset.RelPath + "/" +
-                                Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
-            var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
-            var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
+            _engine.ScheduleAssetExport(terrainData);
 
-            var (min, max, size) = WriteHeightMap(asset, heightmapFileName, terrain);
+            var (min, max, size) = GetTerrainSize(terrainData);
 
-            WriteAttribute(writer, subPrefix, "Position",
-                new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
-
+            WriteAttribute(writer, subPrefix, "Position", new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f));
             StartCompoent(writer, subPrefix, "Terrain");
 
-            WriteAttribute(writer, subSubPrefix, "Height Map", "Image;" + heightmapFileName);
-            WriteAttribute(writer, subSubPrefix, "Material", "Material;" + materialFileName);
-            WriteTerrainMaterial(terrain, asset, materialFileName,
-                "Textures/Terrains/" + folderAndName + ".Weights.tga");
-            WriteAttribute(writer, subSubPrefix, "Vertex Spacing",
-                new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
+            WriteAttribute(writer, subSubPrefix, "Height Map", "Image;" + _engine.Terrain.EvaluateHeightMap(terrainData));
+            WriteAttribute(writer, subSubPrefix, "Material", "Material;" + _engine.Terrain.EvaluateMaterial(terrainData));
+            //WriteTerrainMaterial(terrainData, materialFileName, "Textures/Terrains/" + folderAndName + ".Weights.tga");
+            WriteAttribute(writer, subSubPrefix, "Vertex Spacing", new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
             EndElement(writer, subPrefix);
             EndElement(writer, subPrefix);
-        }
-
-        private void WriteTerrainMaterial(Terrain terrain, AssetContext asset, string materialPath,
-            string weightsTextureName)
-        {
-            using (var writer = asset.DestinationFolder.CreateXml(materialPath, DateTime.MaxValue))
-            {
-                if (writer == null)
-                    return;
-
-                var layers = terrain.terrainData.terrainLayers;
-                if (layers.Length > 3) layers = layers.Take(3).ToArray();
-
-                writer.WriteStartDocument();
-                writer.WriteStartElement("material");
-                writer.WriteWhitespace(Environment.NewLine);
-                {
-                    writer.WriteStartElement("technique");
-                    writer.WriteAttributeString("name", "Techniques/TerrainBlend.xml");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-                {
-                    writer.WriteStartElement("texture");
-                    writer.WriteAttributeString("unit", "0");
-                    writer.WriteAttributeString("name", weightsTextureName);
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-
-                    WriteTerrainWeightsTexture(asset, weightsTextureName, terrain);
-                }
-                for (var layerIndex = 0; layerIndex < layers.Length; ++layerIndex)
-                {
-                    var layer = layers[layerIndex];
-
-                    writer.WriteStartElement("texture");
-                    writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
-                    if (layer.diffuseTexture != null)
-                    {
-                        string urhoAssetName;
-                        if (_assets.TryGetTexturePath(layer.diffuseTexture, out urhoAssetName))
-                            writer.WriteAttributeString("name", urhoAssetName);
-                    }
-
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-
-                {
-                    writer.WriteStartElement("parameter");
-                    writer.WriteAttributeString("name", "MatSpecColor");
-                    writer.WriteAttributeString("value", "0.5 0.5 0.5 16");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-                {
-                    writer.WriteStartElement("parameter");
-                    writer.WriteAttributeString("name", "DetailTiling");
-                    writer.WriteAttributeString("value", "32 32");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
-            }
-        }
-
-        private void WriteTerrainWeightsTexture(AssetContext asset, string weightsTextureName, Terrain terrain)
-        {
-            var layers = terrain.terrainData.terrainLayers;
-            var w = terrain.terrainData.alphamapWidth;
-            var h = terrain.terrainData.alphamapHeight;
-            var alphamaps = terrain.terrainData.GetAlphamaps(0, 0, w, h);
-            var numAlphamaps = alphamaps.GetLength(2);
-
-            //Urho3D doesn't support more than 3 textures
-            if (numAlphamaps > 3) numAlphamaps = 3;
-
-            using (var imageFile = asset.DestinationFolder.Create(weightsTextureName, DateTime.MaxValue))
-            {
-                if (imageFile == null)
-                    return;
-                using (var binaryWriter = new BinaryWriter(imageFile))
-                {
-                    var weights = new byte[4];
-                    weights[3] = 255;
-                    WriteTgaHeader(binaryWriter, weights.Length * 8, w, h);
-                    for (var y = h - 1; y >= 0; --y)
-                    for (var x = 0; x < w; ++x)
-                    {
-                        var sum = 0;
-                        for (var i = 0; i < weights.Length; ++i)
-                            if (numAlphamaps > i && layers.Length > i)
-                            {
-                                var weight = (byte) (alphamaps[h - y - 1, x, i] * 255.0f);
-                                sum += weight;
-                                weights[i] = weight;
-                            }
-
-                        if (sum == 0)
-                            weights[0] = 255;
-
-                        binaryWriter.Write(weights[2]); //B
-                        binaryWriter.Write(weights[1]); //G
-                        binaryWriter.Write(weights[0]); //R
-                        binaryWriter.Write(weights[3]); //A
-                    }
-                }
-            }
         }
 
         public class Element : IDisposable

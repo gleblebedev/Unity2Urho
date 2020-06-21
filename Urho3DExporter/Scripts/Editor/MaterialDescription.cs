@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Assets.Urho3DExporter.Scripts.Editor
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class MaterialDescription
     {

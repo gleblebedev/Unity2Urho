@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Urho3DExporter
+namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     internal static class ExtensionMethods
     {

@@ -1,4 +1,4 @@
-﻿namespace Urho3DExporter
+﻿namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
     public enum PrimitiveType
     {
