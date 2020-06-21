@@ -2,9 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using UnityEditor;
 using UnityEngine;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
@@ -54,11 +51,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     writer.WriteStartElement("texture");
                     writer.WriteAttributeString("unit", "0");
-                    writer.WriteAttributeString("name", EvaluateHeightMap(terrain));
+                    writer.WriteAttributeString("name", EvaluateWeightsMap(terrain));
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
-
-                    WriteTerrainWeightsTexture(terrain);
                 }
                 for (var layerIndex = 0; layerIndex < layers.Length; ++layerIndex)
                 {
@@ -68,8 +63,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
                     if (layer.diffuseTexture != null)
                     {
-                        string urhoAssetName = _engine.Textures.ResolveTextureName(layer.diffuseTexture);
-                        if (string.IsNullOrWhiteSpace(urhoAssetName))
+                        _engine.ScheduleTexture(layer.diffuseTexture, null);
+                        string urhoAssetName = _engine.EvaluateTextrueName(layer.diffuseTexture);
+                        if (!string.IsNullOrWhiteSpace(urhoAssetName))
                             writer.WriteAttributeString("name", urhoAssetName);
                     }
 
@@ -110,8 +106,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             binaryWriter.Write((byte)bitsPerPixel);
             binaryWriter.Write((byte)0);
         }
-        private (float min, float max, Vector2 size) WriteHeightMap(string heightmapFileName,
-            TerrainData terrain)
+        private void WriteHeightMap(TerrainData terrain)
         {
             var w = terrain.heightmapResolution;
             var h = terrain.heightmapResolution;
@@ -134,7 +129,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 max = min + 0.1f;
             }
 
-            using (var imageFile = _engine.TryCreate(heightmapFileName, DateTime.MaxValue))
+            using (var imageFile = _engine.TryCreate(EvaluateHeightMap(terrain), DateTime.MaxValue))
             {
                 if (imageFile != null)
                     using (var binaryWriter = new BinaryWriter(imageFile))
@@ -153,8 +148,6 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                         }
                     }
             }
-
-            return (min, max, new Vector2(w, h));
         }
         private void WriteTerrainWeightsTexture(TerrainData terrain)
         {
@@ -167,7 +160,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
 
-            using (var imageFile = _engine.TryCreate(EvaluateHeightMap(terrain), DateTime.MaxValue))
+            using (var imageFile = _engine.TryCreate(EvaluateWeightsMap(terrain), DateTime.MaxValue))
             {
                 if (imageFile == null)
                     return;
@@ -202,6 +195,10 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportTerrain(TerrainData terrainData)
         {
+            WriteTerrainMaterial(terrainData);
+            WriteHeightMap(terrainData);
+            WriteTerrainWeightsTexture(terrainData);
+
             //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
             //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
             //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";

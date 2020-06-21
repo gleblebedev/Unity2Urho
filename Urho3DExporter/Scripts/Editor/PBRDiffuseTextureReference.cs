@@ -9,7 +9,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return base.Equals(other) && Equals(Specular, other.Specular) && Equals(Smoothness, other.Smoothness) && SmoothnessScale.Equals(other.SmoothnessScale) && Equals(OpacityMask, other.OpacityMask);
+            return base.Equals(other) && Equals(Specular, other.Specular) && Equals(Smoothness, other.Smoothness) && SmoothnessScale.Equals(other.SmoothnessScale);
         }
 
         public override int GetHashCode()
@@ -20,7 +20,6 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                 hashCode = (hashCode * 397) ^ (Specular != null ? Specular.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
-                hashCode = (hashCode * 397) ^ (OpacityMask != null ? OpacityMask.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -44,16 +43,14 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRDiffuseTextureReference(Texture specular, Texture smoothness, float smoothnessScale, Texture opacityMask) : base(TextureSemantic.PBRDiffuse)
+        public PBRDiffuseTextureReference(Texture specular, Texture smoothness, float smoothnessScale) : base(TextureSemantic.PBRDiffuse)
         {
             Specular = specular;
             Smoothness = smoothness;
             SmoothnessScale = smoothnessScale;
-            OpacityMask = opacityMask;
         }
         public Texture Specular;
         public Texture Smoothness;
         public float SmoothnessScale;
-        public Texture OpacityMask;
     }
 }

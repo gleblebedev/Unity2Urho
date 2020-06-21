@@ -13,24 +13,18 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         {
             _engine = engine;
         }
-        public void ExportAsset(AssetContext asset)
+        public void Cubemap(Cubemap texture)
         {
-            if (!File.Exists(asset.FullPath))
-            {
-                Debug.LogError("File " + asset.FullPath + " not found");
-                return;
-            }
-            var texture = AssetDatabase.LoadAssetAtPath<Cubemap>(asset.AssetPath);
             if (!EnsureReadableTexture(texture))
                 return;
 
-            using (var writer =
-                asset.DestinationFolder.CreateXml(asset.UrhoAssetName, File.GetLastWriteTimeUtc(asset.FullPath)))
+            var resourceName = EvaluateCubemapName(texture);
+            using (var writer = _engine.TryCreateXml(resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
             {
                 if (writer != null)
                 {
-                    var ddsName = asset.UrhoAssetName.Replace(".xml", ".dds");
-                    DDS.SaveAsRgbaDds(texture, asset.DestinationFolder.GetTargetFilePath(ddsName));
+                    var ddsName = resourceName.Replace(".xml", ".dds");
+                    DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName));
                     writer.WriteStartDocument();
                     writer.WriteWhitespace(Environment.NewLine);
                     writer.WriteStartElement("cubemap");
@@ -52,7 +46,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
             if (tImporter != null)
             {
-                tImporter.textureType = TextureImporterType.Default;
+                //tImporter.textureType = TextureImporterType.Default;
                 if (tImporter.isReadable != true)
                 {
                     tImporter.isReadable = true;
@@ -67,7 +61,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateCubemapName(Cubemap cubemap)
         {
-            return AssetContext.ReplaceExt(AssetInfo.GetRelPathFromAsset(cubemap), ".dds");
+            return AssetContext.ReplaceExt(AssetInfo.GetRelPathFromAsset(cubemap), ".xml");
         }
     }
 }

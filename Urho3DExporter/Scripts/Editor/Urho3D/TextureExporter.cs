@@ -18,7 +18,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             _engine = engine;
         }
 
-        public static string GetTextureOutputName(string baseAssetName, TextureReference reference)
+        private static string GetTextureOutputName(string baseAssetName, TextureReference reference)
         {
             switch (reference.Semantic)
             {
@@ -107,90 +107,37 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             return new TempTexture(t, list);
         }
 
-        public string ResolveTextureName(Texture texture)
-        {
-            return AssetInfo.GetRelPathFromAsset(texture);
-        }
 
         public void ExportTexture(Texture texture, TextureReference textureReference)
         {
-                switch (textureReference.Semantic)
-                {
-                    case TextureSemantic.PBRMetallicGlossiness:
-                        {
-                            TransformMetallicGlossiness(texture, (PBRMetallicGlossinessTextureReference)textureReference);
-                            break;
-                        }
-                    case TextureSemantic.PBRSpecularGlossiness:
-                        {
-                            TransformSpecularGlossiness(texture, (PBRSpecularGlossinessTextureReference)textureReference);
-                            break;
-                        }
-                    case TextureSemantic.PBRDiffuse:
-                        {
-                            TransformDiffuse(texture, (PBRDiffuseTextureReference)textureReference);
-                            break;
-                        }
-                    default:
-                        {
-                            CopyTexture(texture);
-                            break;
-                        }
-                }
-        }
-        public void ExportAsset(AssetContext asset)
-        {
-            if (!File.Exists(asset.FullPath))
+            if (textureReference == null)
             {
-                Debug.LogError("File " + asset.FullPath + " not found");
+                CopyTexture(texture);
                 return;
             }
-
-            //var texture = AssetDatabase.LoadAssetAtPath<Texture>(asset.AssetPath);
-
-            //foreach (var reference in _textureMetadata.ResolveReferences(texture))
-            //    switch (reference.Semantic)
-            //    {
-            //        case TextureSemantic.PBRMetallicGlossiness:
-            //        {
-            //            TransformMetallicGlossiness(asset, texture, (PBRMetallicGlossinessTextureReference)reference);
-            //            break;
-            //        }
-            //        case TextureSemantic.PBRSpecularGlossiness:
-            //        {
-            //            TransformSpecularGlossiness(asset, texture, (PBRSpecularGlossinessTextureReference)reference);
-            //            break;
-            //        }
-            //        case TextureSemantic.PBRDiffuse:
-            //        {
-            //            TransformDiffuse(asset, texture, (PBRDiffuseTextureReference)reference);
-            //            break;
-            //        }
-            //        default:
-            //        {
-            //            CopyTexture(asset, texture);
-            //            break;
-            //        }
-            //    }
-        }
-
-        private string ReplaceExtensionWithPngIfNeeded(string assetUrhoAssetName)
-        {
-            var dotIndex = assetUrhoAssetName.LastIndexOf('.');
-            var slashIndex = assetUrhoAssetName.LastIndexOf('/');
-            if (dotIndex <= slashIndex)
+            switch (textureReference.Semantic)
             {
-                return assetUrhoAssetName + ".png";
+                case TextureSemantic.PBRMetallicGlossiness:
+                    {
+                        TransformMetallicGlossiness(texture, (PBRMetallicGlossinessTextureReference)textureReference);
+                        break;
+                    }
+                case TextureSemantic.PBRSpecularGlossiness:
+                    {
+                        TransformSpecularGlossiness(texture, (PBRSpecularGlossinessTextureReference)textureReference);
+                        break;
+                    }
+                case TextureSemantic.PBRDiffuse:
+                    {
+                        TransformDiffuse(texture, (PBRDiffuseTextureReference)textureReference);
+                        break;
+                    }
+                default:
+                    {
+                        CopyTexture(texture);
+                        break;
+                    }
             }
-
-            var ext = assetUrhoAssetName.Substring(dotIndex).ToLower();
-            switch (ext)
-            {
-                case ".tif":
-                    return assetUrhoAssetName.Substring(0, dotIndex) + ".png";
-            }
-
-            return assetUrhoAssetName;
         }
 
         private void CopyTexture(Texture texture)
@@ -219,17 +166,41 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (texture is Texture2D texture2d)
                     {
+                        var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
+                        var texType = tImporter?.textureType ?? TextureImporterType.Default;
                         using (var tmpTextureRef = CreateTargetTexture(texture2d, null))
                         {
                             var tmpTexture = tmpTextureRef.Texture;
-                            var colors = texture2d.GetPixels(0);
-                            tmpTexture.SetPixels(colors);
+                            switch (texType)
+                            {
+                                case TextureImporterType.NormalMap:
+                                    tmpTexture.SetPixels(ConvertNormalMap(texture2d.GetPixels(0)));
+                                    break;
+                                default:
+                                    tmpTexture.SetPixels32(texture2d.GetPixels32(0));
+                                    break;
+                            }
                             var bytes = tmpTexture.EncodeToPNG();
                             fileStream.Write(bytes, 0, bytes.Length);
                         }
                     }
                 }
             }
+        }
+
+        private Color[] ConvertNormalMap(Color[] pixels)
+        {
+            for (var index = 0; index < pixels.Length; index++)
+            {
+                var pixel = pixels[index];
+                var x = 2.0f * (pixel.a - 0.5f);
+                var z = 2.0f * (pixel.r - 0.5f);
+                var sqZ = Mathf.Max(0, 1.0f - z * z - x * x);
+                var y = Mathf.Sqrt(sqZ);
+                pixels[index] = new Color(x*0.5f+0.5f, y * 0.5f + 0.5f, z * 0.5f + 0.5f, 1);
+            }
+
+            return pixels;
         }
 
         public static void EnsureReadableTexture(Texture2D texture)
@@ -240,7 +211,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
             if (tImporter != null)
             {
-                tImporter.textureType = TextureImporterType.Default;
+                //tImporter.textureType = TextureImporterType.Default;
                 if (tImporter.isReadable != true)
                 {
                     tImporter.isReadable = true;
@@ -472,6 +443,12 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
             _tmpTexturePool.Clear();
+        }
+
+        public string EvaluateTextrueName(Texture texture, TextureReference reference)
+        {
+            var baseName = EvaluateTextrueName(texture);
+            return GetTextureOutputName(baseName, reference);
         }
 
         public string EvaluateTextrueName(Texture texture)

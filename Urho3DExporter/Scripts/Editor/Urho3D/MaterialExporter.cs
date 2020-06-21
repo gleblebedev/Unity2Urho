@@ -149,7 +149,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         private bool WriteTexture(Texture texture, XmlWriter writer, string name)
         {
             _engine.ScheduleAssetExport(texture);
-            var urhoAssetName = _engine.Textures.ResolveTextureName(texture);
+            var urhoAssetName = _engine.EvaluateTextrueName(texture);
             return WriteTexture(urhoAssetName, writer, name);
         }
 
@@ -200,11 +200,11 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                     string name;
                     if (arguments.Skybox is Cubemap cubemap)
                     {
-                        name = _engine.Cubemap.EvaluateCubemapName(cubemap);
+                        name = _engine.EvaluateCubemapName(cubemap);
                     }
                     else
                     {
-                        name = _engine.Textures.EvaluateTextrueName(arguments.Skybox);
+                        name = _engine.EvaluateTextrueName(arguments.Skybox);
                     }
                     if (!string.IsNullOrWhiteSpace(name))
                     {
@@ -326,11 +326,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                                 WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffSpec.xml");
                         }
 
-                        var baseAssetName = _engine.Textures.ResolveTextureName(arguments.MetallicGloss);
-                        if (baseAssetName != null)
                         {
                             var textureReferences = new PBRMetallicGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness);
-                            var textureOutputName = TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
+                            var textureOutputName = _engine.EvaluateTextrueName(arguments.MetallicGloss, textureReferences);
                             _engine.ScheduleTexture(arguments.MetallicGloss, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
                         }
@@ -464,16 +462,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                                 WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffSpec.xml");
                         }
 
-                        var baseAssetName = _engine.Textures.ResolveTextureName(arguments.PBRSpecular);
-                        if (baseAssetName != null)
                         {
-                            var textureReferences = new PBRSpecularGlossinessTextureReference(arguments.GlossinessTextureScale,
-                                arguments.SmoothnessTextureChannel == SmoothnessTextureChannel.AlbedoAlpha
-                                    ? arguments.Diffuse
-                                    : arguments.PBRSpecular,
-                                arguments.PBRSpecular);
-                            var textureOutputName =
-                                TextureExporter.GetTextureOutputName(baseAssetName, textureReferences);
+                            var textureReferences = new PBRSpecularGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness, arguments.PBRSpecular);
+                            var textureOutputName = _engine.EvaluateTextrueName(arguments.PBRSpecular, textureReferences);
                             _engine.ScheduleTexture(arguments.PBRSpecular, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
                         }
@@ -514,11 +505,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                         }
                     }
 
-                    var diffuseName = _engine.Textures.ResolveTextureName(arguments.Diffuse);
-                    if (arguments.Diffuse != null)
                     {
-                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, arguments.GlossinessTextureScale, null);
-                        var textureOutputName = TextureExporter.GetTextureOutputName(diffuseName, textureReferences);
+                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, arguments.GlossinessTextureScale);
+                        var textureOutputName = _engine.EvaluateTextrueName(arguments.Diffuse, textureReferences);
                         _engine.ScheduleTexture(arguments.Diffuse, textureReferences);
                         WriteTexture(textureOutputName, writer, "diffuse");
                     }

@@ -93,8 +93,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                     else
                     {
                         var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-                        var rootBones =
-                            new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+                        var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
                         if (rootBones.Count != 1)
                         {
                             Debug.LogWarning(asset.AssetPath + ": Multiple root bones found (" +
@@ -398,10 +397,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 //    elements.Add(new MeshColorStream(colors, VertexElementSemantic.SEM_COLOR));
                 //}
                 if (tangents.Length > 0)
-                {
                     elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
-                }
-
                 if (uvs.Length > 0)
                     elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
                 if (uvs2.Length > 0)

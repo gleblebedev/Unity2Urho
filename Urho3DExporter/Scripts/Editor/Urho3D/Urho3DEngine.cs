@@ -26,12 +26,6 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         private PrefabExporter _prefabExporter;
         private TerrainExporter _terrainExporter;
 
-        public TerrainExporter Terrain => _terrainExporter;
-        public TextureExporter Textures => _textureExporter;
-        public MeshExporter Mesh => _meshExporter;
-        public MaterialExporter Material => _materialExporter;
-        public CubemapExporter Cubemap => _cubemapExporter;
-
         public Urho3DEngine(string dataFolder, CancellationToken cancellationToken, bool exportUpdatedOnly, bool exportSceneAsPrefab, bool skipDisabled)
             : base(cancellationToken)
         {
@@ -216,7 +210,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             if (mainType == typeof(GameObject))
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                Mesh.ExportMesh(prefab);
+                _meshExporter.ExportMesh(prefab);
                 _prefabExporter.ExportPrefab(_prefabExporter.EvaluatePrefabName(assetPath), prefab);
             }
             else
@@ -225,7 +219,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (asset is Mesh mesh)
                     {
-                        EditorTaskScheduler.Default.ScheduleForegroundTask(() => Mesh.ExportMeshModel(mesh, null), mesh.name + " from " + assetPath);
+                        EditorTaskScheduler.Default.ScheduleForegroundTask(() => _meshExporter.ExportMeshModel(mesh, null), mesh.name + " from " + assetPath);
                     }
                 }
             }
@@ -236,17 +230,25 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //We already processed all meshes.
                 }
-                if (asset is Material material)
+                else if (asset is GameObject gameObject)
                 {
-                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => Material.ExportMaterial(material), material.name + " from " + assetPath);
+                    //We already processed prefab.
+                }
+                else if (asset is Material material)
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _materialExporter.ExportMaterial(material), material.name + " from " + assetPath);
                 }
                 else if (asset is TerrainData terrainData)
                 {
-                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => Terrain.ExportTerrain(terrainData), terrainData.name + " from " + assetPath);
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _terrainExporter.ExportTerrain(terrainData), terrainData.name + " from " + assetPath);
                 }
                 else if (asset is Texture2D texture2d)
                 {
-                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => Textures.ExportTexture(texture2d, new TextureReference(TextureSemantic.Other)), texture2d.name + " from " + assetPath);
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _textureExporter.ExportTexture(texture2d, new TextureReference(TextureSemantic.Other)), texture2d.name + " from " + assetPath);
+                }
+                else if (asset is Cubemap cubemap)
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _cubemapExporter.Cubemap(cubemap), cubemap.name + " from " + assetPath);
                 }
                 else
                 {
@@ -260,14 +262,51 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             _sceneExporter.ExportScene(scene);
         }
 
-        public void ScheduleTexture(Texture texture, TextureReference textureReference)
+        public void ScheduleTexture(Texture texture, TextureReference textureReference = null)
         {
             if (texture == null)
             {
                 return;
             }
-            EditorTaskScheduler.Default.ScheduleForegroundTask(() => Textures.ExportTexture(texture, textureReference), texture.name + " from " + AssetDatabase.GetAssetPath(texture));
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _textureExporter.ExportTexture(texture, textureReference), texture.name + " from " + AssetDatabase.GetAssetPath(texture));
         }
 
+        public string EvaluateCubemapName(Cubemap cubemap)
+        {
+            return _cubemapExporter.EvaluateCubemapName(cubemap);
+        }
+
+        public string EvaluateTextrueName(Texture texture)
+        {
+            if (texture is Cubemap cubemap)
+            {
+                return EvaluateCubemapName(cubemap);
+            }
+
+            return EvaluateTextrueName(texture, new TextureReference(TextureSemantic.Other));
+        }
+        public string EvaluateTextrueName(Texture texture, TextureReference textureReference)
+        {
+            return _textureExporter.EvaluateTextrueName(texture, textureReference);
+        }
+        public string EvaluateMaterialName(Material skyboxMaterial)
+        {
+            return _materialExporter.EvaluateMaterialName(skyboxMaterial);
+        }
+
+        public string EvaluateMeshName(Mesh sharedMesh)
+        {
+            return _meshExporter.EvaluateMeshName(sharedMesh);
+        }
+
+        public string EvaluateTerrainHeightMap(TerrainData terrainData)
+        {
+            return _terrainExporter.EvaluateHeightMap(terrainData);
+        }
+
+        public string EvaluateTerrainMaterial(TerrainData terrainData)
+        {
+            return _terrainExporter.EvaluateMaterial(terrainData);
+        }
     }
 }
