@@ -137,7 +137,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             if (destinationFilePath == null)
                 return;
 
-            var sourceFilePath = Path.Combine(Application.dataPath, AssetInfo.GetRelPathFromAssetPath(assetPath));
+            var sourceFilePath = Path.Combine(Application.dataPath, ExportUtils.GetRelPathFromAssetPath(assetPath));
             if (!File.Exists(sourceFilePath))
                 return;
             var targetPath = GetTargetFilePath(destinationFilePath);

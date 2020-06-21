@@ -22,7 +22,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluatePrefabName(string assetPath)
         {
-            return ExportUtils.ReplaceExtension( AssetInfo.GetRelPathFromAssetPath(assetPath), ".xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), ".xml");
         }
     }
 }

@@ -16,7 +16,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public string ResolveAssetPath(Scene asset)
         {
-            var sceneAssetName = ExportUtils.ReplaceExtension(AssetInfo.GetRelPathFromAsset(asset), ".xml");
+            var sceneAssetName = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(asset), ".xml");
             var scenesPrefix = "Scenes/";
             if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
             {

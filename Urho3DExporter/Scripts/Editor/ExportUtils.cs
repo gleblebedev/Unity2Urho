@@ -26,9 +26,28 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             return assetUrhoAssetName + newExt;
         }
 
+        public static string GetRelPathFromAssetPath(string assetPath)
+        {
+            if (assetPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
+                return assetPath.Substring("Assets/".Length);
+            return assetPath;
+        }
+        public static string GetRelPathFromAsset(UnityEngine.Object asset)
+        {
+            if (asset == null)
+                return null;
+            var path = AssetDatabase.GetAssetPath(asset);
+            return GetRelPathFromAssetPath(path);
+        }
+        public static string GetRelPathFromAsset(UnityEngine.SceneManagement.Scene asset)
+        {
+            var path = asset.path;
+            return GetRelPathFromAssetPath(path);
+        }
+
         public static DateTime GetLastWriteTimeUtc(UnityEngine.Object asset)
         {
-            var relPath = AssetInfo.GetRelPathFromAsset(asset);
+            var relPath = GetRelPathFromAsset(asset);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
 
@@ -58,7 +77,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 
         public static DateTime GetLastWriteTimeUtc(string assetPath)
         {
-            var relPath = AssetInfo.GetRelPathFromAssetPath(assetPath);
+            var relPath = GetRelPathFromAssetPath(assetPath);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
     }

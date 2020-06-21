@@ -142,7 +142,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         private void CopyTexture(Texture texture)
         {
-            var relPath = AssetInfo.GetRelPathFromAsset(texture);
+            var relPath = ExportUtils.GetRelPathFromAsset(texture);
             var newName = EvaluateTextrueName(texture);
             if (relPath != newName)
             {
@@ -473,7 +473,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                         break;
                 }
             }
-            return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), newExt);
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), newExt);
         }
 
      

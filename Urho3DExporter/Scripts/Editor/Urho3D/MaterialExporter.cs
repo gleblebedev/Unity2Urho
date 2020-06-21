@@ -133,8 +133,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             if (string.IsNullOrWhiteSpace(assetPath))
                 return null;
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
-                return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), ".xml");
-            return AssetContext.ReplaceExt(AssetContext.GetRelPathFromAssetPath(assetPath), "/"+ ExportUtils.SafeFileName(material.name)+".xml");
+                return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), ".xml");
+            string newExt = "/"+ ExportUtils.SafeFileName(material.name)+".xml";
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), newExt);
         }
 
         private void WriteTechnique(XmlWriter writer, string name)

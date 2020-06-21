@@ -17,17 +17,17 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateHeightMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(AssetInfo.GetRelPathFromAsset(terrainData), ".tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".tga");
         }
 
         public string EvaluateWeightsMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(AssetInfo.GetRelPathFromAsset(terrainData), ".Weights.tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Weights.tga");
         }
 
         public string EvaluateMaterial(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(AssetInfo.GetRelPathFromAsset(terrainData), ".xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".xml");
         }
         private void WriteTerrainMaterial(TerrainData terrain)
         {
