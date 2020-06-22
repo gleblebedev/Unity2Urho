@@ -49,8 +49,17 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                 yield break;
             if (!_visitedAssetPaths.Add(assetPath))
                 yield break;
-            if (!File.Exists(assetPath))
+            if (!File.Exists(assetPath) && !Directory.Exists(assetPath))
                 yield break;
+            var attrs = File.GetAttributes(assetPath);
+            if (attrs.HasFlag(FileAttributes.Directory))
+            {
+                foreach (var guid in AssetDatabase.FindAssets("", new[] { assetPath }))
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)));
+                }
+                yield break;
+            }
             yield return "Loading " + assetPath;
             var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
             yield return "Exporting " + assetPath;

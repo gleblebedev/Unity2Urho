@@ -234,6 +234,14 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //We already processed prefab.
                 }
+                else if (asset is Transform transform)
+                {
+                    //Skip
+                }
+                else if (asset is MeshRenderer meshRenderer)
+                {
+                    //Skip
+                }
                 else if (asset is Material material)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(() => _materialExporter.ExportMaterial(material), material.name + " from " + assetPath);
@@ -249,6 +257,10 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 else if (asset is Cubemap cubemap)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(() => _cubemapExporter.Cubemap(cubemap), cubemap.name + " from " + assetPath);
+                }
+                else if (asset is AnimationClip animationClip)
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _meshExporter.ExportAnimation(animationClip), animationClip.name + " from " + assetPath);
                 }
                 else
                 {

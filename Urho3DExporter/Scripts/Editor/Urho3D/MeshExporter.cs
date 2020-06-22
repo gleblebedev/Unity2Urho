@@ -69,60 +69,61 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         //        ExportAnimation(asset, ac);
         //    }
         //}
+        public void ExportAnimation(AnimationClip clipAnimation)
+        {
 
-        //private void ExportAnimation(AssetContext asset, AnimationClip clipAnimation)
-        //{
-        //    var name = GetSafeFileName(clipAnimation.name);
+            var name = GetSafeFileName(clipAnimation.name);
 
-        //    //_assetCollection.AddAnimationPath(clipAnimation, fileName);
+            //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
-        //    using (var file = asset.DestinationFolder.Create(Path.Combine(asset.ContentFolderName, name + ".ani"), asset.LastWriteTimeUtc))
-        //    {
-        //        if (file == null)
-        //            return;
-        //        using (var writer = new BinaryWriter(file))
-        //        {
-        //            writer.Write(new byte[] {0x55, 0x41, 0x4e, 0x49});
-        //            WriteStringSZ(writer, clipAnimation.name);
-        //            writer.Write(clipAnimation.length);
+            var aniFilePath = EvaluateAnimationName(clipAnimation);
+            using (var file = _engine.TryCreate(aniFilePath, ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
+            {
+                if (file == null)
+                    return;
+                using (var writer = new BinaryWriter(file))
+                {
+                    writer.Write(new byte[] { 0x55, 0x41, 0x4e, 0x49 });
+                    WriteStringSZ(writer, clipAnimation.name);
+                    writer.Write(clipAnimation.length);
 
-        //            if (clipAnimation.legacy)
-        //            {
-        //                WriteTracksAsIs(clipAnimation, writer);
-        //            }
-        //            else
-        //            {
-        //                var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-        //                var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
-        //                if (rootBones.Count != 1)
-        //                {
-        //                    Debug.LogWarning(asset.AssetPath + ": Multiple root bones found (" +
-        //                                     string.Join(", ", rootBones.ToArray()) +
-        //                                     "), falling back to curve export");
-        //                    WriteTracksAsIs(clipAnimation, writer);
-        //                }
-        //                else
-        //                {
-        //                    var rootBoneName = rootBones.First();
-        //                    var rootGOs = _skeletons
-        //                        .Select(_ =>
-        //                            _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
-        //                        .Where(_ => _ != null).ToList();
-        //                    if (rootGOs.Count == 1)
-        //                    {
-        //                        WriteSkelAnimation(clipAnimation, rootGOs.First().gameObject, writer);
-        //                    }
-        //                    else
-        //                    {
-        //                        Debug.LogWarning(asset.AssetPath +
-        //                                         ": Multiple game objects found that match root bone name, falling back to curve export");
-        //                        WriteTracksAsIs(clipAnimation, writer);
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
+                    if (clipAnimation.legacy)
+                    {
+                        WriteTracksAsIs(clipAnimation, writer);
+                    }
+                    else
+                    {
+                        var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
+                        var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+                        if (rootBones.Count != 1)
+                        {
+                            Debug.LogWarning(aniFilePath + ": Multiple root bones found (" +
+                                             string.Join(", ", rootBones.ToArray()) +
+                                             "), falling back to curve export");
+                            WriteTracksAsIs(clipAnimation, writer);
+                        }
+                        else
+                        {
+                            var rootBoneName = rootBones.First();
+                            var rootGOs = _skeletons
+                                .Select(_ =>
+                                    _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
+                                .Where(_ => _ != null).ToList();
+                            if (rootGOs.Count == 1)
+                            {
+                                WriteSkelAnimation(clipAnimation, rootGOs.First().gameObject, writer);
+                            }
+                            else
+                            {
+                                Debug.LogWarning(aniFilePath +
+                                                 ": Multiple game objects found that match root bone name, falling back to curve export");
+                                WriteTracksAsIs(clipAnimation, writer);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         private IEnumerable<GameObject> CloneTree(GameObject go)
         {
@@ -823,11 +824,18 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
+        public string EvaluateAnimationName(AnimationClip mesh)
+        {
+            if (mesh == null)
+                return null;
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "")+"/"+ExportUtils.SafeFileName(mesh.name)+".ani";
+        }
+
         public string EvaluateMeshName(Mesh mesh)
         {
             if (mesh == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "")+"/"+mesh.name+".mdl";
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" + ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
     }
 }
