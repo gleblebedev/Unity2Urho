@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
+namespace Assets.Scripts.UnityToCustomEngineExporter
 {
     public interface IComponentToExport
     {

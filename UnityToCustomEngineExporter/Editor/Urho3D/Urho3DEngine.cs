@@ -7,6 +7,7 @@ using System.Threading;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -137,7 +138,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             if (destinationFilePath == null)
                 return;
 
-            var sourceFilePath = Path.Combine(Application.dataPath, ExportUtils.GetRelPathFromAssetPath(assetPath));
+            var sourceFilePath = Path.Combine(Path.GetDirectoryName(Application.dataPath), assetPath);
             if (!File.Exists(sourceFilePath))
                 return;
             var targetPath = GetTargetFilePath(destinationFilePath);
@@ -242,6 +243,30 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip
                 }
+                else if (asset is MeshFilter meshFilter)
+                {
+                    //Skip
+                }
+                else if (asset is MeshCollider meshCollider)
+                {
+                    //Skip
+                }
+                else if (asset is ProBuilderMesh proBuilderMesh)
+                {
+                    //Skip
+                }
+                else if (asset is LODGroup lodGroup)
+                {
+                    //Skip
+                }
+                else if (asset is SkinnedMeshRenderer skinnedMeshRenderer)
+                {
+                    //Skip
+                }
+                else if (asset is Animation animation)
+                {
+                    //Skip
+                }
                 else if (asset is Material material)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(() => _materialExporter.ExportMaterial(material), material.name + " from " + assetPath);
@@ -307,6 +332,10 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         public string EvaluateMeshName(Mesh sharedMesh)
+        {
+            return _meshExporter.EvaluateMeshName(sharedMesh);
+        }
+        public string EvaluateMeshName(ProBuilderMesh sharedMesh)
         {
             return _meshExporter.EvaluateMeshName(sharedMesh);
         }

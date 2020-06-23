@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
@@ -171,7 +172,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                         else if (light.type == LightType.Point)
                             WriteAttribute(writer, subSubPrefix, "Range", light.range);
                         WriteAttribute(writer, subSubPrefix, "Color", light.color);
-                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 1000);
+                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 156.25f);
                         WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
                         WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
                         if (light.cookie != null)
@@ -288,6 +289,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             var meshFilter = obj.GetComponent<MeshFilter>();
+            var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
             var lodGroup = obj.GetComponent<LODGroup>();
@@ -305,13 +307,22 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
-                if (meshFilter != null)
+                if (meshFilter != null || proBuilderMesh != null)
                 {
                     StartCompoent(writer, subPrefix, "StaticModel");
 
-                    var sharedMesh = meshFilter.sharedMesh;
-                    _engine.ScheduleAssetExport(sharedMesh);
-                    string meshPath = _engine.EvaluateMeshName(sharedMesh);
+                    string meshPath;
+                    if (proBuilderMesh != null)
+                    {
+                        _engine.ScheduleAssetExport(proBuilderMesh);
+                        meshPath = _engine.EvaluateMeshName(proBuilderMesh);
+                    }
+                    else
+                    {
+                        var sharedMesh = meshFilter.sharedMesh;
+                        _engine.ScheduleAssetExport(sharedMesh);
+                        meshPath = _engine.EvaluateMeshName(sharedMesh);
+                    }
                     if (!string.IsNullOrWhiteSpace(meshPath))
                         WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
 

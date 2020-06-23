@@ -76,7 +76,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     writer.WriteStartElement("parameter");
                     writer.WriteAttributeString("name", "MatSpecColor");
-                    writer.WriteAttributeString("value", "0.5 0.5 0.5 16");
+                    writer.WriteAttributeString("value", "0.0 0.0 0.0 16");
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
                 }

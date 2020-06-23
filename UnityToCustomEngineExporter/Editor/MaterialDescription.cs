@@ -13,6 +13,8 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                 SpecularGlossiness = SetupSpecularGlossinessPBR(material);
             else if (material.shader.name == "Standard")
                 MetallicRoughness = SetupMetallicRoughnessPBR(material);
+            else if (material.shader.name == "UnityChan/Skin")
+                MetallicRoughness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name.StartsWith("Skybox/"))
                 Skybox = SetupSkybox(material);
             else
