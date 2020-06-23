@@ -396,8 +396,33 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
             StartCompoent(writer, subPrefix, "Zone");
 
             var subSubPrefix = subPrefix + "\t";
+            WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight);
+            if (RenderSettings.fog)
+            {
+                WriteAttribute(writer, subSubPrefix, "Fog Color", RenderSettings.fogColor);
+                WriteAttribute(writer, subSubPrefix, "Fog Start", RenderSettings.fogStartDistance);
+                WriteAttribute(writer, subSubPrefix, "Fog End", RenderSettings.fogEndDistance);
+                //switch (RenderSettings.fogMode)
+                //{
+                //    case FogMode.Linear:
+                //        break;
+                //    case FogMode.Exponential:
+                //        break;
+                //    case FogMode.ExponentialSquared:
+                //        break;
+                //    default:
+                //        throw new ArgumentOutOfRangeException();
+                //}
+            }
             WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
             WriteAttribute(writer, subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
+
+            var volume = reflectionProbe.size.x * reflectionProbe.size.y* reflectionProbe.size.z;
+            if (volume != 0)
+            {
+                var priority = int.MaxValue / (volume * 2);
+                WriteAttribute(writer, subSubPrefix, "Priority", (int)priority);
+            }
 
             WriteAttribute(writer, subSubPrefix, "Zone Texture", "TextureCube;" + texName);
             EndElement(writer, subPrefix);

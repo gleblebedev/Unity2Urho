@@ -314,12 +314,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         {
             var specularGloss = texture as Texture2D;
             EnsureReadableTexture(specularGloss);
-            var diffuse = reference.SmoothnessSource as Texture2D;
+            var diffuse = reference.Diffuse as Texture2D;
             EnsureReadableTexture(diffuse);
-            var smoothnessSource =
-                (reference.SmoothnessSource == reference.Specular)
-                    ? specularGloss
-                    : diffuse;
+            var smoothnessSource = reference.SmoothnessSource;
 
             var metallicRoughMapName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
             using (var fileStream = _engine.TryCreate(metallicRoughMapName, ExportUtils.GetLastWriteTimeUtc(texture)))

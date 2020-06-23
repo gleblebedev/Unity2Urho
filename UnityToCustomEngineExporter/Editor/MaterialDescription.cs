@@ -246,7 +246,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                                 arguments.GlossinessTextureScale = value;
                                 break;
                             case "_Glossiness":
-                                //arguments.Glossiness = value;
+                                arguments.Glossiness = value;
                                 break;
                             case "_OcclusionStrength": break;
                             case "_Parallax": break;

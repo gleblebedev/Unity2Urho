@@ -16,5 +16,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         public Texture Smoothness => (SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
             ? PBRSpecular
             : Diffuse;
+
+        public float Glossiness { get; set; }
     }
 }

@@ -464,7 +464,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                         }
 
                         {
-                            var textureReferences = new PBRSpecularGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness, arguments.PBRSpecular);
+                            var textureReferences = new PBRSpecularGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness, arguments.Diffuse);
                             var textureOutputName = _engine.EvaluateTextrueName(arguments.PBRSpecular, textureReferences);
                             _engine.ScheduleTexture(arguments.PBRSpecular, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
@@ -535,7 +535,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 else
                 {
                     ////TODO: Evaluate correct parameters:
-                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(0.0f));
+                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(1.0f-arguments.Glossiness));
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0.0f));
                 }
 
