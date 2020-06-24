@@ -47,6 +47,8 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 
         public static DateTime GetLastWriteTimeUtc(UnityEngine.Object asset)
         {
+            if (asset == null)
+                return DateTime.MinValue;
             var relPath = GetRelPathFromAsset(asset);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
@@ -79,6 +81,18 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         {
             var relPath = GetRelPathFromAssetPath(assetPath);
             return GetLastWriteTimeUtcFromRelPath(relPath);
+        }
+
+        public static DateTime MaxDateTime(params DateTime[] dateTimes)
+        {
+            var max = DateTime.MinValue;
+            foreach (var dateTime in dateTimes)
+            {
+                if (dateTime > max)
+                    max = dateTime;
+            }
+
+            return max;
         }
     }
 }

@@ -156,51 +156,25 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         private void CopyTextureAsPng(Texture texture)
         {
-            var diffuse = texture as Texture2D;
-            EnsureReadableTexture(diffuse);
-        
-            var metallicRoughMapName = ExportUtils.ReplaceExtension(EvaluateTextrueName(texture), ".png");
-            using (var fileStream = _engine.TryCreate(metallicRoughMapName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            var outputAssetName = EvaluateTextrueName(texture);
+            if (_engine.IsUpToDate(outputAssetName, ExportUtils.GetLastWriteTimeUtc(texture)))
             {
-                if (fileStream != null)
-                {
-                    if (texture is Texture2D texture2d)
-                    {
-                        var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
-                        var texType = tImporter?.textureType ?? TextureImporterType.Default;
-                        using (var tmpTextureRef = CreateTargetTexture(texture2d, null))
-                        {
-                            var tmpTexture = tmpTextureRef.Texture;
-                            switch (texType)
-                            {
-                                case TextureImporterType.NormalMap:
-                                    tmpTexture.SetPixels(ConvertNormalMap(texture2d.GetPixels(0)));
-                                    break;
-                                default:
-                                    tmpTexture.SetPixels32(texture2d.GetPixels32(0));
-                                    break;
-                            }
-                            var bytes = tmpTexture.EncodeToPNG();
-                            fileStream.Write(bytes, 0, bytes.Length);
-                        }
-                    }
-                }
-            }
-        }
-
-        private Color[] ConvertNormalMap(Color[] pixels)
-        {
-            for (var index = 0; index < pixels.Length; index++)
-            {
-                var pixel = pixels[index];
-                var x = 2.0f * (pixel.a - 0.5f);
-                var z = 2.0f * (pixel.r - 0.5f);
-                var sqZ = Mathf.Max(0, 1.0f - z * z - x * x);
-                var y = Mathf.Sqrt(sqZ);
-                pixels[index] = new Color(x*0.5f+0.5f, y * 0.5f + 0.5f, z * 0.5f + 0.5f, 1);
+                return;
             }
 
-            return pixels;
+            var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
+            var texType = tImporter?.textureType ?? TextureImporterType.Default;
+            switch (texType)
+            {
+                case TextureImporterType.NormalMap:
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/DecodeNormalMap",_engine.GetTargetFilePath(outputAssetName));
+                    break;
+                default:
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Copy", _engine.GetTargetFilePath(outputAssetName));
+                    break;
+            }
+
+
         }
 
         public static void EnsureReadableTexture(Texture2D texture)
@@ -224,135 +198,69 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
        
         private void TransformDiffuse(Texture texture, PBRDiffuseTextureReference reference)
         {
-            var diffuse = texture as Texture2D;
-            EnsureReadableTexture(diffuse);
-            var specularGlossiness = reference.Specular as Texture2D;
-            EnsureReadableTexture(specularGlossiness);
-
-            var metallicRoughMapName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            using (var fileStream = _engine.TryCreate(metallicRoughMapName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
+            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture)))
             {
-                if (fileStream != null)
-                {
-                    using (var tmpTextureRef = CreateTargetTexture(diffuse, specularGlossiness))
-                    {
-                        var tmpTexture = tmpTextureRef.Texture;
-                        var specularColors = new PixelSource(specularGlossiness, tmpTexture.width, tmpTexture.height,
-                            Color.black);
-                        var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
-                        var smoothnessSource = (reference.Smoothness == reference.Specular)
-                                ? specularColors
-                                : diffuseColors;
-                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                        var index = 0;
-                        for (var y = 0; y < tmpTexture.height; ++y)
-                        {
-                            for (var x = 0; x < tmpTexture.width; ++x)
-                            {
-                                var diffuseColor = diffuseColors.GetAt(x, y);
-                                var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
-                                {
-                                    diffuse = diffuseColor,
-                                    specular = specularColors.GetAt(x, y),
-                                    glossiness = smoothnessSource.GetAt(x, y).a * reference.SmoothnessScale,
-                                    opacity = diffuseColor.a
-                                });
-                                pixels[index] = new Color(mr.baseColor.r, mr.baseColor.g, mr.baseColor.b, mr.opacity);
-                                ++index;
-                            }
-                        }
+                return;
+            }
 
-                        tmpTexture.SetPixels32(pixels, 0);
-                        var bytes = tmpTexture.EncodeToPNG();
-                        fileStream.Write(bytes, 0, bytes.Length);
-                    }
-                }
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertToBaseColor"));
+            tmpMaterial.SetTexture("_MainTex", texture);
+            tmpMaterial.SetTexture("_SpecGlossMap", reference.Specular);
+            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
+            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            try
+            {
+                new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+            }
+            finally
+            {
+                GameObject.DestroyImmediate(tmpMaterial);
             }
         }
 
         private void TransformMetallicGlossiness(Texture texture, PBRMetallicGlossinessTextureReference reference)
         {
-            var metallicGloss = texture as Texture2D;
-            EnsureReadableTexture(metallicGloss);
-            var smoothnessSource = reference.SmoothnessSource as Texture2D;
-            EnsureReadableTexture(smoothnessSource);
-
-            var metallicRoughMapName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            using (var fileStream = _engine.TryCreate(metallicRoughMapName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
+            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture)))
             {
-                if (fileStream != null)
-                {
-                    using (var tmpTextureRef = CreateTargetTexture(metallicGloss, reference.SmoothnessSource as Texture2D))
-                    {
-                        var tmpTexture = tmpTextureRef.Texture;
-                        var metallicColors = new PixelSource(metallicGloss, tmpTexture.width, tmpTexture.height,
-                            new Color(0, 0, 0, 0));
-                        var smoothnessColors = metallicGloss == smoothnessSource
-                            ? metallicColors
-                            : new PixelSource(smoothnessSource, tmpTexture.width, tmpTexture.height,
-                                new Color(0, 0, 0, 0));
-                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                        var index = 0;
-                        for (var y = 0; y < tmpTexture.height; ++y)
-                        for (var x = 0; x < tmpTexture.width; ++x)
-                        {
-                            var r = 1.0f - smoothnessColors.GetAt(x, y).a * reference.SmoothnessScale;
-                            var m = metallicColors.GetAt(x, y).r;
-                            pixels[index] = new Color(r, m, 0, 1);
-                            ++index;
-                        }
+                return;
+            }
 
-                        tmpTexture.SetPixels32(pixels, 0);
-                        var bytes = tmpTexture.EncodeToPNG();
-                        fileStream.Write(bytes, 0, bytes.Length);
-                    }
-                }
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertToMetallicRoughness"));
+            tmpMaterial.SetTexture("_MainTex", texture);
+            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
+            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            try
+            {
+                new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+            }
+            finally
+            {
+                GameObject.DestroyImmediate(tmpMaterial);
             }
         }
 
         private void TransformSpecularGlossiness(Texture texture, PBRSpecularGlossinessTextureReference reference)
         {
-            var specularGloss = texture as Texture2D;
-            EnsureReadableTexture(specularGloss);
-            var diffuse = reference.Diffuse as Texture2D;
-            EnsureReadableTexture(diffuse);
-            var smoothnessSource = reference.SmoothnessSource;
-
-            var metallicRoughMapName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            using (var fileStream = _engine.TryCreate(metallicRoughMapName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
+            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture)))
             {
-                if (fileStream != null)
-                {
-                    using (var tmpTextureRef = CreateTargetTexture(specularGloss, diffuse))
-                    {
-                        var tmpTexture = tmpTextureRef.Texture;
-                        var specularColors =
-                            new PixelSource(specularGloss, tmpTexture.width, tmpTexture.height, Color.black);
-                        var diffuseColors = new PixelSource(diffuse, tmpTexture.width, tmpTexture.height, Color.white);
-                        var smoothnessColors = specularGloss == smoothnessSource
-                            ? specularColors
-                            : diffuseColors;
-                        var pixels = new Color32[tmpTexture.width * tmpTexture.height];
-                        var index = 0;
-                        for (var y = 0; y < tmpTexture.height; ++y)
-                        for (var x = 0; x < tmpTexture.width; ++x)
-                        {
-                            var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
-                            {
-                                diffuse = diffuseColors.GetAt(x, y),
-                                specular = specularColors.GetAt(x, y),
-                                glossiness = smoothnessColors.GetAt(x, y).a * reference.SmoothnessScale,
-                                opacity = 1.0f
-                            });
-                            pixels[index] = new Color(mr.roughness, mr.metallic, 0, 1);
-                            ++index;
-                        }
+                return;
+            }
 
-                        tmpTexture.SetPixels32(pixels, 0);
-                        var bytes = tmpTexture.EncodeToPNG();
-                        fileStream.Write(bytes, 0, bytes.Length);
-                    }
-                }
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertSpecularToMetallicRoughness"));
+            tmpMaterial.SetTexture("_SpecGlossMap", texture);
+            tmpMaterial.SetTexture("_MainTex", reference.Diffuse);
+            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
+            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            try
+            {
+                new TextureProcessor().ProcessAndSaveTexture(reference.Diffuse, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+            }
+            finally
+            {
+                GameObject.DestroyImmediate(tmpMaterial);
             }
         }
 

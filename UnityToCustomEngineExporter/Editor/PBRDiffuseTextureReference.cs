@@ -52,5 +52,10 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         public Texture Specular;
         public Texture Smoothness;
         public float SmoothnessScale;
+
+        public DateTime GetLastWriteTimeUtc(Texture diffuse)
+        {
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(diffuse), ExportUtils.GetLastWriteTimeUtc(Specular), ExportUtils.GetLastWriteTimeUtc(Smoothness));
+        }
     }
 }

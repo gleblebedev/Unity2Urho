@@ -9,7 +9,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return base.Equals(other) && SmoothnessScale.Equals(other.SmoothnessScale) && Equals(Diffuse, other.Diffuse) && Equals(SmoothnessSource, other.SmoothnessSource);
+            return base.Equals(other) && SmoothnessScale.Equals(other.SmoothnessScale) && Equals(Diffuse, other.Diffuse) && Equals(Smoothness, other.Smoothness);
         }
 
         public override bool Equals(object obj)
@@ -27,7 +27,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
                 hashCode = (hashCode * 397) ^ (Diffuse != null ? Diffuse.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (SmoothnessSource != null ? SmoothnessSource.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -42,15 +42,20 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRSpecularGlossinessTextureReference(float smoothnessScale, Texture smoothnessSource, Texture diffuse) : base(TextureSemantic.PBRSpecularGlossiness)
+        public PBRSpecularGlossinessTextureReference(float smoothnessScale, Texture smoothness, Texture diffuse) : base(TextureSemantic.PBRSpecularGlossiness)
         {
             SmoothnessScale = smoothnessScale;
-            SmoothnessSource = smoothnessSource;
+            Smoothness = smoothness;
             Diffuse = diffuse;
         }
 
         public float SmoothnessScale = 1.0f;
-        public Texture SmoothnessSource;
+        public Texture Smoothness;
         public Texture Diffuse;
+
+        public DateTime GetLastWriteTimeUtc(Texture texture)
+        {
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetLastWriteTimeUtc(Smoothness), ExportUtils.GetLastWriteTimeUtc(Diffuse));
+        }
     }
 }

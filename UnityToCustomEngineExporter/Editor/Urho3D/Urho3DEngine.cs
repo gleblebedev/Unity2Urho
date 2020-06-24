@@ -166,19 +166,18 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
             File.Copy(sourceFilePath, targetPath, true);
         }
-        public FileStream TryCreate(string relativePath, DateTime sourceFileTimestampUTC)
+        public bool IsUpToDate(string relativePath, DateTime sourceFileTimestampUTC)
         {
             if (relativePath == null)
             {
-                return null;
+                return true;
             }
-
             var targetPath = GetTargetFilePath(relativePath);
-
+            
             //Skip file if it already exported
-            if (!_createdFiles.Add(targetPath))
+            if (_createdFiles.Contains(targetPath))
             {
-                return null;
+                return true;
             }
 
             //Skip file if it is already up to date
@@ -188,8 +187,25 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
                     if (sourceFileTimestampUTC <= lastWriteTimeUtc)
-                        return null;
+                        return true;
                 }
+            }
+
+            return false;
+        }
+
+        public FileStream TryCreate(string relativePath, DateTime sourceFileTimestampUTC)
+        {
+            if (IsUpToDate(relativePath, sourceFileTimestampUTC))
+            {
+                return null;
+            }
+            var targetPath = GetTargetFilePath(relativePath);
+
+            //Skip file if it already exported
+            if (!_createdFiles.Add(targetPath))
+            {
+                return null;
             }
 
             var directoryName = Path.GetDirectoryName(targetPath);
@@ -349,5 +365,6 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         {
             return _terrainExporter.EvaluateMaterial(terrainData);
         }
+
     }
 }

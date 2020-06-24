@@ -9,7 +9,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return base.Equals(other) && SmoothnessScale.Equals(other.SmoothnessScale) && Equals(SmoothnessSource, other.SmoothnessSource);
+            return base.Equals(other) && SmoothnessScale.Equals(other.SmoothnessScale) && Equals(Smoothness, other.Smoothness);
         }
 
         public override bool Equals(object obj)
@@ -26,7 +26,7 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
-                hashCode = (hashCode * 397) ^ (SmoothnessSource != null ? SmoothnessSource.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -41,13 +41,18 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRMetallicGlossinessTextureReference(float smoothnessScale, Texture smoothnessSource) :base(TextureSemantic.PBRMetallicGlossiness)
+        public PBRMetallicGlossinessTextureReference(float smoothnessScale, Texture smoothness) :base(TextureSemantic.PBRMetallicGlossiness)
         {
             SmoothnessScale = smoothnessScale;
-            SmoothnessSource = smoothnessSource;
+            Smoothness = smoothness;
         }
 
         public float SmoothnessScale = 1.0f;
-        public Texture SmoothnessSource;
+        public Texture Smoothness;
+
+        public DateTime GetLastWriteTimeUtc(Texture metallicGloss)
+        {
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(metallicGloss), ExportUtils.GetLastWriteTimeUtc(Smoothness));
+        }
     }
 }
