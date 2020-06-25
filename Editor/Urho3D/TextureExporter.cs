@@ -167,10 +167,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (texType)
             {
                 case TextureImporterType.NormalMap:
-                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/DecodeNormalMap",_engine.GetTargetFilePath(outputAssetName));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap", _engine.GetTargetFilePath(outputAssetName));
                     break;
                 default:
-                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Copy", _engine.GetTargetFilePath(outputAssetName));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName));
                     break;
             }
 
@@ -204,7 +204,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
             }
 
-            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertToBaseColor"));
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToBaseColor"));
             tmpMaterial.SetTexture("_MainTex", texture);
             tmpMaterial.SetTexture("_SpecGlossMap", reference.Specular);
             tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
@@ -227,7 +227,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
             }
 
-            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertToMetallicRoughness"));
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness"));
             tmpMaterial.SetTexture("_MainTex", texture);
             tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
             tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
@@ -249,7 +249,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
             }
 
-            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/ConvertSpecularToMetallicRoughness"));
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertSpecularToMetallicRoughness"));
             tmpMaterial.SetTexture("_SpecGlossMap", texture);
             tmpMaterial.SetTexture("_MainTex", reference.Diffuse);
             tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);

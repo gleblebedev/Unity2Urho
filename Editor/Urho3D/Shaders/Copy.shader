@@ -1,10 +1,9 @@
-﻿Shader "Hidden/UnityToCustomEngineExporter/ConvertToMetallicRoughness"
+﻿Shader "Hidden/UnityToCustomEngineExporter/Urho3D/Copy"
 {
     Properties
     {
-        _MainTex("Texture", 2D) = "white" {}
-        _Smoothness("Smoothness", 2D) = "white" {}
-        _SmoothnessScale("Smoothness Factor", Range(0.0, 1.0)) = 1 }
+        _MainTex ("Texture", 2D) = "white" {}
+    }
     SubShader
     {
         // No culling or depth
@@ -39,15 +38,10 @@
             }
 
             sampler2D _MainTex;
-            sampler2D _Smoothness;
-            float _SmoothnessScale;
 
             fixed4 frag (v2f i) : SV_Target
             {
-                float4 metGloss = tex2D(_MainTex, i.uv);
-                float r = 1.0 - tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
-                return fixed4(r, metGloss.r, 0, 1);
-
+                return tex2D(_MainTex, i.uv);
             }
             ENDCG
         }

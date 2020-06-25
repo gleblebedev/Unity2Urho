@@ -1,9 +1,9 @@
-﻿Shader "Hidden/UnityToCustomEngineExporter/ConvertToBaseColor"
+﻿Shader "Hidden/UnityToCustomEngineExporter/Urho3D/ConvertSpecularToMetallicRoughness"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _SpecGlossMap ("Specular", 2D) = "black" {}
+        _SpecGlossMap("Specular", 2D) = "black" {}
         _Smoothness("Smoothness", 2D) = "white" {}
         _SmoothnessScale("Smoothness Factor", Range(0.0, 1.0)) = 1
     }
@@ -93,20 +93,7 @@
                 return result;
             }
 
-            float3 SRGBtoLinear(float3 sRGB)
-            {
-                return sRGB* (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878);
-            }
-
-            float3 LinearToSRGB(float3 RGB)
-            {
-                float3 S1 = sqrt(RGB);
-                float3 S2 = sqrt(S1);
-                float3 S3 = sqrt(S2);
-                return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
-            }
-
-            v2f vert (appdata v)
+            v2f vert(appdata v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
@@ -119,7 +106,7 @@
             sampler2D _Smoothness;
             float _SmoothnessScale;
 
-            fixed4 frag (v2f i) : SV_Target
+            fixed4 frag(v2f i) : SV_Target
             {
                 SpecularGlossiness specularGlossiness;
                 float4 diffSample = tex2D(_MainTex, i.uv);
@@ -128,10 +115,9 @@
                 specularGlossiness.opacity = diffSample.a;
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
-                return fixed4(LinearToSRGB(metallicRoughness.baseColor.rgb), metallicRoughness.opacity);
+                return fixed4(metallicRoughness.roughness, metallicRoughness.metallic, 0, 1);
             }
             ENDCG
         }
     }
 }
-

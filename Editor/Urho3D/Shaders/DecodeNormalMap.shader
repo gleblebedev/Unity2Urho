@@ -1,4 +1,4 @@
-﻿Shader "Hidden/UnityToCustomEngineExporter/DecodeNormalMap"
+﻿Shader "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap"
 {
     Properties
     {
