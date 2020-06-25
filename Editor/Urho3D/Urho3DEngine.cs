@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.ProBuilder;
+//using UnityEngine.ProBuilder;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -267,10 +266,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip
                 }
-                else if (asset is ProBuilderMesh proBuilderMesh)
-                {
-                    //Skip
-                }
+                //else if (asset is ProBuilderMesh proBuilderMesh)
+                //{
+                //    //Skip
+                //}
                 else if (asset is LODGroup lodGroup)
                 {
                     //Skip
@@ -351,10 +350,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             return _meshExporter.EvaluateMeshName(sharedMesh);
         }
-        public string EvaluateMeshName(ProBuilderMesh sharedMesh)
-        {
-            return _meshExporter.EvaluateMeshName(sharedMesh);
-        }
+        //public string EvaluateMeshName(ProBuilderMesh sharedMesh)
+        //{
+        //    return _meshExporter.EvaluateMeshName(sharedMesh);
+        //}
 
         public string EvaluateTerrainHeightMap(TerrainData terrainData)
         {

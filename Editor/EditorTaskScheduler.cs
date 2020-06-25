@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
 
-namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
+namespace UnityToCustomEngineExporter.Editor
 {
     public class EditorTaskScheduler
     {

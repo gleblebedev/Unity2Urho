@@ -5,7 +5,7 @@ using System.Threading;
 using UnityEditor;
 using Object = UnityEngine.Object;
 
-namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
+namespace UnityToCustomEngineExporter.Editor
 {
     public abstract class AbstractDestinationEngine
     {

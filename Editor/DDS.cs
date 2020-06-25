@@ -3,7 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
+namespace UnityToCustomEngineExporter.Editor
 {
     public class DDS
     {
