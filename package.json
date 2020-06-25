@@ -1,0 +1,13 @@
+{
+	"name": "com.gleblebedev.unityexporter",
+	"displayName": "Unity To Custom Engine Exporter",
+	"version": "1.0.0",
+	//"unity": "2019.1",
+	"description": "Export assets to be used in a custom game engine (like Urho3D, etc)",
+	"dependencies": {
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gleblebedev/Unity2Urho.git"
+	}
+}
