@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEngine;
 //using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
+using UnityToCustomEngineExporter.Urho3D;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -141,7 +142,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             foreach (var component in obj.GetComponents<Component>())
             {
-                if (component is IComponentToExport customComponent)
+                if (component is IUrho3DComponent customComponent)
                 {
                     ExportCustomComponent(writer, subPrefix, customComponent);
                 }
@@ -428,15 +429,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             EndElement(writer, subPrefix);
         }
 
-        private void ExportCustomComponent(XmlWriter writer, string subPrefix, IComponentToExport customComponent)
+        private void ExportCustomComponent(XmlWriter writer, string subPrefix, IUrho3DComponent customComponent)
         {
             if (customComponent == null) return;
 
             var subSubPrefix = subPrefix + "\t";
-            StartCompoent(writer, subPrefix, customComponent.GetExportType());
-            foreach (var keyValuePair in customComponent.GetAttributesToExport())
+            StartCompoent(writer, subPrefix, customComponent.GetUrho3DComponentName());
+            foreach (var keyValuePair in customComponent.GetUrho3DComponentAttributes())
             {
-                WriteAttribute(writer, subSubPrefix, keyValuePair.Key, keyValuePair.Value);
+                WriteAttribute(writer, subSubPrefix, keyValuePair.Name, keyValuePair.Value);
             }
             EndElement(writer, subPrefix);
         }

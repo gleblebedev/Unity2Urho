@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -211,6 +212,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     {
                         WriteTexture(name, writer, "diffuse");
                     }
+                }
+                else
+                {
+                    _engine.TryWriteFile("Resources/unity_builtin_extra/Default-Skybox-Map.dds", DefaultSkybox.DDS, DateTime.MaxValue);
+                    _engine.TryWriteFile("Resources/unity_builtin_extra/Default-Skybox-Map.xml", Encoding.ASCII.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?><cubemap><image name=\"Default-Skybox-Map.dds\" /></cubemap>"), DateTime.MaxValue);
+                    WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse");
                 }
                 {
                     writer.WriteWhitespace("\t");

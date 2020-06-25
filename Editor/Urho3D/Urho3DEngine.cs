@@ -132,6 +132,36 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return Path.Combine(_dataFolder, relativePath.FixDirectorySeparator()).FixDirectorySeparator();
         }
 
+        public void TryWriteFile(string destinationFilePath, byte[] bytes, DateTime sourceLastWriteTimeUtc)
+        {
+            if (destinationFilePath == null)
+                return;
+
+            var targetPath = GetTargetFilePath(destinationFilePath);
+
+            //Skip file if it already exported
+            if (!_createdFiles.Add(targetPath))
+            {
+                return;
+            }
+
+            //Skip file if it is already up to date
+            if (_exportUpdatedOnly)
+            {
+                if (File.Exists(targetPath))
+                {
+                    var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
+                    if (sourceLastWriteTimeUtc <= lastWriteTimeUtc)
+                        return;
+                }
+            }
+
+            var directoryName = Path.GetDirectoryName(targetPath);
+            if (directoryName != null) Directory.CreateDirectory(directoryName);
+
+            File.WriteAllBytes(targetPath, bytes);
+        }
+
         public void TryCopyFile(string assetPath, string destinationFilePath)
         {
             if (destinationFilePath == null)
@@ -365,5 +395,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _terrainExporter.EvaluateMaterial(terrainData);
         }
 
+ 
     }
 }

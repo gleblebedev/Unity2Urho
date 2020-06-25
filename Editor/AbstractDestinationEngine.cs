@@ -28,7 +28,7 @@ namespace UnityToCustomEngineExporter.Editor
         private IEnumerable<ProgressBarReport> ExportAsset(Object asset)
         {
             var assetPath = AssetDatabase.GetAssetPath(asset);
-            if (assetPath == "Library/unity default resources")
+            if (assetPath == "Library/unity default resources" || assetPath == "Resources/unity_builtin_extra")
             {
                 return ExportUnityDefaultResource(asset, assetPath);
             }
