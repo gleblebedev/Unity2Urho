@@ -76,6 +76,11 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 
         private void SaveTexture(Texture2D texture, string fullOutputPath)
         {
+            if (string.IsNullOrWhiteSpace(fullOutputPath))
+                return;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(fullOutputPath));
+
             var ext = Path.GetExtension(fullOutputPath).ToLower();
             switch (ext)
             {
