@@ -1,12 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
 {
     public class DDS
     {
-        public static void SaveAsRgbaDds(Texture2D texture, string fileName)
+        public static void SaveAsRgbaDds(Texture2D texture, string fileName, bool convertToSRGB = false)
         {
             using (var fileStream = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
@@ -15,13 +16,13 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                     WriteHeader(binaryWriter, texture.width, texture.height, texture.mipmapCount, false);
                     for (int mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
                     {
-                        WriteRgba(binaryWriter, texture.GetPixels32(mipIndex), Math.Max(1, texture.width / (1 << mipIndex)));
+                        WriteAsIs(binaryWriter, texture.GetPixels32(mipIndex), Math.Max(1, texture.width / (1 << mipIndex)));
                     }
                 }
             }
         }
 
-        public static void SaveAsRgbaDds(Cubemap texture, string fileName)
+        public static void SaveAsRgbaDds(Cubemap texture, string fileName, bool convertToSRGB = false)
         {
             using (var fileStream = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
@@ -47,7 +48,15 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
                             {
                                 buf[index] = pixels[index];
                             }
-                            WriteRgba(binaryWriter, buf, Math.Max(1, texture.width / (1 << mipIndex)));
+
+                            if (convertToSRGB)
+                            {
+                                WriteLinearAsSRGB(binaryWriter, buf, Math.Max(1, texture.width / (1 << mipIndex)));
+                            }
+                            else
+                            {
+                                WriteAsIs(binaryWriter, buf, Math.Max(1, texture.width / (1 << mipIndex)));
+                            }
                         }
                     }
                 }
@@ -102,7 +111,32 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor
             binaryWriter.Write(0);
         }
 
-        private static void WriteRgba(BinaryWriter binaryWriter, Color32[] getPixels, int textureWidth)
+
+        private static Color32 LinearToSRGB(Color32 rgb)
+        {
+            Color RGB = rgb;
+            var S1 = new Color(Mathf.Sqrt(RGB.r), Mathf.Sqrt(RGB.g), Mathf.Sqrt(RGB.b),RGB.a);
+            var S2 = new Color(Mathf.Sqrt(S1.r), Mathf.Sqrt(S1.g), Mathf.Sqrt(S1.b), RGB.a);
+            var S3 = new Color(Mathf.Sqrt(S2.r), Mathf.Sqrt(S2.g), Mathf.Sqrt(S2.b), RGB.a);
+            var k1 = new Color(0.662002687f, 0.662002687f, 0.662002687f, 1);
+            var k2 = new Color(0.684122060f, 0.684122060f, 0.684122060f, 1);
+            var k3 = new Color(0.323583601f, 0.323583601f, 0.323583601f, 1);
+            var k4 = new Color(0.0225411470f, 0.0225411470f, 0.0225411470f, 1);
+            return k1 * S1 + k2 * S2 - k3 * S3 - k4 * RGB;
+        }
+
+        private static void WriteLinearAsSRGB(BinaryWriter binaryWriter, Color32[] getPixels, int textureWidth)
+        {
+            foreach (var c in getPixels)
+            {
+                var rgb = LinearToSRGB(c);
+                binaryWriter.Write(rgb.r);
+                binaryWriter.Write(rgb.g);
+                binaryWriter.Write(rgb.b);
+                binaryWriter.Write(c.a);
+            }
+        }
+        private static void WriteAsIs(BinaryWriter binaryWriter, Color32[] getPixels, int textureWidth)
         {
             foreach (var c in getPixels)
             {
