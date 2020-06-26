@@ -1,0 +1,20 @@
+{
+    "name": "UnityToCustomEngineExporter.Editor.Tests",
+    "references": [
+        "UnityToCustomEngineExporter.Editor",
+        "UnityToCustomEngineExporter"
+    ],
+    "optionalUnityReferences": [
+      "TestAssemblies"
+    ],
+    "includePlatforms": [
+      "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

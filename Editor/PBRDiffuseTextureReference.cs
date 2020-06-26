@@ -43,19 +43,19 @@ namespace UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRDiffuseTextureReference(Texture specular, Texture smoothness, float smoothnessScale) : base(TextureSemantic.PBRDiffuse)
+        public PBRDiffuseTextureReference(TextureOrColor specular, TextureOrColor smoothness, float smoothnessScale) : base(TextureSemantic.PBRDiffuse)
         {
             Specular = specular;
             Smoothness = smoothness;
             SmoothnessScale = smoothnessScale;
         }
-        public Texture Specular;
-        public Texture Smoothness;
+        public TextureOrColor Specular;
+        public TextureOrColor Smoothness;
         public float SmoothnessScale;
 
         public DateTime GetLastWriteTimeUtc(Texture diffuse)
         {
-            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(diffuse), ExportUtils.GetLastWriteTimeUtc(Specular), ExportUtils.GetLastWriteTimeUtc(Smoothness));
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(diffuse), ExportUtils.GetLastWriteTimeUtc(Specular.Texture), ExportUtils.GetLastWriteTimeUtc(Smoothness.Texture));
         }
     }
 }

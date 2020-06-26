@@ -86,25 +86,33 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 case ".png":
                     var png = texture.EncodeToPNG();
-                    File.WriteAllBytes(fullOutputPath, png);
+                    WriteAllBytes(fullOutputPath, png);
                     break;
                 case ".jpg":
                     var jpg = texture.EncodeToJPG();
-                    File.WriteAllBytes(fullOutputPath, jpg);
+                    WriteAllBytes(fullOutputPath, jpg);
                     break;
                 case ".tga":
                     var tga = texture.EncodeToTGA();
-                    File.WriteAllBytes(fullOutputPath, tga);
+                    WriteAllBytes(fullOutputPath, tga);
                     break;
                 case ".exr":
                     var exr = texture.EncodeToEXR();
-                    File.WriteAllBytes(fullOutputPath, exr);
+                    WriteAllBytes(fullOutputPath, exr);
                     break;
                 case ".dds":
                     DDS.SaveAsRgbaDds(texture, fullOutputPath);
                     break;
                 default:
                     throw new NotImplementedException("Not implemented texture file type "+ext);
+            }
+        }
+
+        private void WriteAllBytes(string fullOutputPath, byte[] buffer)
+        {
+            using (var fs = File.Open(fullOutputPath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                fs.Write(buffer,0, buffer.Length);
             }
         }
     }

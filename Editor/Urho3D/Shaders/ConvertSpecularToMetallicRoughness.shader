@@ -66,6 +66,10 @@
                 return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
             }
 
+            float maxColorComponent(float3 rgb)
+            {
+                return max(max(rgb.r, rgb.g), rgb.b);
+            }
 
             MetallicRoughness ConvertToMetallicRoughness(SpecularGlossiness specularGlossiness)
             {
@@ -77,8 +81,9 @@
                 float3 specular = specularGlossiness.specular;
                 float glossiness = specularGlossiness.glossiness;
 
-                float oneMinusSpecularStrength = 1.0 - max(max(specular.r, specular.g), specular.b);
-                float metallic = SolveMetallic(GetPerceivedBrightness(diffuse), GetPerceivedBrightness(specular), oneMinusSpecularStrength);
+                float oneMinusSpecularStrength = 1.0 - maxColorComponent(specular);
+                float metallic = SolveMetallic(maxColorComponent(diffuse), maxColorComponent(specular), oneMinusSpecularStrength);
+                //float metallic = SolveMetallic(GetPerceivedBrightness(diffuse), GetPerceivedBrightness(specular), oneMinusSpecularStrength);
 
                 float3 baseColorFromDiffuse = diffuse * (oneMinusSpecularStrength / (oneMinusDielectricSpec) / max(1.0 - metallic, epsilon));
                 float specAdj = dielectricSpecular * (1.0 - metallic);

@@ -27,7 +27,7 @@ namespace UnityToCustomEngineExporter.Editor
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
                 hashCode = (hashCode * 397) ^ (Diffuse != null ? Diffuse.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Smoothness.GetHashCode());
                 return hashCode;
             }
         }
@@ -42,7 +42,7 @@ namespace UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRSpecularGlossinessTextureReference(float smoothnessScale, Texture smoothness, Texture diffuse) : base(TextureSemantic.PBRSpecularGlossiness)
+        public PBRSpecularGlossinessTextureReference(float smoothnessScale, TextureOrColor smoothness, Texture diffuse) : base(TextureSemantic.PBRSpecularGlossiness)
         {
             SmoothnessScale = smoothnessScale;
             Smoothness = smoothness;
@@ -50,12 +50,12 @@ namespace UnityToCustomEngineExporter.Editor
         }
 
         public float SmoothnessScale = 1.0f;
-        public Texture Smoothness;
+        public TextureOrColor Smoothness;
         public Texture Diffuse;
 
         public DateTime GetLastWriteTimeUtc(Texture texture)
         {
-            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetLastWriteTimeUtc(Smoothness), ExportUtils.GetLastWriteTimeUtc(Diffuse));
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetLastWriteTimeUtc(Smoothness.Texture), ExportUtils.GetLastWriteTimeUtc(Diffuse));
         }
     }
 }

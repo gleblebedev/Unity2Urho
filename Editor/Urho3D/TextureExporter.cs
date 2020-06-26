@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -205,18 +206,43 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToBaseColor"));
-            tmpMaterial.SetTexture("_MainTex", texture);
-            tmpMaterial.SetTexture("_SpecGlossMap", reference.Specular);
-            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
-            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            Texture specularTexture = null;
+            Texture smoothnessTexture = null;
             try
             {
+                tmpMaterial.SetTexture("_MainTex", texture);
+                specularTexture = EnsureTexture(reference.Specular);
+                tmpMaterial.SetTexture("_SpecGlossMap", specularTexture);
+                tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
+                smoothnessTexture = EnsureTexture(reference.Smoothness);
+                tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
                 new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
             }
             finally
             {
                 GameObject.DestroyImmediate(tmpMaterial);
+                DestroyTmpTexture(reference.Specular, specularTexture);
+                DestroyTmpTexture(reference.Smoothness, smoothnessTexture);
             }
+        }
+
+        private static void DestroyTmpTexture(TextureOrColor reference, Texture specularTexture)
+        {
+            if (specularTexture != null && specularTexture != reference.Texture) GameObject.DestroyImmediate(specularTexture);
+        }
+
+        private static Texture EnsureTexture(TextureOrColor textureOrColor)
+        {
+            var specularTexture = textureOrColor.Texture;
+            if (specularTexture == null)
+            {
+                var tmpSpecularTexture = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                tmpSpecularTexture.SetPixels(new Color[] {textureOrColor.Color});
+                tmpSpecularTexture.Apply();
+                return tmpSpecularTexture;
+            }
+
+            return specularTexture;
         }
 
         private void TransformMetallicGlossiness(Texture texture, PBRMetallicGlossinessTextureReference reference)
@@ -253,7 +279,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             tmpMaterial.SetTexture("_SpecGlossMap", texture);
             tmpMaterial.SetTexture("_MainTex", reference.Diffuse);
             tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
-            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness.Texture);
             try
             {
                 new TextureProcessor().ProcessAndSaveTexture(reference.Diffuse, tmpMaterial, _engine.GetTargetFilePath(baseColorName));

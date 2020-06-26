@@ -205,7 +205,7 @@ namespace UnityToCustomEngineExporter.Editor
                                 arguments.EmissiveColor = color;
                                 break;
                             case "_SpecColor":
-                                arguments.SpecularColor = color;
+                                arguments.PBRSpecular = new TextureOrColor(arguments.PBRSpecular.Texture, color);
                                 break;
                         }
 
@@ -284,7 +284,7 @@ namespace UnityToCustomEngineExporter.Editor
                                 arguments.Parallax = texture;
                                 break;
                             case "_SpecGlossMap":
-                                arguments.PBRSpecular = texture;
+                                arguments.PBRSpecular = new TextureOrColor(texture, arguments.PBRSpecular.Color);
                                 break;
                         }
 

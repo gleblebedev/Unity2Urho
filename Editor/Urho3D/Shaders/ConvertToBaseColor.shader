@@ -55,7 +55,7 @@
 
             float SolveMetallic(float diffuse, float specular, float oneMinusSpecularStrength)
             {
-                half oneMinusDielectricSpec = unity_ColorSpaceDielectricSpec.a;
+                half oneMinusDielectricSpec = 1.0 - 0.22;// unity_ColorSpaceDielectricSpec.a;
                 float dielectricSpecular = 1.0 - oneMinusDielectricSpec;
                 if (specular < dielectricSpecular) return 0;
 
@@ -67,9 +67,14 @@
             }
 
 
+            float maxColorComponent(float3 rgb)
+            {
+                return max(max(rgb.r, rgb.g), rgb.b);
+            }
+
             MetallicRoughness ConvertToMetallicRoughness(SpecularGlossiness specularGlossiness)
             {
-                half oneMinusDielectricSpec = unity_ColorSpaceDielectricSpec.a;
+                half oneMinusDielectricSpec = 1.0-0.22;// unity_ColorSpaceDielectricSpec.a;
                 float dielectricSpecular = 1.0 - oneMinusDielectricSpec;
                 float epsilon = 1e-6;
                 float3 diffuse = specularGlossiness.diffuse;
@@ -77,8 +82,9 @@
                 float3 specular = specularGlossiness.specular;
                 float glossiness = specularGlossiness.glossiness;
 
-                float oneMinusSpecularStrength = 1.0 - max(max(specular.r, specular.g), specular.b);
-                float metallic = SolveMetallic(GetPerceivedBrightness(diffuse), GetPerceivedBrightness(specular), oneMinusSpecularStrength);
+                float oneMinusSpecularStrength = 1.0 - maxColorComponent(specular);
+                float metallic = SolveMetallic(maxColorComponent(diffuse), maxColorComponent(specular), oneMinusSpecularStrength);
+                //float metallic = SolveMetallic(GetPerceivedBrightness(diffuse), GetPerceivedBrightness(specular), oneMinusSpecularStrength);
 
                 float3 baseColorFromDiffuse = diffuse * (oneMinusSpecularStrength / (oneMinusDielectricSpec) / max(1.0 - metallic, epsilon));
                 float specAdj = dielectricSpecular * (1.0 - metallic);
@@ -128,7 +134,8 @@
                 specularGlossiness.opacity = diffSample.a;
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
-                return fixed4(LinearToSRGB(metallicRoughness.baseColor.rgb), metallicRoughness.opacity);
+                return fixed4(metallicRoughness.baseColor.rgb, diffSample.a);
+                //return fixed4(specularGlossiness.specular, diffSample.a);
             }
             ENDCG
         }
