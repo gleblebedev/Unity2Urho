@@ -13,6 +13,29 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             _engine = engine;
         }
+
+        public static bool EnsureReadableTexture(Cubemap texture)
+        {
+            if (null == texture) return false;
+
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter != null)
+            {
+                //tImporter.textureType = TextureImporterType.Default;
+                if (tImporter.isReadable != true)
+                {
+                    tImporter.isReadable = true;
+                    AssetDatabase.ImportAsset(assetPath);
+                    AssetDatabase.Refresh();
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
         public void Cubemap(Cubemap texture)
         {
             if (!EnsureReadableTexture(texture))
@@ -35,28 +58,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteEndDocument();
                 }
             }
-
-        }
-
-        public static bool EnsureReadableTexture(Cubemap texture)
-        {
-            if (null == texture) return false;
-
-            var assetPath = AssetDatabase.GetAssetPath(texture);
-            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (tImporter != null)
-            {
-                //tImporter.textureType = TextureImporterType.Default;
-                if (tImporter.isReadable != true)
-                {
-                    tImporter.isReadable = true;
-                    AssetDatabase.ImportAsset(assetPath);
-                    AssetDatabase.Refresh();
-                }
-                return true;
-            }
-
-            return false;
         }
 
         public string EvaluateCubemapName(Cubemap cubemap)

@@ -1,5 +1,4 @@
-﻿using UnityToCustomEngineExporter.Editor;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -9,6 +8,7 @@ namespace UnityToCustomEngineExporter.Editor
         {
             PBRSpecular = new TextureOrColor(null, Color.black);
         }
+
         public TextureOrColor PBRSpecular { get; set; }
         public Texture Diffuse { get; set; }
         public Texture DetailDiffuse { get; set; }
@@ -16,7 +16,7 @@ namespace UnityToCustomEngineExporter.Editor
         public SmoothnessTextureChannel SmoothnessTextureChannel { get; set; }
         public float GlossinessTextureScale { get; set; } = 1;
 
-        public TextureOrColor Smoothness => (SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
+        public TextureOrColor Smoothness => SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
             ? PBRSpecular
             : new TextureOrColor(Diffuse, DiffuseColor);
 

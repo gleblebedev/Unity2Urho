@@ -1,10 +1,8 @@
-﻿using UnityEngine;
-
-namespace UnityToCustomEngineExporter.Editor
+﻿namespace UnityToCustomEngineExporter.Editor
 {
-    public class PBRBaseColorTextureReference :TextureReference
+    public class PBRBaseColorTextureReference : TextureReference
     {
-        public PBRBaseColorTextureReference():base(TextureSemantic.PBRBaseColor)
+        public PBRBaseColorTextureReference() : base(TextureSemantic.PBRBaseColor)
         {
         }
     }

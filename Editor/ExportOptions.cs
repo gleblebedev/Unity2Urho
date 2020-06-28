@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -17,9 +15,9 @@ namespace UnityToCustomEngineExporter.Editor
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private string _exportFolder = "";
-        private bool _exportUpdatedOnly = false;
-        private bool _exportSceneAsPrefab = false;
-        private bool _skipDisabled = false;
+        private bool _exportUpdatedOnly;
+        private bool _exportSceneAsPrefab;
+        private bool _skipDisabled;
         private Urho3DEngine _destinationEngine;
 
         private IDestinationEngine _engine;
@@ -31,6 +29,14 @@ namespace UnityToCustomEngineExporter.Editor
         {
             var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
+        }
+
+        private static bool ValidateExportPath(string exportFolder)
+        {
+            var normalizedFolder = exportFolder.FixDirectorySeparator();
+            var dataPath = Application.dataPath.FixDirectorySeparator();
+            return !string.IsNullOrWhiteSpace(exportFolder) &&
+                   !normalizedFolder.StartsWith(dataPath, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public void OnGUI()
@@ -50,25 +56,18 @@ namespace UnityToCustomEngineExporter.Editor
             GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
 
             {
-                GUI.enabled = (_engine == null) && ValidateExportPath(_exportFolder);
+                GUI.enabled = _engine == null && ValidateExportPath(_exportFolder);
                 if (Selection.assetGUIDs.Length > 0)
                 {
                     if (GUILayout.Button("Export selected (" + Selection.assetGUIDs.Length + ") assets"))
-                    {
                         StartExportAssets(Selection.assetGUIDs);
-                    }
                 }
                 else
                 {
-                    if (GUILayout.Button("Export all assets"))
-                    {
-                        StartExportAssets(AssetDatabase.FindAssets(""));
-                    }
+                    if (GUILayout.Button("Export all assets")) StartExportAssets(AssetDatabase.FindAssets(""));
                 }
-                if (GUILayout.Button("Export active scene "))
-                {
-                    StartExportScene();
-                }
+
+                if (GUILayout.Button("Export active scene ")) StartExportScene();
 
                 GUI.enabled = true;
             }
@@ -76,12 +75,8 @@ namespace UnityToCustomEngineExporter.Editor
                 if (EditorTaskScheduler.Default.IsRunning)
                 {
                     if (_cancellationTokenSource != null)
-                    {
                         if (GUILayout.Button("Cancel"))
-                        {
                             _cancellationTokenSource.Cancel();
-                        }
-                    }
                 }
                 else
                 {
@@ -105,27 +100,23 @@ namespace UnityToCustomEngineExporter.Editor
             if (activeScene != null)
             {
                 _engine = CreateEngine();
-                EditorTaskScheduler.Default.ScheduleForegroundTask(() =>
-                {
-                    _engine.ExportScene(activeScene);
-                }, activeScene.path);
+                EditorTaskScheduler.Default.ScheduleForegroundTask(() => { _engine.ExportScene(activeScene); },
+                    activeScene.path);
             }
         }
 
         private void StartExportAssets(string[] assetGuiDs)
         {
             _engine = CreateEngine();
-            EditorTaskScheduler.Default.ScheduleForegroundTask(()=>_engine.ExportAssets(assetGuiDs));
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _engine.ExportAssets(assetGuiDs));
         }
 
         private IDestinationEngine CreateEngine()
         {
-            if (_engine != null)
-            {
-                return null;
-            }
+            if (_engine != null) return null;
             _cancellationTokenSource = new CancellationTokenSource();
-            return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, _exportUpdatedOnly, _exportSceneAsPrefab, _skipDisabled);
+            return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, _exportUpdatedOnly,
+                _exportSceneAsPrefab, _skipDisabled);
         }
 
         private void PickFolder()
@@ -151,13 +142,6 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private static bool ValidateExportPath(string exportFolder)
-        {
-            var normalizedFolder = exportFolder.FixDirectorySeparator();
-            var dataPath = Application.dataPath.FixDirectorySeparator();
-            return !string.IsNullOrWhiteSpace(exportFolder) && !normalizedFolder.StartsWith(dataPath, StringComparison.InvariantCultureIgnoreCase);
-        }
-
         private void OnFocus()
         {
             LoadConfig();
@@ -166,13 +150,9 @@ namespace UnityToCustomEngineExporter.Editor
         private void LoadConfig()
         {
             if (EditorPrefs.HasKey(_dataPathKey))
-            {
                 _exportFolder = EditorPrefs.GetString(_dataPathKey);
-            }
             else
-            {
                 _exportFolder = Application.dataPath;
-            }
             if (EditorPrefs.HasKey(_exportUpdatedOnlyKey))
                 _exportUpdatedOnly = EditorPrefs.GetBool(_exportUpdatedOnlyKey);
             if (EditorPrefs.HasKey(_exportSceneAsPrefabKey))
@@ -192,7 +172,7 @@ namespace UnityToCustomEngineExporter.Editor
             EditorPrefs.SetBool(_exportUpdatedOnlyKey, _exportUpdatedOnly);
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
-       }
+        }
 
         private void OnDestroy()
         {

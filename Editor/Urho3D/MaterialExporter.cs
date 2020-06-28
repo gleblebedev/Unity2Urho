@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -8,8 +7,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class MaterialExporter
     {
-        private readonly Urho3DEngine _engine;
-
         public static Technique[] Techniques =
         {
             new Technique {Material = new LegacyTechniqueFlags(), Name = "NoTexture.xml"},
@@ -99,9 +96,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         };
 
+        private readonly Urho3DEngine _engine;
+
         public MaterialExporter(Urho3DEngine engine)
         {
             _engine = engine;
+        }
+
+        private static void WriteAlphaTest(XmlWriter writer)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("shader");
+            writer.WriteAttributeString("psdefines", "ALPHAMASK");
+            writer.WriteEndElement();
+            writer.WriteWhitespace("\n");
         }
         //private void ExportStandartMaterial(Material mat, XmlWriter xmlStream)
         //{
@@ -135,8 +143,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return null;
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
                 return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), ".xml");
-            string newExt = "/"+ ExportUtils.SafeFileName(material.name)+".xml";
+            var newExt = "/" + ExportUtils.SafeFileName(material.name) + ".xml";
             return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(assetPath), newExt);
+        }
+
+        public void ExportMaterial(Material material)
+        {
+            var path = EvaluateMaterialName(material);
+            var mat = new MaterialDescription(material);
+            if (mat.SpecularGlossiness != null)
+                ExportSpecularGlossiness(path, mat.SpecularGlossiness);
+            else if (mat.MetallicRoughness != null)
+                ExportMetallicRoughness(path, mat.MetallicRoughness);
+            else if (mat.Skybox != null)
+                ExportSkybox(path, mat.Skybox);
+            else
+                ExportLegacy(path, mat.Legacy ?? new LegacyShaderArguments());
         }
 
         private void WriteTechnique(XmlWriter writer, string name)
@@ -170,20 +192,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        public void ExportMaterial(Material material)
-        {
-            var path = EvaluateMaterialName(material);
-            var mat = new MaterialDescription(material);
-            if (mat.SpecularGlossiness != null)
-                ExportSpecularGlossiness(path, mat.SpecularGlossiness);
-            else if (mat.MetallicRoughness != null)
-                ExportMetallicRoughness(path, mat.MetallicRoughness);
-            else if (mat.Skybox != null)
-                ExportSkybox(path, mat.Skybox);
-            else
-                ExportLegacy(path, mat.Legacy ?? new LegacyShaderArguments());
-        }
-
         private void ExportSkybox(string urhoPath, SkyboxShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(urhoPath, DateTime.MaxValue))
@@ -201,22 +209,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     _engine.ScheduleAssetExport(arguments.Skybox);
                     string name;
                     if (arguments.Skybox is Cubemap cubemap)
-                    {
                         name = _engine.EvaluateCubemapName(cubemap);
-                    }
                     else
-                    {
                         name = _engine.EvaluateTextrueName(arguments.Skybox);
-                    }
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        WriteTexture(name, writer, "diffuse");
-                    }
+                    if (!string.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse");
                 }
                 else
                 {
                     WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse");
                 }
+
                 {
                     writer.WriteWhitespace("\t");
                     writer.WriteStartElement("cull");
@@ -313,7 +315,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             {
                                 // Albedo, MetallicGloss, Normal, Emission
                                 if (arguments.Transparent)
-                                    WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpecEmissiveAlpha.xml");
+                                    WriteTechnique(writer,
+                                        "Techniques/PBR/PBRMetallicRoughDiffNormalSpecEmissiveAlpha.xml");
                                 else
                                     WriteTechnique(writer, "Techniques/PBR/PBRMetallicRoughDiffNormalSpecEmissive.xml");
                                 WriteTexture(arguments.Emission, writer, "emissive");
@@ -339,8 +342,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
 
                         {
-                            var textureReferences = new PBRMetallicGlossinessTextureReference(arguments.GlossinessTextureScale, arguments.Smoothness);
-                            var textureOutputName = _engine.EvaluateTextrueName(arguments.MetallicGloss, textureReferences);
+                            var textureReferences =
+                                new PBRMetallicGlossinessTextureReference(arguments.GlossinessTextureScale,
+                                    arguments.Smoothness);
+                            var textureOutputName =
+                                _engine.EvaluateTextrueName(arguments.MetallicGloss, textureReferences);
                             _engine.ScheduleTexture(arguments.MetallicGloss, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
                         }
@@ -407,20 +413,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteParameter(writer, "Roughness", BaseNodeExporter.Format(1.0f - arguments.Glossiness));
                     WriteParameter(writer, "Metallic", BaseNodeExporter.Format(arguments.Metallic));
                 }
+
                 WriteCommonParameters(writer, arguments);
 
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
-        }
-
-        private static void WriteAlphaTest(XmlWriter writer)
-        {
-            writer.WriteWhitespace("\t");
-            writer.WriteStartElement("shader");
-            writer.WriteAttributeString("psdefines", "ALPHAMASK");
-            writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
         }
 
 
@@ -478,8 +476,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
 
                         {
-                            var textureReferences = new PBRSpecularGlossinessTextureReference((arguments.Smoothness.Texture != null) ? arguments.GlossinessTextureScale : arguments.Glossiness, arguments.Smoothness, arguments.Diffuse);
-                            var textureOutputName = _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture, textureReferences);
+                            var textureReferences = new PBRSpecularGlossinessTextureReference(
+                                arguments.Smoothness.Texture != null
+                                    ? arguments.GlossinessTextureScale
+                                    : arguments.Glossiness, arguments.Smoothness, arguments.Diffuse);
+                            var textureOutputName =
+                                _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture, textureReferences);
                             _engine.ScheduleTexture(arguments.PBRSpecular.Texture, textureReferences);
                             WriteTexture(textureOutputName, writer, "specular");
                         }
@@ -518,11 +520,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             else
                                 WriteTechnique(writer, "Techniques/PBR/PBRDiff.xml");
                         }
-                        roughness = 1.0f-arguments.Glossiness;
+
+                        roughness = 1.0f - arguments.Glossiness;
                     }
 
                     {
-                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular, arguments.Smoothness, (arguments.Smoothness.Texture != null)?arguments.GlossinessTextureScale:arguments.Glossiness);
+                        var textureReferences = new PBRDiffuseTextureReference(arguments.PBRSpecular,
+                            arguments.Smoothness,
+                            arguments.Smoothness.Texture != null
+                                ? arguments.GlossinessTextureScale
+                                : arguments.Glossiness);
                         var textureOutputName = _engine.EvaluateTextrueName(arguments.Diffuse, textureReferences);
                         _engine.ScheduleTexture(arguments.Diffuse, textureReferences);
                         WriteTexture(textureOutputName, writer, "diffuse");
@@ -532,11 +539,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (arguments.PBRSpecular.Texture != null)
                     {
-                        Debug.LogWarning("Can't recreate "+urhoPath+" correctly - no Albedo texture assigned");
+                        Debug.LogWarning("Can't recreate " + urhoPath + " correctly - no Albedo texture assigned");
                     }
                     else
                     {
-                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness()
+                        var mr = PBRUtils.ConvertToMetallicRoughness(new PBRUtils.SpecularGlossiness
                         {
                             diffuse = arguments.DiffuseColor,
                             glossiness = arguments.Glossiness,
@@ -547,8 +554,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         metallic = mr.metallic;
                         roughness = mr.roughness;
                     }
-                // No albedo
-                if (arguments.Transparent)
+
+                    // No albedo
+                    if (arguments.Transparent)
                         WriteTechnique(writer, "Techniques/PBR/PBRNoTextureAlpha.xml");
                     else
                         WriteTechnique(writer, "Techniques/PBR/PBRNoTexture.xml");
@@ -570,12 +578,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void WriteCommonParameters(XmlWriter writer, ShaderArguments arguments)
         {
-            WriteParameter(writer, "UOffset", BaseNodeExporter.Format(new Vector4(arguments.MainTextureScale.x,0,0, arguments.MainTextureOffset.x)));
-            WriteParameter(writer, "VOffset", BaseNodeExporter.Format(new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y)));
-            if (arguments.AlphaTest)
-            {
-                WriteAlphaTest(writer);
-            }
+            WriteParameter(writer, "UOffset",
+                BaseNodeExporter.Format(new Vector4(arguments.MainTextureScale.x, 0, 0,
+                    arguments.MainTextureOffset.x)));
+            WriteParameter(writer, "VOffset",
+                BaseNodeExporter.Format(new Vector4(0, arguments.MainTextureScale.y, 0,
+                    arguments.MainTextureOffset.y)));
+            if (arguments.AlphaTest) WriteAlphaTest(writer);
         }
 
 

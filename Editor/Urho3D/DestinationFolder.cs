@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
-using UnityEditor;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -13,8 +12,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     public class DestinationFolder
     {
         private readonly string _folder;
-        private bool _exportOnlyUpdated;
-        private HashSet<string> _createdFiles = new HashSet<string>();
+        private readonly bool _exportOnlyUpdated;
+        private readonly HashSet<string> _createdFiles = new HashSet<string>();
 
         public DestinationFolder(string folder, bool exportOnlyUpdated = false)
         {
@@ -32,34 +31,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void CopyFile(string sourceFilePath, string destinationFilePath)
         {
-           
         }
 
         public FileStream Create(string relativePath, DateTime sourceFileTimestampUTC)
         {
-            if (relativePath == null)
-            {
-                return null;
-            }
+            if (relativePath == null) return null;
 
             var targetPath = GetTargetFilePath(relativePath);
 
             //Skip file if it already exported
-            if (!_createdFiles.Add(targetPath))
-            {
-                return null;
-            }
+            if (!_createdFiles.Add(targetPath)) return null;
 
             //Skip file if it is already up to date
             if (_exportOnlyUpdated)
-            {
                 if (File.Exists(targetPath))
                 {
                     var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
                     if (sourceFileTimestampUTC <= lastWriteTimeUtc)
                         return null;
                 }
-            }
 
             var directoryName = Path.GetDirectoryName(targetPath);
             if (directoryName != null) Directory.CreateDirectory(directoryName);

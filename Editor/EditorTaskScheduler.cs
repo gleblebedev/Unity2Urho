@@ -13,13 +13,13 @@ namespace UnityToCustomEngineExporter.Editor
         public static readonly EditorTaskScheduler Default = new EditorTaskScheduler();
 
         private readonly object _gate = new object();
-        private List<Task> _tasks;
 
         private readonly Queue<Func<IEnumerable<ProgressBarReport>>> _foregroundTasks =
             new Queue<Func<IEnumerable<ProgressBarReport>>>();
 
         private readonly Stopwatch _foregroundStepStopwatch = new Stopwatch();
         private readonly EditorApplication.CallbackFunction _processForegroundQueue;
+        private List<Task> _tasks;
         private IEnumerator<ProgressBarReport> _enumeration;
         private int _backgroundTaskCount;
 
@@ -49,7 +49,7 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 lock (_gate)
                 {
-                    return (_foregroundTasks.Count > 0) || (_enumeration != null);
+                    return _foregroundTasks.Count > 0 || _enumeration != null;
                 }
             }
         }
@@ -63,6 +63,12 @@ namespace UnityToCustomEngineExporter.Editor
                     return _backgroundTaskCount != 0;
                 }
             }
+        }
+
+        private static IEnumerable<ProgressBarReport> ActionAsEnumerable(Action task, ProgressBarReport report)
+        {
+            yield return report;
+            task();
         }
 
         public void ScheduleForegroundTask(Action task, ProgressBarReport report)
@@ -106,12 +112,6 @@ namespace UnityToCustomEngineExporter.Editor
 
                 await Task.WhenAll(tasks);
             }
-        }
-
-        private static IEnumerable<ProgressBarReport> ActionAsEnumerable(Action task, ProgressBarReport report)
-        {
-            yield return report;
-            task();
         }
 
         private async Task CallBackgroundTask(Func<Task> task, ProgressBarReport report)

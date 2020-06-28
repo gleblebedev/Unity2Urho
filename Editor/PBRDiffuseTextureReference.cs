@@ -5,31 +5,16 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class PBRDiffuseTextureReference : TextureReference, IEquatable<PBRDiffuseTextureReference>
     {
-        public bool Equals(PBRDiffuseTextureReference other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return base.Equals(other) && Equals(Specular, other.Specular) && Equals(Smoothness, other.Smoothness) && SmoothnessScale.Equals(other.SmoothnessScale);
-        }
+        public TextureOrColor Specular;
+        public TextureOrColor Smoothness;
+        public float SmoothnessScale;
 
-        public override int GetHashCode()
+        public PBRDiffuseTextureReference(TextureOrColor specular, TextureOrColor smoothness, float smoothnessScale) :
+            base(TextureSemantic.PBRDiffuse)
         {
-            unchecked
-            {
-                int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (Specular != null ? Specular.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
-                return hashCode;
-            }
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((PBRDiffuseTextureReference) obj);
+            Specular = specular;
+            Smoothness = smoothness;
+            SmoothnessScale = smoothnessScale;
         }
 
 
@@ -43,19 +28,38 @@ namespace UnityToCustomEngineExporter.Editor
             return !Equals(left, right);
         }
 
-        public PBRDiffuseTextureReference(TextureOrColor specular, TextureOrColor smoothness, float smoothnessScale) : base(TextureSemantic.PBRDiffuse)
+        public override int GetHashCode()
         {
-            Specular = specular;
-            Smoothness = smoothness;
-            SmoothnessScale = smoothnessScale;
+            unchecked
+            {
+                var hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ (Specular != null ? Specular.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Smoothness != null ? Smoothness.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ SmoothnessScale.GetHashCode();
+                return hashCode;
+            }
         }
-        public TextureOrColor Specular;
-        public TextureOrColor Smoothness;
-        public float SmoothnessScale;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((PBRDiffuseTextureReference) obj);
+        }
 
         public DateTime GetLastWriteTimeUtc(Texture diffuse)
         {
-            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(diffuse), ExportUtils.GetLastWriteTimeUtc(Specular.Texture), ExportUtils.GetLastWriteTimeUtc(Smoothness.Texture));
+            return ExportUtils.MaxDateTime(ExportUtils.GetLastWriteTimeUtc(diffuse),
+                ExportUtils.GetLastWriteTimeUtc(Specular.Texture), ExportUtils.GetLastWriteTimeUtc(Smoothness.Texture));
+        }
+
+        public bool Equals(PBRDiffuseTextureReference other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return base.Equals(other) && Equals(Specular, other.Specular) && Equals(Smoothness, other.Smoothness) &&
+                   SmoothnessScale.Equals(other.SmoothnessScale);
         }
     }
 }

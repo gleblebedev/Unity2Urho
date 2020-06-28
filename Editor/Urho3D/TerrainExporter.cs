@@ -15,6 +15,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine = engine;
         }
 
+        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
+        {
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((byte) (bitsPerPixel == 8 ? 3 : 2));
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((byte) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) 0);
+            binaryWriter.Write((short) w);
+            binaryWriter.Write((short) h);
+            binaryWriter.Write((byte) bitsPerPixel);
+            binaryWriter.Write((byte) 0);
+        }
+
         public string EvaluateHeightMap(TerrainData terrainData)
         {
             return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".tga");
@@ -29,9 +45,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".xml");
         }
+
+        public void ExportTerrain(TerrainData terrainData)
+        {
+            WriteTerrainMaterial(terrainData);
+            WriteHeightMap(terrainData);
+            WriteTerrainWeightsTexture(terrainData);
+
+            //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
+            //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
+            //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
+        }
+
         private void WriteTerrainMaterial(TerrainData terrain)
         {
-            using (var writer = _engine.TryCreateXml(EvaluateMaterial(terrain), ExportUtils.GetLastWriteTimeUtc(terrain)))
+            using (var writer =
+                _engine.TryCreateXml(EvaluateMaterial(terrain), ExportUtils.GetLastWriteTimeUtc(terrain)))
             {
                 if (writer == null)
                     return;
@@ -63,8 +92,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
                     if (layer.diffuseTexture != null)
                     {
-                        _engine.ScheduleTexture(layer.diffuseTexture, null);
-                        string urhoAssetName = _engine.EvaluateTextrueName(layer.diffuseTexture);
+                        _engine.ScheduleTexture(layer.diffuseTexture);
+                        var urhoAssetName = _engine.EvaluateTextrueName(layer.diffuseTexture);
                         if (!string.IsNullOrWhiteSpace(urhoAssetName))
                             writer.WriteAttributeString("name", urhoAssetName);
                     }
@@ -81,21 +110,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteEndDocument();
             }
         }
-        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
-        {
-            binaryWriter.Write((byte)0);
-            binaryWriter.Write((byte)0);
-            binaryWriter.Write((byte)(bitsPerPixel == 8 ? 3 : 2));
-            binaryWriter.Write((short)0);
-            binaryWriter.Write((short)0);
-            binaryWriter.Write((byte)0);
-            binaryWriter.Write((short)0);
-            binaryWriter.Write((short)0);
-            binaryWriter.Write((short)w);
-            binaryWriter.Write((short)h);
-            binaryWriter.Write((byte)bitsPerPixel);
-            binaryWriter.Write((byte)0);
-        }
+
         private void WriteHeightMap(TerrainData terrain)
         {
             var w = terrain.heightmapResolution;
@@ -129,16 +144,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         for (var x = 0; x < w; ++x)
                         {
                             var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
-                            var msb = (byte)height;
-                            var lsb = (byte)((height - msb) * 255.0f);
-                            binaryWriter.Write((byte)0); //B - none
+                            var msb = (byte) height;
+                            var lsb = (byte) ((height - msb) * 255.0f);
+                            binaryWriter.Write((byte) 0); //B - none
                             binaryWriter.Write(lsb); //G - LSB
                             binaryWriter.Write(msb); //R - MSB
-                            binaryWriter.Write((byte)255); //A - none
+                            binaryWriter.Write((byte) 255); //A - none
                         }
                     }
             }
         }
+
         private void WriteTerrainWeightsTexture(TerrainData terrain)
         {
             var layers = terrain.terrainLayers;
@@ -166,7 +182,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         for (var i = 0; i < weights.Length; ++i)
                             if (numAlphamaps > i && layers.Length > i)
                             {
-                                var weight = (byte)(alphamaps[h - y - 1, x, i] * 255.0f);
+                                var weight = (byte) (alphamaps[h - y - 1, x, i] * 255.0f);
                                 sum += weight;
                                 weights[i] = weight;
                             }
@@ -181,17 +197,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
                 }
             }
-        }
-
-        public void ExportTerrain(TerrainData terrainData)
-        {
-            WriteTerrainMaterial(terrainData);
-            WriteHeightMap(terrainData);
-            WriteTerrainWeightsTexture(terrainData);
-
-            //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
-            //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
-            //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
         }
     }
 }

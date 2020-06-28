@@ -4,16 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
-//using UnityEngine.ProBuilder;
-using Math = System.Math;
 using Object = UnityEngine.Object;
+//using UnityEngine.ProBuilder;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class MeshExporter
     {
-        private readonly Urho3DEngine _engine;
         public const uint Magic2 = 0x32444d55;
 
         private static readonly string[] animationProperties =
@@ -29,6 +28,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             "m_LocalScale.y",
             "m_LocalScale.z"
         };
+
+        private readonly Urho3DEngine _engine;
 
         private readonly List<GameObject> _skeletons = new List<GameObject>();
 
@@ -47,7 +48,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportAnimation(AnimationClip clipAnimation)
         {
-
             var name = GetSafeFileName(clipAnimation.name);
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
@@ -59,7 +59,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     return;
                 using (var writer = new BinaryWriter(file))
                 {
-                    writer.Write(new byte[] { 0x55, 0x41, 0x4e, 0x49 });
+                    writer.Write(new byte[] {0x55, 0x41, 0x4e, 0x49});
                     WriteStringSZ(writer, clipAnimation.name);
                     writer.Write(clipAnimation.length);
 
@@ -70,7 +70,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     else
                     {
                         var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-                        var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+                        var rootBones =
+                            new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
                         if (rootBones.Count != 1)
                         {
                             Debug.LogWarning(aniFilePath + ": Multiple root bones found (" +
@@ -99,6 +100,75 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
                 }
             }
+        }
+
+        public void ExportMesh(GameObject go)
+        {
+            //var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
+            var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
+            var meshFilter = go.GetComponent<MeshFilter>();
+
+            //Debug.Log("Game object: "+go.name+", components: "+string.Join(", ", go.GetComponents<Component>().Select(_=>_.GetType().Name).ToArray()));
+
+            //if (proBuilderMesh != null)
+            //{
+            //    ExportProBuilderMeshModel(proBuilderMesh);
+            //}
+            //else
+            {
+                Mesh mesh = null;
+                if (skinnedMeshRenderer != null)
+                    mesh = skinnedMeshRenderer.sharedMesh;
+                else if (meshFilter != null) mesh = meshFilter.sharedMesh;
+                ExportMeshModel(mesh, skinnedMeshRenderer);
+            }
+
+
+            for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject);
+        }
+
+        //private void ExportProBuilderMeshModel(ProBuilderMesh mesh)
+        //{
+        //    var mdlFilePath = EvaluateMeshName(mesh);
+        //    using (var file = _engine.TryCreate(mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
+        //    {
+        //        if (file != null)
+        //        {
+        //            using (var writer = new BinaryWriter(file))
+        //            {
+        //                WriteProBuilderMesh(writer, mesh);
+        //            }
+        //        }
+        //    }
+        //}
+
+        public void ExportMeshModel(Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
+        {
+            var mdlFilePath = EvaluateMeshName(mesh);
+            using (var file = _engine.TryCreate(mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
+            {
+                if (file != null)
+                    using (var writer = new BinaryWriter(file))
+                    {
+                        WriteMesh(writer, mesh, BuildBones(skinnedMeshRenderer));
+                    }
+            }
+        }
+
+        public string EvaluateAnimationName(AnimationClip mesh)
+        {
+            if (mesh == null)
+                return null;
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" +
+                   ExportUtils.SafeFileName(mesh.name) + ".ani";
+        }
+
+        public string EvaluateMeshName(Mesh mesh)
+        {
+            if (mesh == null)
+                return null;
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" +
+                   ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 
         private IEnumerable<GameObject> CloneTree(GameObject go)
@@ -252,66 +322,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return path.Substring(0, slash);
         }
 
-        public void ExportMesh(GameObject go)
-        {
-            //var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
-            var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
-            var meshFilter = go.GetComponent<MeshFilter>();
-
-            //Debug.Log("Game object: "+go.name+", components: "+string.Join(", ", go.GetComponents<Component>().Select(_=>_.GetType().Name).ToArray()));
-
-            //if (proBuilderMesh != null)
-            //{
-            //    ExportProBuilderMeshModel(proBuilderMesh);
-            //}
-            //else
-            {
-                Mesh mesh = null;
-                if (skinnedMeshRenderer != null)
-                {
-                    mesh = skinnedMeshRenderer.sharedMesh;
-                }
-                else if (meshFilter != null)
-                {
-                    mesh = meshFilter.sharedMesh;
-                }
-                ExportMeshModel(mesh, skinnedMeshRenderer);
-            }
-
-
-            for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject);
-        }
-
-        //private void ExportProBuilderMeshModel(ProBuilderMesh mesh)
-        //{
-        //    var mdlFilePath = EvaluateMeshName(mesh);
-        //    using (var file = _engine.TryCreate(mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
-        //    {
-        //        if (file != null)
-        //        {
-        //            using (var writer = new BinaryWriter(file))
-        //            {
-        //                WriteProBuilderMesh(writer, mesh);
-        //            }
-        //        }
-        //    }
-        //}
-
-        public void ExportMeshModel(Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
-        {
-            var mdlFilePath = EvaluateMeshName(mesh);
-            using (var file = _engine.TryCreate(mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
-            {
-                if (file != null)
-                {
-                    using (var writer = new BinaryWriter(file))
-                    {
-                        WriteMesh(writer, mesh, BuildBones(skinnedMeshRenderer));
-                    }
-                }
-            }
-        }
-
         private Urho3DBone[] BuildBones(SkinnedMeshRenderer skinnedMeshRenderer)
         {
             if (skinnedMeshRenderer == null || skinnedMeshRenderer.bones.Length == 0)
@@ -411,7 +421,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         //                    indices.Add(face.indexes[tIndex]);
         //                }
         //            }
-                    
+
         //            indicesPerSubMesh.Add(indices);
         //            totalIndices += indices.Count;
         //        }
@@ -688,7 +698,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private Vector4[] FlipW(IList<Vector4> tangents)
         {
-            var res= new Vector4[tangents.Count];
+            var res = new Vector4[tangents.Count];
             for (var index = 0; index < tangents.Count; index++)
             {
                 var tangent = tangents[index];
@@ -879,7 +889,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             private readonly GameObject _root;
             private readonly AnimationClip _animationClip;
             private readonly Animator _animator;
-            private readonly UnityEditor.Animations.AnimatorController _controller;
+            private readonly AnimatorController _controller;
             private readonly string _controllerPath;
             private readonly float _length;
 
@@ -891,8 +901,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (_length < 1e-6f) _length = 1e-6f;
                 _animator = _root.AddComponent<Animator>();
 
-                _controllerPath = Path.Combine(Path.Combine("Assets", "UnityToCustomEngineExporter"), "TempController.controller");
-                _controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(_controllerPath, _animationClip);
+                _controllerPath = Path.Combine(Path.Combine("Assets", "UnityToCustomEngineExporter"),
+                    "TempController.controller");
+                _controller =
+                    AnimatorController.CreateAnimatorControllerAtPathWithClip(_controllerPath, _animationClip);
                 var layers = _controller.layers;
                 layers[0].iKPass = true;
                 //layers[0].stateMachine.
@@ -953,20 +965,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 rotation.Add(gameObject.transform.localRotation);
                 scale.Add(gameObject.transform.localScale);
             }
-        }
-
-        public string EvaluateAnimationName(AnimationClip mesh)
-        {
-            if (mesh == null)
-                return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "")+"/"+ExportUtils.SafeFileName(mesh.name)+".ani";
-        }
-
-        public string EvaluateMeshName(Mesh mesh)
-        {
-            if (mesh == null)
-                return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" + ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 
         //public string EvaluateMeshName(ProBuilderMesh mesh)

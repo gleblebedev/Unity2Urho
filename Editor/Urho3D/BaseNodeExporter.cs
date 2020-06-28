@@ -5,18 +5,19 @@ using System.Linq;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
-//using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
 using UnityToCustomEngineExporter.Urho3D;
+using Object = UnityEngine.Object;
+//using UnityEngine.ProBuilder;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class BaseNodeExporter
     {
-        private readonly bool _skipDisabled;
         protected Urho3DEngine _engine;
         protected int _id;
         protected EditorTaskScheduler BackgroundEditorTasks = new EditorTaskScheduler();
+        private readonly bool _skipDisabled;
 
         public BaseNodeExporter(Urho3DEngine engine, bool skipDisabled)
         {
@@ -44,24 +45,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
         }
 
-        private (float min, float max, Vector2 size) GetTerrainSize(TerrainData terrain)
-        {
-            var w = terrain.heightmapResolution;
-            var h = terrain.heightmapResolution;
-            var max = float.MinValue;
-            var min = float.MaxValue;
-            var heights = terrain.GetHeights(0, 0, w, h);
-            foreach (var height in heights)
-            {
-                if (height > max) max = height;
-                if (height < min) min = height;
-            }
-            return (min, max, new Vector2(w, h));
-        }
 
-       
-
-    
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, float pos)
         {
             WriteAttribute(writer, prefix, name, string.Format(CultureInfo.InvariantCulture, "{0}", pos));
@@ -114,14 +98,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
         }
-        
-        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList, bool parentEnabled)
+
+        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
+            bool parentEnabled)
         {
             var isEnabled = obj.activeSelf && parentEnabled;
-            if (_skipDisabled && !isEnabled)
-            {
-                return;
-            }
+            if (_skipDisabled && !isEnabled) return;
 
             var localExcludeList = new HashSet<Renderer>(excludeList);
             if (!string.IsNullOrEmpty(prefix))
@@ -141,7 +123,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteAttribute(writer, subPrefix, "Scale", obj.transform.localScale);
 
             foreach (var component in obj.GetComponents<Component>())
-            {
                 if (component is IUrho3DComponent customComponent)
                 {
                     ExportCustomComponent(writer, subPrefix, customComponent);
@@ -169,9 +150,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             WriteAttribute(writer, subSubPrefix, "CSM Splits", "2 16 128 0");
                         }
                         else if (light.type == LightType.Spot)
+                        {
                             WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
+                        }
                         else if (light.type == LightType.Point)
+                        {
                             WriteAttribute(writer, subSubPrefix, "Range", light.range);
+                        }
+
                         WriteAttribute(writer, subSubPrefix, "Color", light.color);
                         WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 156.25f);
                         WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
@@ -179,8 +165,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         if (light.cookie != null)
                         {
                             _engine.ScheduleTexture(light.cookie);
-                            WriteAttribute(writer, subSubPrefix, "Light Shape Texture", "Texture2D;"+_engine.EvaluateTextrueName(light.cookie));
-
+                            WriteAttribute(writer, subSubPrefix, "Light Shape Texture",
+                                "Texture2D;" + _engine.EvaluateTextrueName(light.cookie));
                         }
 
                         EndElement(writer, subPrefix);
@@ -188,7 +174,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Terrain terrain)
                 {
-                   ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix);
+                    ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix);
                 }
                 else if (component is Rigidbody rigidbody)
                 {
@@ -208,12 +194,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         var sharedMesh = meshCollider.sharedMesh;
                         ;
                         _engine.ScheduleAssetExport(sharedMesh);
-                        string meshPath = _engine.EvaluateMeshName(sharedMesh);
+                        var meshPath = _engine.EvaluateMeshName(sharedMesh);
                         if (!string.IsNullOrWhiteSpace(meshPath))
-                        {
                             WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
-                        }
                     }
+
                     EndElement(writer, subPrefix);
                     if (obj.GetComponent<Rigidbody>() == null)
                     {
@@ -256,9 +241,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     StartCompoent(writer, subPrefix, "Skybox");
                     {
                         // Export cube
-                        GameObject gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
-                        Mesh mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
-                        GameObject.DestroyImmediate(gameObject);
+                        var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
+                        var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                        Object.DestroyImmediate(gameObject);
                         //var sharedMeshName = "UnityBuiltIn/Cube.mdl";
                         _engine.ScheduleAssetExport(mesh);
                         WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
@@ -282,12 +267,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.bakedTexture as Cubemap);
                             break;
                         case ReflectionProbeMode.Custom:
-                            ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.customBakedTexture as Cubemap);
+                            ExportZone(writer, subPrefix, reflectionProbe,
+                                reflectionProbe.customBakedTexture as Cubemap);
                             break;
                     }
-
                 }
-            }
 
             var meshFilter = obj.GetComponent<MeshFilter>();
             //var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
@@ -299,16 +283,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
-                {
-                    foreach (var renderer in lod.renderers)
-                    {
-                        localExcludeList.Add(renderer);
-                    }
-                }
+                foreach (var renderer in lod.renderers)
+                    localExcludeList.Add(renderer);
             }
 
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
-                if (meshFilter != null)// || proBuilderMesh != null)
+                if (meshFilter != null) // || proBuilderMesh != null)
                 {
                     StartCompoent(writer, subPrefix, "StaticModel");
 
@@ -331,7 +311,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     foreach (var material in meshRenderer.sharedMaterials)
                     {
                         _engine.ScheduleAssetExport(material);
-                        string path = _engine.EvaluateMaterialName(material);
+                        var path = _engine.EvaluateMaterialName(material);
                         materials += ";" + path;
                     }
 
@@ -350,7 +330,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var sharedMesh = skinnedMeshRenderer.sharedMesh;
                 _engine.ScheduleAssetExport(sharedMesh);
-                string meshPath = _engine.EvaluateMeshName(sharedMesh);
+                var meshPath = _engine.EvaluateMeshName(sharedMesh);
                 if (!string.IsNullOrWhiteSpace(meshPath))
                     WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
 
@@ -358,7 +338,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 foreach (var material in skinnedMeshRenderer.sharedMaterials)
                 {
                     _engine.ScheduleAssetExport(material);
-                    string path = _engine.EvaluateMaterialName(material);
+                    var path = _engine.EvaluateMaterialName(material);
                     materials += ";" + path;
                 }
 
@@ -380,12 +360,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private (float min, float max, Vector2 size) GetTerrainSize(TerrainData terrain)
+        {
+            var w = terrain.heightmapResolution;
+            var h = terrain.heightmapResolution;
+            var max = float.MinValue;
+            var min = float.MaxValue;
+            var heights = terrain.GetHeights(0, 0, w, h);
+            foreach (var height in heights)
+            {
+                if (height > max) max = height;
+                if (height < min) min = height;
+            }
+
+            return (min, max, new Vector2(w, h));
+        }
+
         private void ExportZone(XmlWriter writer, string subPrefix, ReflectionProbe reflectionProbe, Cubemap cubemap)
         {
-            if (cubemap == null)
-            {
-                return;
-            }
+            if (cubemap == null) return;
 
             var assetPath = AssetDatabase.GetAssetPath(cubemap);
             if (string.IsNullOrWhiteSpace(assetPath))
@@ -415,14 +408,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 //        throw new ArgumentOutOfRangeException();
                 //}
             }
-            WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
-            WriteAttribute(writer, subSubPrefix, "Bounding Box Max", (reflectionProbe.size * 0.5f));
 
-            var volume = reflectionProbe.size.x * reflectionProbe.size.y* reflectionProbe.size.z;
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Max", reflectionProbe.size * 0.5f);
+
+            var volume = reflectionProbe.size.x * reflectionProbe.size.y * reflectionProbe.size.z;
             if (volume != 0)
             {
                 var priority = int.MaxValue / (volume * 2);
-                WriteAttribute(writer, subSubPrefix, "Priority", (int)priority);
+                WriteAttribute(writer, subSubPrefix, "Priority", (int) priority);
             }
 
             WriteAttribute(writer, subSubPrefix, "Zone Texture", "TextureCube;" + texName);
@@ -436,9 +430,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var subSubPrefix = subPrefix + "\t";
             StartCompoent(writer, subPrefix, customComponent.GetUrho3DComponentName());
             foreach (var keyValuePair in customComponent.GetUrho3DComponentAttributes())
-            {
                 WriteAttribute(writer, subSubPrefix, keyValuePair.Name, keyValuePair.Value);
-            }
             EndElement(writer, subPrefix);
         }
 
@@ -473,10 +465,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteAttribute(writer, subPrefix, "Position", offset);
             StartCompoent(writer, subPrefix, "Terrain");
 
-            WriteAttribute(writer, subSubPrefix, "Height Map", "Image;" + _engine.EvaluateTerrainHeightMap(terrainData));
-            WriteAttribute(writer, subSubPrefix, "Material", "Material;" + _engine.EvaluateTerrainMaterial(terrainData));
+            WriteAttribute(writer, subSubPrefix, "Height Map",
+                "Image;" + _engine.EvaluateTerrainHeightMap(terrainData));
+            WriteAttribute(writer, subSubPrefix, "Material",
+                "Material;" + _engine.EvaluateTerrainMaterial(terrainData));
             //WriteTerrainMaterial(terrainData, materialFileName, "Textures/Terrains/" + folderAndName + ".Weights.tga");
-            WriteAttribute(writer, subSubPrefix, "Vertex Spacing", new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
+            WriteAttribute(writer, subSubPrefix, "Vertex Spacing",
+                new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
             EndElement(writer, subPrefix);
             if (terrainCollider != null)
             {
@@ -489,6 +484,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 WriteAttribute(writer, subPrefix, "Physics Position", pos);
                 EndElement(writer, subPrefix);
             }
+
             EndElement(writer, subPrefix);
         }
 

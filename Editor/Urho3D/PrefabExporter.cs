@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -12,7 +11,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportPrefab(string assetPath, GameObject gameObject)
         {
-            using (var writer = _engine.TryCreateXml(EvaluatePrefabName(assetPath), ExportUtils.GetLastWriteTimeUtc(assetPath)))
+            using (var writer = _engine.TryCreateXml(EvaluatePrefabName(assetPath),
+                ExportUtils.GetLastWriteTimeUtc(assetPath)))
             {
                 if (writer == null)
                     return;

@@ -12,7 +12,8 @@ namespace UnityToCustomEngineExporter.Editor
         public float Metallic { get; set; }
         public float GlossinessTextureScale { get; set; } = 1.0f;
         public SmoothnessTextureChannel SmoothnessTextureChannel { get; set; }
-        public Texture Smoothness => (SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha)
+
+        public Texture Smoothness => SmoothnessTextureChannel == SmoothnessTextureChannel.MetallicOrSpecularAlpha
             ? MetallicGloss
             : BaseColor;
     }

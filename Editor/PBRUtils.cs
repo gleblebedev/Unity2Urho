@@ -7,15 +7,14 @@ namespace UnityToCustomEngineExporter.Editor
         private const float epsilon = 1e-6f;
 
         /// <summary>
-        /// Gamma space dielectric specular value is 0.22f
+        ///     Gamma space dielectric specular value is 0.22f
         /// </summary>
         private static readonly Color dielectricSpecular = new Color(0.22f, 0.22f, 0.22f, 1.0f);
 
         /// <summary>
-        /// Linear space dielectric specular value is 0.04f
+        ///     Linear space dielectric specular value is 0.04f
         /// </summary>
         //private static readonly Color dielectricSpecular = new Color(0.04f, 0.04f, 0.04f, 0.0f);
-
         public static SpecularGlossiness ConvertToSpecularGlossiness(MetallicRoughness metallicRoughness)
         {
             var baseColor = metallicRoughness.baseColor;
@@ -63,7 +62,8 @@ namespace UnityToCustomEngineExporter.Editor
 
             var oneMinusSpecularStrength = 1 - specular.maxColorComponent;
             //var metallic = SolveMetallic(diffuse.GetPerceivedBrightness(), specular.GetPerceivedBrightness(), oneMinusSpecularStrength);
-            var metallic = SolveMetallic(diffuse.maxColorComponent, specular.maxColorComponent, oneMinusSpecularStrength);
+            var metallic = SolveMetallic(diffuse.maxColorComponent, specular.maxColorComponent,
+                oneMinusSpecularStrength);
 
             var baseColorFromDiffuse =
                 diffuse * (oneMinusSpecularStrength / (1 - dielectricSpecular.r) / Mathf.Max(1 - metallic, epsilon));

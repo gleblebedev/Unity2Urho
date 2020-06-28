@@ -19,15 +19,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var sceneAssetName = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(asset), ".xml");
             var scenesPrefix = "Scenes/";
             if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
-            {
                 //Fix scene path
                 sceneAssetName = scenesPrefix + sceneAssetName.Substring(scenesPrefix.Length).Replace('/', '_');
-            }
             else
-            {
                 //Fix scene path
                 sceneAssetName = scenesPrefix + sceneAssetName.Replace('/', '_');
-            }
             return sceneAssetName;
         }
 
@@ -38,10 +34,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var sceneAssetName = ResolveAssetPath(scene);
             using (var writer = _engine.TryCreateXml(sceneAssetName, DateTime.MaxValue))
             {
-                if (writer == null)
-                {
-                    return;
-                }
+                if (writer == null) return;
                 var rootGameObjects = scene.GetRootGameObjects();
                 if (_asPrefab)
                 {
@@ -51,18 +44,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         writer.WriteAttributeString("id", (++_id).ToString());
                         writer.WriteWhitespace("\n");
                         foreach (var gameObject in rootGameObjects)
-                        {
                             WriteObject(writer, "\t", gameObject, exlusion, true);
-                        }
                         writer.WriteEndElement();
                         writer.WriteWhitespace("\n");
                     }
                     else
                     {
-                        foreach (var gameObject in rootGameObjects)
-                        {
-                            WriteObject(writer, "", gameObject, exlusion, true);
-                        }
+                        foreach (var gameObject in rootGameObjects) WriteObject(writer, "", gameObject, exlusion, true);
                     }
                 }
                 else
@@ -74,10 +62,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         EndElement(writer, "\t");
                         StartCompoent(writer, "\t", "DebugRenderer");
                         EndElement(writer, "\t");
-                        foreach (var gameObject in rootGameObjects)
-                        {
-                            WriteObject(writer, "", gameObject, exlusion, true);
-                        }
+                        foreach (var gameObject in rootGameObjects) WriteObject(writer, "", gameObject, exlusion, true);
                     }
                 }
             }

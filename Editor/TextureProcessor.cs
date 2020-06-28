@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -22,7 +24,7 @@ namespace UnityToCustomEngineExporter.Editor
             }
             finally
             {
-                GameObject.DestroyImmediate(material);
+                Object.DestroyImmediate(material);
             }
         }
 
@@ -34,14 +36,14 @@ namespace UnityToCustomEngineExporter.Editor
 
             try
             {
-                RenderTextureDescriptor descriptor = new RenderTextureDescriptor()
+                var descriptor = new RenderTextureDescriptor
                 {
                     width = sourceTexture.width,
                     height = sourceTexture.height,
                     colorFormat = RenderTextureFormat.ARGB32,
                     autoGenerateMips = false,
                     depthBufferBits = 16,
-                    dimension = UnityEngine.Rendering.TextureDimension.Tex2D,
+                    dimension = TextureDimension.Tex2D,
                     enableRandomWrite = false,
                     memoryless = RenderTextureMemoryless.None,
                     sRGB = false,
@@ -54,8 +56,8 @@ namespace UnityToCustomEngineExporter.Editor
                 Graphics.Blit(sourceTexture, renderTex, material);
 
                 RenderTexture.active = renderTex;
-                int width = renderTex.width;
-                int height = renderTex.height;
+                var width = renderTex.width;
+                var height = renderTex.height;
                 texture = new Texture2D(width, height, TextureFormat.ARGB32, false /* mipmap */, false);
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
                 texture.Apply();
@@ -68,9 +70,9 @@ namespace UnityToCustomEngineExporter.Editor
                 if (renderTex != null)
                     RenderTexture.ReleaseTemporary(renderTex);
                 if (texture != null)
-                    GameObject.DestroyImmediate(texture);
+                    Object.DestroyImmediate(texture);
                 if (material != null)
-                    GameObject.DestroyImmediate(material);
+                    Object.DestroyImmediate(material);
             }
         }
 
@@ -104,7 +106,7 @@ namespace UnityToCustomEngineExporter.Editor
                     DDS.SaveAsRgbaDds(texture, fullOutputPath);
                     break;
                 default:
-                    throw new NotImplementedException("Not implemented texture file type "+ext);
+                    throw new NotImplementedException("Not implemented texture file type " + ext);
             }
         }
 
@@ -112,9 +114,8 @@ namespace UnityToCustomEngineExporter.Editor
         {
             using (var fs = File.Open(fullOutputPath, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
-                fs.Write(buffer,0, buffer.Length);
+                fs.Write(buffer, 0, buffer.Length);
             }
         }
     }
 }
-

@@ -21,6 +21,27 @@ namespace UnityToCustomEngineExporter.Editor
                 Legacy = SetupLegacy(material);
         }
 
+        public MetallicRoughnessShaderArguments MetallicRoughness { get; set; }
+        public SpecularGlossinessShaderArguments SpecularGlossiness { get; set; }
+        public SkyboxShaderArguments Skybox { get; set; }
+        public LegacyShaderArguments Legacy { get; set; }
+
+        private static void LogShaderParameters(Shader shader)
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat("Shader parameters for \"" + shader.name + "\"");
+            sb.AppendLine();
+            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
+            {
+                var propertyName = ShaderUtil.GetPropertyName(shader, i);
+                var propertyType = ShaderUtil.GetPropertyType(shader, i);
+                sb.AppendFormat("{0} {1}", propertyType, propertyName);
+                sb.AppendLine();
+            }
+
+            Debug.Log(sb.ToString());
+        }
+
         private SkyboxShaderArguments SetupSkybox(Material material)
         {
             var setupProceduralSkybox = new SkyboxShaderArguments();
@@ -42,27 +63,6 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             return setupProceduralSkybox;
-        }
-
-        public MetallicRoughnessShaderArguments MetallicRoughness { get; set; }
-        public SpecularGlossinessShaderArguments SpecularGlossiness { get; set; }
-        public SkyboxShaderArguments Skybox { get; set; }
-        public LegacyShaderArguments Legacy { get; set; }
-
-        private static void LogShaderParameters(Shader shader)
-        {
-            var sb = new StringBuilder();
-            sb.AppendFormat("Shader parameters for \"" + shader.name + "\"");
-            sb.AppendLine();
-            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
-            {
-                var propertyName = ShaderUtil.GetPropertyName(shader, i);
-                var propertyType = ShaderUtil.GetPropertyType(shader, i);
-                sb.AppendFormat("{0} {1}", propertyType, propertyName);
-                sb.AppendLine();
-            }
-
-            Debug.Log(sb.ToString());
         }
 
         private LegacyShaderArguments SetupLegacy(Material material)
@@ -365,7 +365,7 @@ namespace UnityToCustomEngineExporter.Editor
                                 break;
                             case "_GlossMapScale":
                                 arguments.GlossinessTextureScale = value;
-                                    break;
+                                break;
                             case "_Glossiness":
                                 arguments.Glossiness = value;
                                 break;

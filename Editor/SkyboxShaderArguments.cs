@@ -2,7 +2,7 @@
 
 namespace UnityToCustomEngineExporter.Editor
 {
-    public class SkyboxShaderArguments: ShaderArguments
+    public class SkyboxShaderArguments : ShaderArguments
     {
         public Texture Skybox { get; set; }
     }
