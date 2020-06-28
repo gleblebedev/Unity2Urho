@@ -215,8 +215,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else
                 {
-                    _engine.TryWriteFile("Resources/unity_builtin_extra/Default-Skybox-Map.dds", DefaultSkybox.DDS, DateTime.MaxValue);
-                    _engine.TryWriteFile("Resources/unity_builtin_extra/Default-Skybox-Map.xml", Encoding.ASCII.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?><cubemap><image name=\"Default-Skybox-Map.dds\" /></cubemap>"), DateTime.MaxValue);
                     WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse");
                 }
                 {
@@ -229,6 +227,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteWhitespace("\t");
                     writer.WriteStartElement("shadowcull");
                     writer.WriteAttributeString("value", "ccw");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+
+                    writer.WriteWhitespace("\t");
+                    writer.WriteStartElement("shader");
+                    writer.WriteAttributeString("vsdefines", "IGNORENODETRANSFORM");
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
                 }
