@@ -44,7 +44,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(Environment.NewLine);
                 {
                     writer.WriteStartElement("technique");
-                    writer.WriteAttributeString("name", "Techniques/TerrainBlend.xml");
+                    writer.WriteAttributeString("name", "Techniques/PBR/PBRTerrainBlend.xml");
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
                 }
@@ -73,20 +73,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteWhitespace(Environment.NewLine);
                 }
 
-                {
-                    writer.WriteStartElement("parameter");
-                    writer.WriteAttributeString("name", "MatSpecColor");
-                    writer.WriteAttributeString("value", "0.0 0.0 0.0 16");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-                {
-                    writer.WriteStartElement("parameter");
-                    writer.WriteAttributeString("name", "DetailTiling");
-                    writer.WriteAttributeString("value", "32 32");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
+                writer.WriteParameter("MatSpecColor", "0.0 0.0 0.0 16");
+                writer.WriteParameter("DetailTiling", "32 32");
+                writer.WriteParameter("Roughness", "1");
+                writer.WriteParameter("Metallic", "0");
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
