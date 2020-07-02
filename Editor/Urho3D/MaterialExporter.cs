@@ -198,7 +198,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null)
                     return;
-                writer.WriteStartDocument();
+                //writer.WriteStartDocument();
                 writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
@@ -240,7 +240,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 writer.WriteEndElement();
-                writer.WriteEndDocument();
             }
         }
 
@@ -250,9 +249,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null)
                     return;
-                writer.WriteStartDocument();
-                writer.WriteWhitespace(Environment.NewLine);
-
                 var flags = new LegacyTechniqueFlags();
                 flags.hasAlpha = arguments.Transparent;
                 flags.hasDiffuse = arguments.Diffuse != null;
@@ -281,13 +277,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (arguments.Specular != null) WriteTexture(arguments.Specular, writer, "specular");
                 if (arguments.Bump != null) WriteTexture(arguments.Bump, writer, "normal");
                 if (arguments.Emission != null) WriteTexture(arguments.Bump, writer, "emissive");
-                WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.DiffColor));
+                writer.WriteParameter("MatDiffColor", arguments.DiffColor);
                 if (arguments.HasEmission)
-                    WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
+                    writer.WriteParameter("MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
                 WriteCommonParameters(writer, arguments);
 
                 writer.WriteEndElement();
-                writer.WriteEndDocument();
             }
         }
 
@@ -297,12 +292,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null)
                     return;
-                writer.WriteStartDocument();
-                writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
 
-                if (arguments.BaseColor != null)
+                //var urho3dprefix = "Urho3D/";
+                //if (arguments.Shader.StartsWith(urho3dprefix))
+                //{
+                //    var technique = "Techniques/"+ arguments.Shader.Substring(urho3dprefix.Length)+".xml";
+                if (arguments.Shader == "Urho3D/PBR/PBRVegetation")
+                {
+                    var technique = "Techniques/PBR/PBRVegetation.xml";
+                    WriteTechnique(writer, technique);
+                    writer.WriteParameter("WindHeightFactor", 0.1f);
+                    writer.WriteParameter("WindHeightPivot", 0.01f);
+                    writer.WriteParameter("WindPeriod", 0.5f);
+                    writer.WriteParameter("WindWorldSpacing", new Vector2(0.5f, 0.5f));
+                    WriteTexture(arguments.BaseColor, writer, "diffuse");
+                }
+                else if (arguments.BaseColor != null)
                 {
                     // Albedo
                     if (arguments.MetallicGloss != null)
@@ -398,26 +405,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         WriteTechnique(writer, "Techniques/PBR/PBRNoTexture.xml");
                 }
 
-                WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(arguments.BaseColorColor));
+                writer.WriteParameter("MatDiffColor", arguments.BaseColorColor);
                 if (arguments.HasEmission)
-                    WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
-                WriteParameter(writer, "MatEnvMapColor", BaseNodeExporter.FormatRGB(Color.white));
-                WriteParameter(writer, "MatSpecColor", BaseNodeExporter.Format(Vector4.zero));
+                    writer.WriteParameter("MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
+                writer.WriteParameter("MatEnvMapColor", Color.white);
+                writer.WriteParameter("MatSpecColor", Vector4.zero);
                 if (arguments.MetallicGloss != null)
                 {
-                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(0));
-                    WriteParameter(writer, "Metallic", BaseNodeExporter.Format(0));
+                    writer.WriteParameter("Roughness", 0);
+                    writer.WriteParameter("Metallic", 0);
                 }
                 else
                 {
-                    WriteParameter(writer, "Roughness", BaseNodeExporter.Format(1.0f - arguments.Glossiness));
-                    WriteParameter(writer, "Metallic", BaseNodeExporter.Format(arguments.Metallic));
+                    writer.WriteParameter("Roughness", 1.0f - arguments.Glossiness);
+                    writer.WriteParameter("Metallic", arguments.Metallic);
                 }
 
                 WriteCommonParameters(writer, arguments);
 
                 writer.WriteEndElement();
-                writer.WriteEndDocument();
             }
         }
 
@@ -428,8 +434,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null)
                     return;
-                writer.WriteStartDocument();
-                writer.WriteWhitespace(Environment.NewLine);
+                //writer.WriteStartDocument();
+                //writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
 
@@ -562,40 +568,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         WriteTechnique(writer, "Techniques/PBR/PBRNoTexture.xml");
                 }
 
-                WriteParameter(writer, "MatDiffColor", BaseNodeExporter.Format(baseColor));
+                writer.WriteParameter("MatDiffColor", baseColor);
                 if (arguments.HasEmission)
-                    WriteParameter(writer, "MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
-                WriteParameter(writer, "MatEnvMapColor", BaseNodeExporter.FormatRGB(Color.white));
-                WriteParameter(writer, "MatSpecColor", BaseNodeExporter.Format(Vector4.zero));
-                WriteParameter(writer, "Roughness", BaseNodeExporter.Format(roughness));
-                WriteParameter(writer, "Metallic", BaseNodeExporter.Format(metallic));
+                    writer.WriteParameter("MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
+                writer.WriteParameter("MatEnvMapColor", BaseNodeExporter.FormatRGB(Color.white));
+                writer.WriteParameter("MatSpecColor", Vector4.zero);
+                writer.WriteParameter("Roughness", roughness);
+                writer.WriteParameter("Metallic", metallic);
 
                 WriteCommonParameters(writer, arguments);
                 writer.WriteEndElement();
-                writer.WriteEndDocument();
             }
         }
 
         private void WriteCommonParameters(XmlWriter writer, ShaderArguments arguments)
         {
-            WriteParameter(writer, "UOffset",
-                BaseNodeExporter.Format(new Vector4(arguments.MainTextureScale.x, 0, 0,
-                    arguments.MainTextureOffset.x)));
-            WriteParameter(writer, "VOffset",
-                BaseNodeExporter.Format(new Vector4(0, arguments.MainTextureScale.y, 0,
-                    arguments.MainTextureOffset.y)));
+            writer.WriteParameter( "UOffset", new Vector4(arguments.MainTextureScale.x, 0, 0,
+                    arguments.MainTextureOffset.x));
+            writer.WriteParameter("VOffset", new Vector4(0, arguments.MainTextureScale.y, 0,
+                    arguments.MainTextureOffset.y));
             if (arguments.AlphaTest) WriteAlphaTest(writer);
-        }
-
-
-        private void WriteParameter(XmlWriter writer, string name, string vaue)
-        {
-            writer.WriteWhitespace("\t");
-            writer.WriteStartElement("parameter");
-            writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("value", vaue);
-            writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
         }
     }
 }

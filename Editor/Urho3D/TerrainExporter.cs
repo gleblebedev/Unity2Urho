@@ -33,7 +33,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateHeightMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Heightmap.tga");
         }
 
         public string EvaluateWeightsMap(TerrainData terrainData)
@@ -43,7 +43,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateMaterial(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Material.xml");
         }
 
         public void ExportTerrain(TerrainData terrainData)
@@ -68,7 +68,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var layers = terrain.terrainLayers;
                 if (layers.Length > 3) layers = layers.Take(3).ToArray();
 
-                writer.WriteStartDocument();
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
                 {
@@ -107,7 +106,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteParameter("Roughness", "1");
                 writer.WriteParameter("Metallic", "0");
                 writer.WriteEndElement();
-                writer.WriteEndDocument();
             }
         }
 

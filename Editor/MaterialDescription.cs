@@ -17,6 +17,8 @@ namespace UnityToCustomEngineExporter.Editor
                 MetallicRoughness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name.StartsWith("Skybox/"))
                 Skybox = SetupSkybox(material);
+            else if (material.shader.name.StartsWith("Urho3D/"))
+                MetallicRoughness = SetupMetallicRoughnessPBR(material);
             else
                 Legacy = SetupLegacy(material);
         }
@@ -298,6 +300,7 @@ namespace UnityToCustomEngineExporter.Editor
 
         private void SetupFlags(Material material, ShaderArguments arguments)
         {
+            arguments.Shader = material.shader.name;
             arguments.Transparent = material.renderQueue == (int) RenderQueue.Transparent;
             arguments.AlphaTest = material.renderQueue == (int) RenderQueue.AlphaTest;
             arguments.HasEmission = material.IsKeywordEnabled("_EMISSION");

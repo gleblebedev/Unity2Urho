@@ -48,14 +48,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     var ddsName = resourceName.Replace(".xml", ".dds");
                     DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), true);
-                    writer.WriteStartDocument();
-                    writer.WriteWhitespace(Environment.NewLine);
                     writer.WriteStartElement("cubemap");
+                    writer.WriteWhitespace(Environment.NewLine);
                     writer.WriteStartElement("image");
                     writer.WriteAttributeString("name", Path.GetFileName(ddsName));
                     writer.WriteEndElement();
                     writer.WriteEndElement();
-                    writer.WriteEndDocument();
                 }
             }
         }

@@ -1,7 +1,9 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -46,6 +48,54 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             return specularTexture;
+        }
+
+        public void WriteOptions(string urhoTextureName, DateTime lastWriteTimeUtc, TextureOptions options)
+        {
+            if (options == null)
+                return;
+            var xmlFileName =ExportUtils.ReplaceExtension(urhoTextureName, ".xml");
+            if (xmlFileName == urhoTextureName)
+                return;
+            using (var writer = _engine.TryCreateXml(xmlFileName, lastWriteTimeUtc))
+            {
+                if (writer != null)
+                {
+                    writer.WriteStartElement("texture");
+                    writer.WriteWhitespace(Environment.NewLine);
+                    switch (options.filterMode)
+                    {
+                        case FilterMode.Point:
+                            writer.WriteElementParameter("filter", "mode", "nearest");
+                            break;
+                        case FilterMode.Bilinear:
+                            writer.WriteElementParameter("filter", "mode", "bilinear");
+                            break;
+                        case FilterMode.Trilinear:
+                            writer.WriteElementParameter("filter", "mode", "trilinear");
+                            break;
+                        default:
+                            writer.WriteElementParameter("filter", "mode", "default");
+                            break;
+                    }
+
+                    switch (options.wrapMode)
+                    {
+                        case TextureWrapMode.Repeat:
+                            writer.WriteElementParameter("address", "mode", "wrap");
+                            break;
+                        case TextureWrapMode.Clamp:
+                            writer.WriteElementParameter("address", "mode", "clamp");
+                            break;
+                        case TextureWrapMode.Mirror:
+                            writer.WriteElementParameter("address", "mode", "mirror");
+                            break;
+                    }
+                    writer.WriteElementParameter("srgb", "enable", options.sRGBTexture? "true": "false");
+                    writer.WriteElementParameter("mipmap", "enable", options.mipmapEnabled ? "true" : "false");
+                    writer.WriteEndElement();
+                }
+            }
         }
 
         public void ExportTexture(Texture texture, TextureReference textureReference)
@@ -114,15 +164,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var relPath = ExportUtils.GetRelPathFromAsset(texture);
             var newName = EvaluateTextrueName(texture);
             if (relPath != newName)
+            {
                 CopyTextureAsPng(texture);
+            }
             else
+            {
                 _engine.TryCopyFile(AssetDatabase.GetAssetPath(texture), newName);
+                WriteOptions(newName, ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetTextureOptions(texture));
+            }
         }
 
         private void CopyTextureAsPng(Texture texture)
         {
             var outputAssetName = EvaluateTextrueName(texture);
-            if (_engine.IsUpToDate(outputAssetName, ExportUtils.GetLastWriteTimeUtc(texture))) return;
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(texture);
+            if (_engine.IsUpToDate(outputAssetName, sourceFileTimestampUtc)) return;
 
             var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
             var texType = tImporter?.textureType ?? TextureImporterType.Default;
@@ -136,6 +192,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 default:
                     new TextureProcessor().ProcessAndSaveTexture(texture,
                         "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName));
+                    WriteOptions(outputAssetName, sourceFileTimestampUtc, ExportUtils.GetTextureOptions(texture).WithSRGB(true));
                     break;
             }
         }
@@ -143,7 +200,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void TransformDiffuse(Texture texture, PBRDiffuseTextureReference reference)
         {
             var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture))) return;
+            var sourceFileTimestampUtc = reference.GetLastWriteTimeUtc(texture);
+            if (_engine.IsUpToDate(baseColorName, sourceFileTimestampUtc)) return;
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToBaseColor"));
             Texture specularTexture = null;
@@ -158,6 +216,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
                 new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial,
                     _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(baseColorName, sourceFileTimestampUtc, ExportUtils.GetTextureOptions(texture).WithSRGB(true));
             }
             finally
             {

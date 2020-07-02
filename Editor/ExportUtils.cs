@@ -3,6 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -82,6 +83,23 @@ namespace UnityToCustomEngineExporter.Editor
             if (!File.Exists(file))
                 return DateTime.MaxValue;
             return File.GetLastWriteTimeUtc(file);
+        }
+
+        public static TextureOptions GetTextureOptions(Texture texture)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter != null)
+            {
+                var options = new TextureOptions();
+                options.sRGBTexture = tImporter.sRGBTexture;
+                options.filterMode = tImporter.filterMode;
+                options.wrapMode = tImporter.wrapMode;
+                options.mipmapEnabled = tImporter.mipmapEnabled;
+                return options;
+            }
+
+            return null;
         }
     }
 }

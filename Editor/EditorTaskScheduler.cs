@@ -152,6 +152,7 @@ namespace UnityToCustomEngineExporter.Editor
                     }
                     catch (Exception exception)
                     {
+                        CurrentReport = exception.ToString();
                         Debug.LogError(exception);
                         _enumeration?.Dispose();
                         _enumeration = null;
@@ -166,9 +167,12 @@ namespace UnityToCustomEngineExporter.Editor
 
                         task = _foregroundTasks.Dequeue();
                         if (_foregroundTasks.Count == 0)
+                        {
+                            CurrentReport = "";
                             EditorApplication.update =
                                 Delegate.Remove(EditorApplication.update, _processForegroundQueue) as
                                     EditorApplication.CallbackFunction;
+                        }
                     }
 
                     try
@@ -177,6 +181,7 @@ namespace UnityToCustomEngineExporter.Editor
                     }
                     catch (Exception exception)
                     {
+                        CurrentReport = exception.ToString();
                         Debug.LogError(exception);
                     }
                 }
