@@ -85,6 +85,13 @@ namespace UnityToCustomEngineExporter.Editor
             return File.GetLastWriteTimeUtc(file);
         }
 
+        public static Object[] LoadAllAssetsAtPath(string assetPath)
+        {
+            return typeof(SceneAsset).Equals(AssetDatabase.GetMainAssetTypeAtPath(assetPath)) ?
+                new[] { AssetDatabase.LoadMainAssetAtPath(assetPath) } :
+                AssetDatabase.LoadAllAssetsAtPath(assetPath);
+        }
+
         public static TextureOptions GetTextureOptions(Texture texture)
         {
             var assetPath = AssetDatabase.GetAssetPath(texture);
@@ -92,7 +99,8 @@ namespace UnityToCustomEngineExporter.Editor
             if (tImporter != null)
             {
                 var options = new TextureOptions();
-                options.sRGBTexture = tImporter.sRGBTexture;
+                var type = tImporter.textureType;
+                options.sRGBTexture = (type == TextureImporterType.Default)?tImporter.sRGBTexture:false;
                 options.filterMode = tImporter.filterMode;
                 options.wrapMode = tImporter.wrapMode;
                 options.mipmapEnabled = tImporter.mipmapEnabled;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Xsl;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -24,12 +25,14 @@ namespace UnityToCustomEngineExporter.Editor
         private CancellationTokenSource _cancellationTokenSource;
         private Task _exportTask;
 
-        [MenuItem("Assets/Export Assets and Scene To Urho3D")]
+        [MenuItem("Assets/Export/Export Assets and Scene")]
         public static void Init()
         {
             var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
         }
+
+
 
         private static bool ValidateExportPath(string exportFolder)
         {
@@ -53,7 +56,9 @@ namespace UnityToCustomEngineExporter.Editor
 
             _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
 
-            GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
+            //GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
+
+            EditorTaskScheduler.Default.DisplayProgressBar();
 
             {
                 GUI.enabled = _engine == null && ValidateExportPath(_exportFolder);

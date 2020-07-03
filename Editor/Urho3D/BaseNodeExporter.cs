@@ -147,7 +147,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         if (light.type == LightType.Directional)
                         {
                             WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
-                            WriteAttribute(writer, subSubPrefix, "CSM Splits", "2 16 128 0");
+                            WriteAttribute(writer, subSubPrefix, "CSM Splits", "2 16 128 1024");
                         }
                         else if (light.type == LightType.Spot)
                         {
@@ -161,6 +161,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         WriteAttribute(writer, subSubPrefix, "Color", light.color);
                         WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 156.25f);
                         WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
+                        WriteAttribute(writer, subSubPrefix, "Depth Constant Bias", 0.0001f);
                         WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
                         if (light.cookie != null)
                         {

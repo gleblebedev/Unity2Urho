@@ -22,6 +22,7 @@ namespace UnityToCustomEngineExporter.Editor
         private List<Task> _tasks;
         private IEnumerator<ProgressBarReport> _enumeration;
         private int _backgroundTaskCount;
+        private int _completeForegroundTasksCounter;
 
         public EditorTaskScheduler()
         {
@@ -163,16 +164,21 @@ namespace UnityToCustomEngineExporter.Editor
                     Func<IEnumerable<ProgressBarReport>> task;
                     lock (_gate)
                     {
-                        if (_foregroundTasks.Count == 0) return;
-
-                        task = _foregroundTasks.Dequeue();
                         if (_foregroundTasks.Count == 0)
                         {
                             CurrentReport = "";
+                            _completeForegroundTasksCounter = 0;
                             EditorApplication.update =
                                 Delegate.Remove(EditorApplication.update, _processForegroundQueue) as
                                     EditorApplication.CallbackFunction;
+                            return;
                         }
+                        else
+                        {
+                            ++_completeForegroundTasksCounter;
+                        }
+
+                        task = _foregroundTasks.Dequeue();
                     }
 
                     try
@@ -185,6 +191,22 @@ namespace UnityToCustomEngineExporter.Editor
                         Debug.LogError(exception);
                     }
                 }
+        }
+
+        public void DisplayProgressBar()
+        {
+            lock (_gate)
+            {
+                if (_foregroundTasks.Count == 0 && _enumeration == null)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+                else
+                {
+                    var counter = (float)_completeForegroundTasksCounter;
+                    EditorUtility.DisplayProgressBar("Hold on...", CurrentReport.Message, counter/(counter+_foregroundTasks.Count+1));
+                }
+            }
         }
     }
 }

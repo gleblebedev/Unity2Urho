@@ -304,8 +304,11 @@ namespace UnityToCustomEngineExporter.Editor
             arguments.Transparent = material.renderQueue == (int) RenderQueue.Transparent;
             arguments.AlphaTest = material.renderQueue == (int) RenderQueue.AlphaTest;
             arguments.HasEmission = material.IsKeywordEnabled("_EMISSION");
-            arguments.MainTextureOffset = material.mainTextureOffset;
-            arguments.MainTextureScale = material.mainTextureScale;
+            if (material.HasProperty("_MainTex"))
+            {
+                arguments.MainTextureOffset = material.mainTextureOffset;
+                arguments.MainTextureScale = material.mainTextureScale;
+            }
         }
 
         private MetallicRoughnessShaderArguments SetupMetallicRoughnessPBR(Material material)

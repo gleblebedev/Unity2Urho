@@ -301,7 +301,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 //    var technique = "Techniques/"+ arguments.Shader.Substring(urho3dprefix.Length)+".xml";
                 if (arguments.Shader == "Urho3D/PBR/PBRVegetation")
                 {
-                    var technique = "Techniques/PBR/PBRVegetation.xml";
+                    var technique = "Techniques/PBR/PBRVegetationDiff.xml";
                     WriteTechnique(writer, technique);
                     writer.WriteParameter("WindHeightFactor", 0.1f);
                     writer.WriteParameter("WindHeightPivot", 0.01f);
