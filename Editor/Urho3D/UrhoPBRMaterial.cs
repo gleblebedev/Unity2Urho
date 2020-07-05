@@ -28,14 +28,14 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 name.Append("Normal");
                 hasTexture = true;
             }
-            if (!string.IsNullOrWhiteSpace(EmissiveTexture))
-            {
-                name.Append("Emissive");
-                hasTexture = true;
-            }
             if (!string.IsNullOrWhiteSpace(MetallicRoughnessTexture))
             {
                 name.Append("Spec");
+                hasTexture = true;
+            }
+            if (!string.IsNullOrWhiteSpace(EmissiveTexture))
+            {
+                name.Append("Emissive");
                 hasTexture = true;
             }
             //if (string.IsNullOrWhiteSpace(EmissiveTexture) && !string.IsNullOrWhiteSpace(AOTexture))
