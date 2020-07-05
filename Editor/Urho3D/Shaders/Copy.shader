@@ -29,6 +29,11 @@
                 float4 vertex : SV_POSITION;
             };
 
+            inline float3 ColorLinearToGamma(float3 value)
+            {
+                return float3(LinearToGammaSpaceExact(value.r), LinearToGammaSpaceExact(value.g), LinearToGammaSpaceExact(value.b));
+            }
+
             v2f vert (appdata v)
             {
                 v2f o;
@@ -39,9 +44,10 @@
 
             sampler2D _MainTex;
 
-            fixed4 frag (v2f i) : SV_Target
+            fixed4 frag(v2f i) : SV_Target
             {
-                return tex2D(_MainTex, i.uv);
+                float4 rgba = tex2D(_MainTex, i.uv);
+                return float4(ColorLinearToGamma(rgba.rgb), rgba.a);
             }
             ENDCG
         }

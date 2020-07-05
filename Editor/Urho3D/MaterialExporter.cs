@@ -199,7 +199,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     texNameBuilder.Append('.');
                     texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}", arguments.GlossinessTextureScale);
                 }
-                texNameBuilder.Append(".png");
+                texNameBuilder.Append(".MetallicRoughness.png");
                 material.MetallicRoughnessTexture = texNameBuilder.ToString();
             }
             material.BaseColor = arguments.BaseColorColor.linear;

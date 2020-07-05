@@ -131,7 +131,7 @@
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
                 return fixed4(ColorLinearToGamma(metallicRoughness.baseColor.rgb), diffSample.a);
-                //return fixed4(specularGlossiness.specular, diffSample.a);
+                //return fixed4(ColorLinearToGamma(metallicRoughness.baseColor.rgb), diffSample.a);
             }
             ENDCG
         }
