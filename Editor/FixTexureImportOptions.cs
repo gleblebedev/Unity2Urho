@@ -41,10 +41,10 @@ namespace UnityToCustomEngineExporter.Editor
                         if (_visitedMaterials.Add(material))
                         {
                             var materialDescription = new MaterialDescription(material);
-                            if (materialDescription.MetallicRoughness != null)
+                            if (materialDescription.MetallicGlossiness != null)
                             {
-                                DropSRGBFlag(materialDescription.MetallicRoughness.MetallicGloss);
-                                EnsureNormalMap(materialDescription.MetallicRoughness.Bump);
+                                DropSRGBFlag(materialDescription.MetallicGlossiness.MetallicGloss);
+                                EnsureNormalMap(materialDescription.MetallicGlossiness.Bump);
                             }
 
                             if (materialDescription.SpecularGlossiness != null)

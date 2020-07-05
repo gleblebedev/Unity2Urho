@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -158,6 +159,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateTextrueName(Texture texture)
         {
+            if (texture == null)
+                return null;
+
             if (texture is Cubemap cubemap) return EvaluateCubemapName(cubemap);
 
             return EvaluateTextrueName(texture, new TextureReference(TextureSemantic.Other));
@@ -165,6 +169,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateTextrueName(Texture texture, TextureReference textureReference)
         {
+            if (texture == null)
+                return null;
             return _textureExporter.EvaluateTextrueName(texture, textureReference);
         }
 
@@ -286,8 +292,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else
                 {
-                    Debug.LogWarning("UnknownAssetType " + asset.GetType().Name);
+                    //Debug.LogWarning("UnknownAssetType " + asset.GetType().Name);
                 }
+        }
+
+        public void SchedulePBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            EditorTaskScheduler.Default.ScheduleForegroundTask(()=>_textureExporter.ExportPBRTextures(arguments, urhoMaterial), urhoMaterial.MetallicRoughnessTexture);
+        }
+        public void SchedulePBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _textureExporter.ExportPBRTextures(arguments, urhoMaterial), urhoMaterial.MetallicRoughnessTexture);
         }
     }
 }

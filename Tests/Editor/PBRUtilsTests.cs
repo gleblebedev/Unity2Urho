@@ -1,7 +1,5 @@
-using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Assert = UnityEngine.Assertions.Assert;
 
 namespace UnityToCustomEngineExporter.Editor.Tests
@@ -10,13 +8,17 @@ namespace UnityToCustomEngineExporter.Editor.Tests
     public class PBRUtilsTests
     {
         [Test]
-        public void ConvertPBRArguments()
+        [TestCase(0.22f)]
+        [TestCase(0.04f)]
+        public void ConvertPBRArguments(float dielectricSpecular)
         {
-            var mr = new PBRUtils.MetallicRoughness();
-            mr.baseColor = new Color(0.1f, 0.2f, 0.3f, 0.5f);
-            mr.opacity = 0.5f;
-            mr.roughness = 0.6f;
-            mr.metallic = 0.4f;
+            var mr = new PBRUtils.MetallicRoughness()
+            {
+                baseColor = new Color(0.1f, 0.2f, 0.3f, 0.5f),
+                opacity = 0.5f,
+                roughness = 0.6f,
+                metallic = 0.4f
+            };
 
             var sp = PBRUtils.ConvertToSpecularGlossiness(mr);
 

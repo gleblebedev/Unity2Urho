@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -49,7 +50,12 @@ namespace UnityToCustomEngineExporter.Editor
             var relPath = GetRelPathFromAsset(asset);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
-
+        public static DateTime GetLastWriteTimeUtc(params Object[] assets)
+        {
+            if (assets == null)
+                return DateTime.MinValue;
+            return MaxDateTime(assets.Select(_ => GetLastWriteTimeUtc(_)).ToArray());
+        }
         public static string SafeFileName(string name)
         {
             if (string.IsNullOrEmpty(name)) return name;

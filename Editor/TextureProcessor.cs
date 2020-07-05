@@ -30,6 +30,11 @@ namespace UnityToCustomEngineExporter.Editor
 
         public void ProcessAndSaveTexture(Texture sourceTexture, Material material, string fullOutputPath)
         {
+            ProcessAndSaveTexture(sourceTexture, sourceTexture.width, sourceTexture.height, material, fullOutputPath);
+        }
+
+        public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material, string fullOutputPath)
+        {
             RenderTexture renderTex = null;
             Texture2D texture = null;
             var lastActiveRenderTexture = RenderTexture.active;
@@ -38,8 +43,8 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 var descriptor = new RenderTextureDescriptor
                 {
-                    width = sourceTexture.width,
-                    height = sourceTexture.height,
+                    width = width,
+                    height = height,
                     colorFormat = RenderTextureFormat.ARGB32,
                     autoGenerateMips = false,
                     depthBufferBits = 16,
@@ -56,8 +61,6 @@ namespace UnityToCustomEngineExporter.Editor
                 Graphics.Blit(sourceTexture, renderTex, material);
 
                 RenderTexture.active = renderTex;
-                var width = renderTex.width;
-                var height = renderTex.height;
                 texture = new Texture2D(width, height, TextureFormat.ARGB32, false /* mipmap */, false);
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
                 texture.Apply();

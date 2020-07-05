@@ -2,7 +2,7 @@
 
 namespace UnityToCustomEngineExporter.Editor
 {
-    public class MetallicRoughnessShaderArguments : ShaderArguments
+    public class MetallicGlossinessShaderArguments : ShaderArguments
     {
         public Texture BaseColor { get; set; }
         public Texture MetallicGloss { get; set; }

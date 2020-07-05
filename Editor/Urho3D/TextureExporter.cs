@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -35,7 +36,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (specularTexture != null && specularTexture != reference.Texture)
                 Object.DestroyImmediate(specularTexture);
         }
-
+        private static void DestroyTmpTexture(Texture reference, Texture specularTexture)
+        {
+            if (specularTexture != null && specularTexture != reference)
+                Object.DestroyImmediate(specularTexture);
+        }
         private static Texture EnsureTexture(TextureOrColor textureOrColor)
         {
             var specularTexture = textureOrColor.Texture;
@@ -100,35 +105,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportTexture(Texture texture, TextureReference textureReference)
         {
-            if (textureReference == null)
-            {
-                CopyTexture(texture);
-                return;
-            }
-
-            switch (textureReference.Semantic)
-            {
-                case TextureSemantic.PBRMetallicGlossiness:
-                {
-                    TransformMetallicGlossiness(texture, (PBRMetallicGlossinessTextureReference) textureReference);
-                    break;
-                }
-                case TextureSemantic.PBRSpecularGlossiness:
-                {
-                    TransformSpecularGlossiness(texture, (PBRSpecularGlossinessTextureReference) textureReference);
-                    break;
-                }
-                case TextureSemantic.PBRDiffuse:
-                {
-                    TransformDiffuse(texture, (PBRDiffuseTextureReference) textureReference);
-                    break;
-                }
-                default:
-                {
-                    CopyTexture(texture);
-                    break;
-                }
-            }
+            CopyTexture(texture);
         }
 
         public string EvaluateTextrueName(Texture texture, TextureReference reference)
@@ -197,85 +174,128 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void TransformDiffuse(Texture texture, PBRDiffuseTextureReference reference)
+        private void TransformDiffuse(SpecularGlossinessShaderArguments arguments, string baseColorName)
         {
-            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            var sourceFileTimestampUtc = reference.GetLastWriteTimeUtc(texture);
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Diffuse, arguments.PBRSpecular.Texture, arguments.Smoothness.Texture);
             if (_engine.IsUpToDate(baseColorName, sourceFileTimestampUtc)) return;
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToBaseColor"));
+            Texture mainTexture = null;
             Texture specularTexture = null;
             Texture smoothnessTexture = null;
             try
             {
-                tmpMaterial.SetTexture("_MainTex", texture);
-                specularTexture = EnsureTexture(reference.Specular);
+                mainTexture = EnsureTexture(new TextureOrColor(arguments.Diffuse, arguments.DiffuseColor));
+                specularTexture = EnsureTexture(arguments.PBRSpecular);
+                smoothnessTexture = EnsureTexture(arguments.Smoothness);
+                (var width, var height) = MaxTexutreSize(mainTexture, specularTexture, smoothnessTexture);
+                tmpMaterial.SetTexture("_MainTex", mainTexture);
                 tmpMaterial.SetTexture("_SpecGlossMap", specularTexture);
-                tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
-                smoothnessTexture = EnsureTexture(reference.Smoothness);
+                tmpMaterial.SetFloat("_SmoothnessScale", arguments.GlossinessTextureScale * (arguments.Smoothness.Texture != null ? 1.0f : arguments.Glossiness));
                 tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
-                new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial,
-                    _engine.GetTargetFilePath(baseColorName));
-                WriteOptions(baseColorName, sourceFileTimestampUtc, ExportUtils.GetTextureOptions(texture).WithSRGB(true));
+                new TextureProcessor().ProcessAndSaveTexture(mainTexture, width, height, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(baseColorName, sourceFileTimestampUtc, (ExportUtils.GetTextureOptions(mainTexture) ?? ExportUtils.GetTextureOptions(specularTexture) ?? ExportUtils.GetTextureOptions(smoothnessTexture)).WithSRGB(true));
             }
             finally
             {
                 Object.DestroyImmediate(tmpMaterial);
-                DestroyTmpTexture(reference.Specular, specularTexture);
-                DestroyTmpTexture(reference.Smoothness, smoothnessTexture);
+                DestroyTmpTexture(arguments.Diffuse, mainTexture);
+                DestroyTmpTexture(arguments.PBRSpecular, specularTexture);
+                DestroyTmpTexture(arguments.Smoothness, smoothnessTexture);
             }
         }
 
-        private void TransformMetallicGlossiness(Texture texture, PBRMetallicGlossinessTextureReference reference)
+        private (int,int) MaxTexutreSize(params Texture[] textures)
         {
-            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture))) return;
+            int width = 1;
+            int height = 1;
+            foreach (var texture in textures)
+            {
+                if (texture.width > width)
+                    width = texture.width;
+                if (texture.height > height)
+                    height = texture.height;
+            }
 
-            var tmpMaterial =
-                new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness"));
-            tmpMaterial.SetTexture("_MainTex", texture);
-            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
-            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness);
+            return (width, height);
+        }
+
+        private void TransformMetallicGlossiness(MetallicGlossinessShaderArguments arguments, string baseColorName)
+        {
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.MetallicGloss, arguments.Smoothness);
+            if (_engine.IsUpToDate(baseColorName, sourceFileTimestampUtc)) return;
+
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness"));
+
+            Texture mainTexture = null;
+            Texture smoothnessTexture = null;
             try
             {
-                new TextureProcessor().ProcessAndSaveTexture(texture, tmpMaterial,
-                    _engine.GetTargetFilePath(baseColorName));
+                mainTexture = EnsureTexture(new TextureOrColor(arguments.MetallicGloss, new Color(arguments.Metallic, arguments.Metallic, arguments.Metallic, arguments.Glossiness)));
+                smoothnessTexture = EnsureTexture(new TextureOrColor(arguments.Smoothness, new Color(0,0,0, arguments.Glossiness)));
+                (var width, var height) = MaxTexutreSize(mainTexture, smoothnessTexture);
+                tmpMaterial.SetTexture("_MainTex", mainTexture);
+                tmpMaterial.SetFloat("_SmoothnessScale", arguments.GlossinessTextureScale);
+                tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
+                new TextureProcessor().ProcessAndSaveTexture(mainTexture, width, height, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(baseColorName, sourceFileTimestampUtc, (ExportUtils.GetTextureOptions(mainTexture) ?? ExportUtils.GetTextureOptions(smoothnessTexture)).WithSRGB(false));
             }
             finally
             {
                 Object.DestroyImmediate(tmpMaterial);
+                DestroyTmpTexture(arguments.MetallicGloss, mainTexture);
+                DestroyTmpTexture(arguments.Smoothness, smoothnessTexture);
             }
         }
 
-        private void TransformSpecularGlossiness(Texture texture, PBRSpecularGlossinessTextureReference reference)
+        private void TransformSpecularGlossiness(SpecularGlossinessShaderArguments arguments, string baseColorName)
         {
-            var baseColorName = GetTextureOutputName(EvaluateTextrueName(texture), reference);
-            if (_engine.IsUpToDate(baseColorName, reference.GetLastWriteTimeUtc(texture))) return;
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Diffuse, arguments.PBRSpecular.Texture, arguments.Smoothness.Texture);
+            if (_engine.IsUpToDate(baseColorName, sourceFileTimestampUtc)) return;
 
-            var tmpMaterial =
-                new Material(
-                    Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertSpecularToMetallicRoughness"));
-            tmpMaterial.SetTexture("_SpecGlossMap", texture);
-            tmpMaterial.SetTexture("_MainTex", reference.Diffuse);
-            tmpMaterial.SetFloat("_SmoothnessScale", reference.SmoothnessScale);
-            tmpMaterial.SetTexture("_Smoothness", reference.Smoothness.Texture);
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertSpecularToMetallicRoughness"));
+            Texture mainTexture = null;
+            Texture specularTexture = null;
+            Texture smoothnessTexture = null;
             try
             {
-                new TextureProcessor().ProcessAndSaveTexture(reference.Diffuse, tmpMaterial,
-                    _engine.GetTargetFilePath(baseColorName));
+                mainTexture = EnsureTexture(new TextureOrColor(arguments.Diffuse, arguments.DiffuseColor));
+                specularTexture = EnsureTexture(arguments.PBRSpecular);
+                smoothnessTexture = EnsureTexture(arguments.Smoothness);
+                (var width, var height) = MaxTexutreSize(mainTexture, specularTexture, smoothnessTexture);
+                tmpMaterial.SetTexture("_MainTex", mainTexture);
+                tmpMaterial.SetTexture("_SpecGlossMap", specularTexture);
+                tmpMaterial.SetFloat("_SmoothnessScale", arguments.GlossinessTextureScale * (arguments.Smoothness.Texture != null?1.0f:arguments.Glossiness));
+                tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
+                new TextureProcessor().ProcessAndSaveTexture(mainTexture, width, height, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(baseColorName, sourceFileTimestampUtc, (ExportUtils.GetTextureOptions(mainTexture) ?? ExportUtils.GetTextureOptions(specularTexture) ?? ExportUtils.GetTextureOptions(smoothnessTexture)).WithSRGB(false));
             }
             finally
             {
                 Object.DestroyImmediate(tmpMaterial);
+                DestroyTmpTexture(arguments.Diffuse, mainTexture);
+                DestroyTmpTexture(arguments.PBRSpecular, specularTexture);
+                DestroyTmpTexture(arguments.Smoothness, smoothnessTexture);
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Color Get(Color32[] texture, int texWidth, int texHeight, int x, int y, int width, int height)
+        public void ExportPBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
-            var xx = x * texWidth / width;
-            var yy = y * texHeight / height;
-            return texture[xx + yy * texWidth];
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.MetallicRoughnessTexture))
+            {
+                TransformMetallicGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
+            }
+        }
+        public void ExportPBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.MetallicRoughnessTexture))
+            {
+                TransformSpecularGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
+            }
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.BaseColorTexture))
+            {
+                TransformDiffuse(arguments, urhoMaterial.BaseColorTexture);
+            }
         }
     }
 }

@@ -12,18 +12,18 @@ namespace UnityToCustomEngineExporter.Editor
             if (material.shader.name == "Standard (Specular setup)")
                 SpecularGlossiness = SetupSpecularGlossinessPBR(material);
             else if (material.shader.name == "Standard")
-                MetallicRoughness = SetupMetallicRoughnessPBR(material);
+                MetallicGlossiness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name == "UnityChan/Skin")
-                MetallicRoughness = SetupMetallicRoughnessPBR(material);
+                MetallicGlossiness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name.StartsWith("Skybox/"))
                 Skybox = SetupSkybox(material);
             else if (material.shader.name.StartsWith("Urho3D/"))
-                MetallicRoughness = SetupMetallicRoughnessPBR(material);
+                MetallicGlossiness = SetupMetallicRoughnessPBR(material);
             else
                 Legacy = SetupLegacy(material);
         }
 
-        public MetallicRoughnessShaderArguments MetallicRoughness { get; set; }
+        public MetallicGlossinessShaderArguments MetallicGlossiness { get; set; }
         public SpecularGlossinessShaderArguments SpecularGlossiness { get; set; }
         public SkyboxShaderArguments Skybox { get; set; }
         public LegacyShaderArguments Legacy { get; set; }
@@ -311,9 +311,9 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private MetallicRoughnessShaderArguments SetupMetallicRoughnessPBR(Material material)
+        private MetallicGlossinessShaderArguments SetupMetallicRoughnessPBR(Material material)
         {
-            var arguments = new MetallicRoughnessShaderArguments();
+            var arguments = new MetallicGlossinessShaderArguments();
             SetupFlags(material, arguments);
             var shader = material.shader;
 

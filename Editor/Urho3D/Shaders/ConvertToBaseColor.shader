@@ -32,6 +32,7 @@
                 float4 vertex : SV_POSITION;
             };
 
+            // Start of PBRUtils ---------------------------------------------------------------
             struct MetallicRoughness
             {
                 float3 baseColor;
@@ -55,8 +56,7 @@
 
             float SolveMetallic(float diffuse, float specular, float oneMinusSpecularStrength)
             {
-                half oneMinusDielectricSpec = 1.0 - 0.22;// unity_ColorSpaceDielectricSpec.a;
-                float dielectricSpecular = 1.0 - oneMinusDielectricSpec;
+                float dielectricSpecular = 0.04;
                 if (specular < dielectricSpecular) return 0;
 
                 float a = dielectricSpecular;
@@ -66,7 +66,6 @@
                 return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
             }
 
-
             float maxColorComponent(float3 rgb)
             {
                 return max(max(rgb.r, rgb.g), rgb.b);
@@ -74,8 +73,7 @@
 
             MetallicRoughness ConvertToMetallicRoughness(SpecularGlossiness specularGlossiness)
             {
-                half oneMinusDielectricSpec = 1.0-0.22;// unity_ColorSpaceDielectricSpec.a;
-                float dielectricSpecular = 1.0 - oneMinusDielectricSpec;
+                float dielectricSpecular = 0.04;
                 float epsilon = 1e-6;
                 float3 diffuse = specularGlossiness.diffuse;
                 float opacity = specularGlossiness.opacity;
@@ -86,7 +84,7 @@
                 float metallic = SolveMetallic(maxColorComponent(diffuse), maxColorComponent(specular), oneMinusSpecularStrength);
                 //float metallic = SolveMetallic(GetPerceivedBrightness(diffuse), GetPerceivedBrightness(specular), oneMinusSpecularStrength);
 
-                float3 baseColorFromDiffuse = diffuse * (oneMinusSpecularStrength / (oneMinusDielectricSpec) / max(1.0 - metallic, epsilon));
+                float3 baseColorFromDiffuse = diffuse * (oneMinusSpecularStrength / (1.0 - dielectricSpecular) / max(1.0 - metallic, epsilon));
                 float specAdj = dielectricSpecular * (1.0 - metallic);
                 float3 baseColorFromSpecular = (specular - float3(specAdj, specAdj, specAdj)) * (1.0 / max(metallic, epsilon));
                 float3 baseColor = clamp(lerp(baseColorFromDiffuse, baseColorFromSpecular, metallic * metallic), 0, 1);
@@ -99,18 +97,16 @@
                 return result;
             }
 
-            float3 SRGBtoLinear(float3 sRGB)
+            inline float3 ColorGammaToLinear(float3 value)
             {
-                return sRGB* (sRGB * (sRGB * 0.305306011 + 0.682171111) + 0.012522878);
+                return float3(GammaToLinearSpaceExact(value.r), GammaToLinearSpaceExact(value.g), GammaToLinearSpaceExact(value.b));
+            }
+            inline float3 ColorLinearToGamma(float3 value)
+            {
+                return float3(LinearToGammaSpaceExact(value.r), LinearToGammaSpaceExact(value.g), LinearToGammaSpaceExact(value.b));
             }
 
-            float3 LinearToSRGB(float3 RGB)
-            {
-                float3 S1 = sqrt(RGB);
-                float3 S2 = sqrt(S1);
-                float3 S3 = sqrt(S2);
-                return 0.662002687 * S1 + 0.684122060 * S2 - 0.323583601 * S3 - 0.0225411470 * RGB;
-            }
+            // End of PBRUtils ---------------------------------------------------------------
 
             v2f vert (appdata v)
             {
@@ -134,7 +130,7 @@
                 specularGlossiness.opacity = diffSample.a;
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
-                return fixed4(metallicRoughness.baseColor.rgb, diffSample.a);
+                return fixed4(ColorLinearToGamma(metallicRoughness.baseColor.rgb), diffSample.a);
                 //return fixed4(specularGlossiness.specular, diffSample.a);
             }
             ENDCG
