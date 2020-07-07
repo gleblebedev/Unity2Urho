@@ -30,6 +30,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly CubemapExporter _cubemapExporter;
         private readonly MeshExporter _meshExporter;
         private readonly MaterialExporter _materialExporter;
+        private readonly AudioExporter _audioExporter;
         private readonly SceneExporter _sceneExporter;
         private readonly PrefabExporter _prefabExporter;
         private readonly TerrainExporter _terrainExporter;
@@ -41,6 +42,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _dataFolder = dataFolder;
             _subfolder = subfolder ?? "";
             _exportUpdatedOnly = exportUpdatedOnly;
+            _audioExporter = new AudioExporter(this);
             _textureExporter = new TextureExporter(this);
             _cubemapExporter = new CubemapExporter(this);
             _meshExporter = new MeshExporter(this);
@@ -300,6 +302,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip
                 }
+                else if (asset is AudioClip audioClip)
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _audioExporter.ExportClip(audioClip), audioClip.name + " from " + assetPath);
+                }
                 else if (asset is Material material)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(() => _materialExporter.ExportMaterial(material),
@@ -339,6 +345,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public void SchedulePBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
             EditorTaskScheduler.Default.ScheduleForegroundTask(() => _textureExporter.ExportPBRTextures(arguments, urhoMaterial), urhoMaterial.MetallicRoughnessTexture);
+        }
+
+        public string EvaluateAudioClipName(AudioClip audioClip)
+        {
+            return _audioExporter.EvaluateAudioClipName(audioClip);
         }
     }
 }

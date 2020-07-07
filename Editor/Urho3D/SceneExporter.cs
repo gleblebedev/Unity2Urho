@@ -59,9 +59,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     using (var sceneElement = Element.Start(writer, "scene"))
                     {
                         WriteAttribute(writer, "\t", "Name", scene.name);
-                        StartCompoent(writer, "\t", "Octree");
+                        StartComponent(writer, "\t", "Octree");
                         EndElement(writer, "\t");
-                        StartCompoent(writer, "\t", "DebugRenderer");
+                        StartComponent(writer, "\t", "DebugRenderer");
                         EndElement(writer, "\t");
 
                         var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))

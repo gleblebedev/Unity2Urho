@@ -80,7 +80,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
-        protected void StartCompoent(XmlWriter writer, string prefix, string type)
+        protected void StartComponent(XmlWriter writer, string prefix, string type)
         {
             writer.WriteWhitespace(prefix);
             writer.WriteStartElement("component");
@@ -131,7 +131,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (camera != null)
                     {
-                        StartCompoent(writer, subPrefix, "Camera");
+                        StartComponent(writer, subPrefix, "Camera");
 
                         WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
                         WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
@@ -143,7 +143,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (light != null && light.type != LightType.Area)
                     {
-                        StartCompoent(writer, subPrefix, "Light");
+                        StartComponent(writer, subPrefix, "Light");
                         if (light.type == LightType.Directional)
                         {
                             WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
@@ -173,13 +173,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         EndElement(writer, subPrefix);
                     }
                 }
+                else if (component is AudioSource audioSource)
+                {
+                    ExportAudioSource(writer, audioSource, subPrefix);
+                }
                 else if (component is Terrain terrain)
                 {
                     ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix);
                 }
                 else if (component is Rigidbody rigidbody)
                 {
-                    StartCompoent(writer, subPrefix, "RigidBody");
+                    StartComponent(writer, subPrefix, "RigidBody");
                     var localToWorldMatrix = obj.transform.localToWorldMatrix;
                     var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                     WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
@@ -188,7 +192,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is MeshCollider meshCollider)
                 {
-                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape");
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "TriangleMesh");
                     if (meshCollider.sharedMesh != null)
                     {
@@ -204,7 +208,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is BoxCollider boxCollider)
                 {
-                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape");
                     WriteAttribute(writer, subSubPrefix, "Size", boxCollider.size);
                     WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
                     //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
@@ -217,7 +221,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is SphereCollider sphereCollider)
                 {
-                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape");
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
                     EndElement(writer, subPrefix);
@@ -225,7 +229,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is CapsuleCollider capsuleCollider)
                 {
-                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape");
                     if (component.name == "Cylinder")
                         WriteAttribute(writer, subSubPrefix, "Shape Type", "Cylinder");
                     else
@@ -243,7 +247,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Collider collider)
                 {
-                    StartCompoent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape");
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
@@ -278,7 +282,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
                 if (meshFilter != null) // || proBuilderMesh != null)
                 {
-                    StartCompoent(writer, subPrefix, "StaticModel");
+                    StartComponent(writer, subPrefix, "StaticModel");
 
                     string meshPath;
                     //if (proBuilderMesh != null)
@@ -313,7 +317,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (skinnedMeshRenderer != null && !localExcludeList.Contains(skinnedMeshRenderer))
             {
-                StartCompoent(writer, subPrefix, "AnimatedModel");
+                StartComponent(writer, subPrefix, "AnimatedModel");
 
 
                 var sharedMesh = skinnedMeshRenderer.sharedMesh;
@@ -348,10 +352,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private void ExportAudioSource(XmlWriter writer, AudioSource audioSource, string subPrefix)
+        {
+            string subSubPrefix = subPrefix + "\t";
+            StartComponent(writer, subPrefix, "SoundSource3D");
+            if (audioSource.clip != null)
+            {
+                var name = _engine.EvaluateAudioClipName(audioSource.clip);
+                _engine.ScheduleAssetExport(audioSource.clip);
+                WriteAttribute(writer, subSubPrefix, "Sound", "Sound;" + name);
+                WriteAttribute(writer, subSubPrefix, "Frequency", audioSource.clip.frequency);
+                WriteAttribute(writer, subSubPrefix, "Is Playing", audioSource.playOnAwake);
+                WriteAttribute(writer, subSubPrefix, "Play Position", 0);
+            }
+            EndElement(writer, subPrefix);
+        }
+
         protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial)
         {
             string subSubPrefix = subPrefix + "\t";
-            StartCompoent(writer, subPrefix, "Skybox");
+            StartComponent(writer, subPrefix, "Skybox");
             {
                 // Export cube
                 var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
@@ -372,7 +392,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (obj.GetComponent<Rigidbody>() == null)
             {
-                StartCompoent(writer, subPrefix, "RigidBody");
+                StartComponent(writer, subPrefix, "RigidBody");
                 var localToWorldMatrix = obj.transform.localToWorldMatrix;
                 var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                 WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
@@ -407,7 +427,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine.ScheduleAssetExport(cubemap);
             var texName = _engine.EvaluateCubemapName(cubemap);
 
-            StartCompoent(writer, subPrefix, "Zone");
+            StartComponent(writer, subPrefix, "Zone");
 
             var subSubPrefix = subPrefix + "\t";
             WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight.linear);
@@ -449,7 +469,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (customComponent == null) return;
 
             var subSubPrefix = subPrefix + "\t";
-            StartCompoent(writer, subPrefix, customComponent.GetUrho3DComponentName());
+            StartComponent(writer, subPrefix, customComponent.GetUrho3DComponentName());
             foreach (var keyValuePair in customComponent.GetUrho3DComponentAttributes())
                 WriteAttribute(writer, subSubPrefix, keyValuePair.Name, keyValuePair.Value);
             EndElement(writer, subPrefix);
@@ -484,7 +504,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var offset = new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f);
             WriteAttribute(writer, subPrefix, "Position", offset);
-            StartCompoent(writer, subPrefix, "Terrain");
+            StartComponent(writer, subPrefix, "Terrain");
 
             WriteAttribute(writer, subSubPrefix, "Height Map",
                 "Image;" + _engine.EvaluateTerrainHeightMap(terrainData));
@@ -496,10 +516,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             EndElement(writer, subPrefix);
             if (terrainCollider != null)
             {
-                StartCompoent(writer, subPrefix, "CollisionShape");
+                StartComponent(writer, subPrefix, "CollisionShape");
                 WriteAttribute(writer, subPrefix, "Shape Type", "Terrain");
                 EndElement(writer, subPrefix);
-                StartCompoent(writer, subPrefix, "RigidBody");
+                StartComponent(writer, subPrefix, "RigidBody");
                 var localToWorldMatrix = terrainCollider.transform.localToWorldMatrix;
                 var pos = localToWorldMatrix.MultiplyPoint(offset);
                 WriteAttribute(writer, subPrefix, "Physics Position", pos);
