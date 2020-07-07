@@ -193,7 +193,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     if (meshCollider.sharedMesh != null)
                     {
                         var sharedMesh = meshCollider.sharedMesh;
-                        ;
                         _engine.ScheduleAssetExport(sharedMesh);
                         var meshPath = _engine.EvaluateMeshName(sharedMesh);
                         if (!string.IsNullOrWhiteSpace(meshPath))
@@ -201,20 +200,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
 
                     EndElement(writer, subPrefix);
-                    if (obj.GetComponent<Rigidbody>() == null)
-                    {
-                        StartCompoent(writer, subPrefix, "RigidBody");
-                        var localToWorldMatrix = obj.transform.localToWorldMatrix;
-                        var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-                        WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
-                        EndElement(writer, subPrefix);
-                    }
+                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
                 else if (component is BoxCollider boxCollider)
                 {
                     StartCompoent(writer, subPrefix, "CollisionShape");
-                    WriteAttribute(writer, subSubPrefix, "Size", "1 1 1");
+                    WriteAttribute(writer, subSubPrefix, "Size", boxCollider.size);
+                    WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
+                    //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
                     EndElement(writer, subPrefix);
+                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
                 else if (component is TerrainCollider terrainCollider)
                 {
@@ -224,7 +219,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     StartCompoent(writer, subPrefix, "CollisionShape");
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
+                    WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
                     EndElement(writer, subPrefix);
+                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
                 else if (component is CapsuleCollider capsuleCollider)
                 {
@@ -235,7 +232,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         WriteAttribute(writer, subSubPrefix, "Shape Type", "Capsule");
                     var d = capsuleCollider.radius * 2.0f;
                     WriteAttribute(writer, subSubPrefix, "Size", new Vector3(d, capsuleCollider.height, d));
+                    WriteAttribute(writer, subSubPrefix, "Offset Position", capsuleCollider.center);
                     EndElement(writer, subPrefix);
+                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
                 else if (component is Skybox skybox)
                 {
@@ -259,6 +258,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     StartCompoent(writer, subPrefix, "CollisionShape");
                     EndElement(writer, subPrefix);
+                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
@@ -361,6 +361,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private void WriteStaticRigidBody(XmlWriter writer, GameObject obj, string subPrefix, string subSubPrefix)
+        {
+            if (obj.GetComponent<Rigidbody>() == null)
+            {
+                StartCompoent(writer, subPrefix, "RigidBody");
+                var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+                WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                EndElement(writer, subPrefix);
+            }
+        }
+
         private (float min, float max, Vector2 size) GetTerrainSize(TerrainData terrain)
         {
             var w = terrain.heightmapResolution;
@@ -391,10 +403,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             StartCompoent(writer, subPrefix, "Zone");
 
             var subSubPrefix = subPrefix + "\t";
-            WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight);
+            WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight.linear);
+            WriteAttribute(writer, subSubPrefix, "Override Mode", false);
             if (RenderSettings.fog)
             {
-                WriteAttribute(writer, subSubPrefix, "Fog Color", RenderSettings.fogColor);
+                WriteAttribute(writer, subSubPrefix, "Fog Color", RenderSettings.fogColor.linear);
                 WriteAttribute(writer, subSubPrefix, "Fog Start", RenderSettings.fogStartDistance);
                 WriteAttribute(writer, subSubPrefix, "Fog End", RenderSettings.fogEndDistance);
                 //switch (RenderSettings.fogMode)

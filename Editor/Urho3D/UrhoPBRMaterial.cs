@@ -1,7 +1,5 @@
 ﻿using System.Text;
 using UnityEngine;
-using UnityToCustomEngineExporter.Editor;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -38,11 +36,11 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
                 name.Append("Emissive");
                 hasTexture = true;
             }
-            //if (string.IsNullOrWhiteSpace(EmissiveTexture) && !string.IsNullOrWhiteSpace(AOTexture))
-            //{
-            //    name.Append("AO");
-            //    hasTexture = true;
-            //}
+            if (string.IsNullOrWhiteSpace(EmissiveTexture) && !string.IsNullOrWhiteSpace(AOTexture))
+            {
+                name.Append("AO");
+                hasTexture = true;
+            }
             if (!hasTexture)
             {
                 name.Append("NoTexture");

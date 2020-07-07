@@ -138,7 +138,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
             material.AlphaBlend = arguments.Transparent;
             material.AlphaTest = arguments.AlphaTest;
-            material.EmissiveColor = arguments.EmissiveColor.linear;
+            if (arguments.Emission != null)
+            {
+                material.EmissiveColor = Color.white;
+            }
+            else
+            {
+                material.EmissiveColor = arguments.EmissiveColor.linear;
+            }
             material.MatSpecColor = new Color(1, 1, 1, 0);
             material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
             material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
@@ -538,9 +545,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteTexture(urhoMaterial.NormalTexture, writer, "normal");
             WriteTexture(urhoMaterial.MetallicRoughnessTexture, writer, "specular");
             if (!string.IsNullOrWhiteSpace(urhoMaterial.EmissiveTexture))
+            {
                 WriteTexture(urhoMaterial.EmissiveTexture, writer, "emissive");
+            }
             else
+            {
                 WriteTexture(urhoMaterial.AOTexture, writer, "emissive");
+            }
+
+            writer.WriteParameter("MatEmissiveColor", urhoMaterial.EmissiveColor);
             writer.WriteParameter("MatDiffColor", urhoMaterial.BaseColor);
             writer.WriteParameter("MatEnvMapColor", urhoMaterial.MatEnvMapColor);
             writer.WriteParameter("MatSpecColor", urhoMaterial.MatSpecColor);
