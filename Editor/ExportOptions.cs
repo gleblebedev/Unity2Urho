@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Xsl;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,18 +11,18 @@ namespace UnityToCustomEngineExporter.Editor
     public class ExportOptions : EditorWindow
     {
         private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";
+        private static readonly string _subfolderKey = "UnityToCustomEngineExporter.Subfolder";
         private static readonly string _exportUpdatedOnlyKey = "UnityToCustomEngineExporter.UpdatedOnly";
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private string _exportFolder = "";
+        private string _subfolder = "";
         private bool _exportUpdatedOnly;
         private bool _exportSceneAsPrefab;
         private bool _skipDisabled;
-        private Urho3DEngine _destinationEngine;
 
         private IDestinationEngine _engine;
         private CancellationTokenSource _cancellationTokenSource;
-        private Task _exportTask;
 
         [MenuItem("Assets/Export/Export Assets and Scene")]
         public static void Init()
@@ -50,6 +49,9 @@ namespace UnityToCustomEngineExporter.Editor
 
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
             if (GUILayout.Button("Pick")) PickFolder();
+
+            _subfolder = EditorGUILayout.TextField("Subfolder", _subfolder);
+
             _exportUpdatedOnly = EditorGUILayout.Toggle("Export only updated resources", _exportUpdatedOnly);
 
             _exportSceneAsPrefab = EditorGUILayout.Toggle("Export scene as prefab", _exportSceneAsPrefab);
@@ -120,7 +122,7 @@ namespace UnityToCustomEngineExporter.Editor
         {
             if (_engine != null) return null;
             _cancellationTokenSource = new CancellationTokenSource();
-            return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, _exportUpdatedOnly,
+            return new Urho3DEngine(_exportFolder, _subfolder, _cancellationTokenSource.Token, _exportUpdatedOnly,
                 _exportSceneAsPrefab, _skipDisabled);
         }
 
@@ -158,6 +160,8 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportFolder = EditorPrefs.GetString(_dataPathKey);
             else
                 _exportFolder = Application.dataPath;
+            if (EditorPrefs.HasKey(_subfolderKey))
+                _subfolder = EditorPrefs.GetString(_subfolderKey);
             if (EditorPrefs.HasKey(_exportUpdatedOnlyKey))
                 _exportUpdatedOnly = EditorPrefs.GetBool(_exportUpdatedOnlyKey);
             if (EditorPrefs.HasKey(_exportSceneAsPrefabKey))
@@ -174,6 +178,7 @@ namespace UnityToCustomEngineExporter.Editor
         private void SaveConfig()
         {
             EditorPrefs.SetString(_dataPathKey, _exportFolder);
+            EditorPrefs.SetString(_subfolderKey, _subfolder);
             EditorPrefs.SetBool(_exportUpdatedOnlyKey, _exportUpdatedOnly);
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);

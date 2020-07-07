@@ -33,17 +33,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateHeightMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Heightmap.tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Heightmap.tga");
         }
 
         public string EvaluateWeightsMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Weights.tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Weights.tga");
         }
 
         public string EvaluateMaterial(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(terrainData), ".Material.xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Material.xml");
         }
 
         public void ExportTerrain(TerrainData terrainData)
@@ -60,7 +60,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void WriteTerrainMaterial(TerrainData terrain)
         {
             using (var writer =
-                _engine.TryCreateXml(EvaluateMaterial(terrain), ExportUtils.GetLastWriteTimeUtc(terrain)))
+                _engine.TryCreateXml(terrain.GetGUID(), EvaluateMaterial(terrain), ExportUtils.GetLastWriteTimeUtc(terrain)))
             {
                 if (writer == null)
                     return;
@@ -132,7 +132,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 max = min + 0.1f;
             }
 
-            using (var imageFile = _engine.TryCreate(EvaluateHeightMap(terrain), DateTime.MaxValue))
+            using (var imageFile = _engine.TryCreate(terrain.GetGUID(), EvaluateHeightMap(terrain), DateTime.MaxValue))
             {
                 if (imageFile != null)
                     using (var binaryWriter = new BinaryWriter(imageFile))
@@ -164,7 +164,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
 
-            using (var imageFile = _engine.TryCreate(EvaluateWeightsMap(terrain), DateTime.MaxValue))
+            using (var imageFile = _engine.TryCreate(terrain.GetGUID(), EvaluateWeightsMap(terrain), DateTime.MaxValue))
             {
                 if (imageFile == null)
                     return;

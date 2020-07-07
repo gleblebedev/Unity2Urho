@@ -53,7 +53,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
             var aniFilePath = EvaluateAnimationName(clipAnimation);
-            using (var file = _engine.TryCreate(aniFilePath, ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
+            using (var file = _engine.TryCreate(clipAnimation.GetGUIDEx(), aniFilePath, ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
             {
                 if (file == null)
                     return;
@@ -145,7 +145,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public void ExportMeshModel(Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
         {
             var mdlFilePath = EvaluateMeshName(mesh);
-            using (var file = _engine.TryCreate(mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
+            using (var file = _engine.TryCreate(mesh.GetGUID(), mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
             {
                 if (file != null)
                     using (var writer = new BinaryWriter(file))
@@ -159,7 +159,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (mesh == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" +
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "") + "/" +
                    ExportUtils.SafeFileName(mesh.name) + ".ani";
         }
 
@@ -167,7 +167,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (mesh == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(mesh), "") + "/" +
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "") + "/" +
                    ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -16,7 +17,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string ResolveAssetPath(Scene asset)
         {
-            var sceneAssetName = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(asset), ".xml");
+            var sceneAssetName = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, asset), ".xml");
             var scenesPrefix = "Scenes/";
             if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
                 //Fix scene path
@@ -32,7 +33,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var exlusion = new HashSet<Renderer>();
 
             var sceneAssetName = ResolveAssetPath(scene);
-            using (var writer = _engine.TryCreateXml(sceneAssetName, DateTime.MaxValue))
+            using (var writer = _engine.TryCreateXml("", sceneAssetName, DateTime.MaxValue))
             {
                 if (writer == null) return;
                 var rootGameObjects = scene.GetRootGameObjects();
@@ -62,6 +63,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         EndElement(writer, "\t");
                         StartCompoent(writer, "\t", "DebugRenderer");
                         EndElement(writer, "\t");
+
+                        var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
+                            .Where(_ => _ != null).FirstOrDefault();
+                        if (skybox == null)
+                        {
+                            WriteSkyboxComponent(writer, "\t", RenderSettings.skybox);
+                        }
+
                         foreach (var gameObject in rootGameObjects) WriteObject(writer, "", gameObject, exlusion, true);
                     }
                 }

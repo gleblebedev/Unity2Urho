@@ -159,7 +159,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
 
                         WriteAttribute(writer, subSubPrefix, "Color", light.color);
-                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 156.25f);
+                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);
                         WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
                         WriteAttribute(writer, subSubPrefix, "Depth Constant Bias", 0.0001f);
                         WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
@@ -238,21 +238,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Skybox skybox)
                 {
-                    StartCompoent(writer, subPrefix, "Skybox");
-                    {
-                        // Export cube
-                        var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
-                        var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
-                        Object.DestroyImmediate(gameObject);
-                        //var sharedMeshName = "UnityBuiltIn/Cube.mdl";
-                        _engine.ScheduleAssetExport(mesh);
-                        WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
-                    }
-
-                    _engine.ScheduleAssetExport(skybox.material);
-                    var materials = "Material;" + _engine.EvaluateMaterialName(skybox.material);
-                    WriteAttribute(writer, subSubPrefix, "Material", materials);
-                    EndElement(writer, subPrefix);
+                    var skyboxMaterial = skybox.material;
+                    WriteSkyboxComponent(writer, subPrefix, skyboxMaterial);
                 }
                 else if (component is Collider collider)
                 {
@@ -359,6 +346,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial)
+        {
+            string subSubPrefix = subPrefix + "\t";
+            StartCompoent(writer, subPrefix, "Skybox");
+            {
+                // Export cube
+                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
+                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                Object.DestroyImmediate(gameObject);
+                //var sharedMeshName = "UnityBuiltIn/Cube.mdl";
+                _engine.ScheduleAssetExport(mesh);
+                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
+            }
+
+            _engine.ScheduleAssetExport(skyboxMaterial);
+            var materials = "Material;" + _engine.EvaluateMaterialName(skyboxMaterial);
+            WriteAttribute(writer, subSubPrefix, "Material", materials);
+            EndElement(writer, subPrefix);
         }
 
         private void WriteStaticRigidBody(XmlWriter writer, GameObject obj, string subPrefix, string subSubPrefix)

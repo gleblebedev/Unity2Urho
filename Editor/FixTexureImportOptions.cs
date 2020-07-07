@@ -9,7 +9,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class FixTexureImportOptions : EditorWindow
     {
-        [MenuItem("Assets/Export/Fix texture import settings (sRGB, etc)")]
+        //[MenuItem("Assets/Export/Fix texture import settings (sRGB, etc)")]
         public static void FixTextureSettings()
         {
             var window = (FixTexureImportOptions)GetWindow(typeof(FixTexureImportOptions));

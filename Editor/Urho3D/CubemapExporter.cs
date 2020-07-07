@@ -42,17 +42,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
 
             var resourceName = EvaluateCubemapName(texture);
-            using (var writer = _engine.TryCreateXml(resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            using (var writer = _engine.TryCreateXml(texture.GetGUID(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
             {
                 if (writer != null)
                 {
                     var ddsName = resourceName.Replace(".xml", ".dds");
-                    DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), false);
+                    var srgb = true;
+                    DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), srgb);
                     writer.WriteStartElement("cubemap");
                     writer.WriteWhitespace(Environment.NewLine);
+                    writer.WriteStartElement("srgb");
+                    writer.WriteAttributeString("enable", srgb?"true":"false");
+                    writer.WriteEndElement();
                     writer.WriteStartElement("image");
                     writer.WriteAttributeString("name", Path.GetFileName(ddsName));
                     writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
                     writer.WriteEndElement();
                 }
             }
@@ -60,7 +65,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateCubemapName(Cubemap cubemap)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(cubemap), ".xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, cubemap), ".xml");
         }
     }
 }

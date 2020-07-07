@@ -11,6 +11,21 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public static class ExportUtils
     {
+        public static string GetGUID(this Object asset)
+        {
+            if (asset == null)
+                return "";
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return "";
+            return AssetDatabase.AssetPathToGUID(assetPath);
+        }
+
+        public static string GetGUIDEx(this Object asset)
+        {
+            return asset.GetGUID()+"#"+asset.name;
+        }
+
         public static string ReplaceExtension(string assetUrhoAssetName, string newExt)
         {
             if (assetUrhoAssetName == null)
@@ -22,32 +37,44 @@ namespace UnityToCustomEngineExporter.Editor
             return assetUrhoAssetName + newExt;
         }
 
-        public static string GetRelPathFromAssetPath(string assetPath)
+        public static string GetRelPathFromAssetPath(string subfolder, string assetPath)
         {
-            if (assetPath.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
-                return assetPath.Substring("Assets/".Length);
-            return assetPath;
+            var result = assetPath;
+            if (result.StartsWith("Assets/", StringComparison.InvariantCultureIgnoreCase))
+                result = result.Substring("Assets/".Length);
+            if (!string.IsNullOrWhiteSpace(subfolder))
+            {
+                if (subfolder.EndsWith("/"))
+                {
+                    result = subfolder + result;
+                }
+                else
+                {
+                    result = subfolder + "/" + result;
+                }
+            }
+            return result;
         }
 
-        public static string GetRelPathFromAsset(Object asset)
+        public static string GetRelPathFromAsset(string subfolder, Object asset)
         {
             if (asset == null)
                 return null;
             var path = AssetDatabase.GetAssetPath(asset);
-            return GetRelPathFromAssetPath(path);
+            return GetRelPathFromAssetPath(subfolder, path);
         }
 
-        public static string GetRelPathFromAsset(Scene asset)
+        public static string GetRelPathFromAsset(string subfolder, Scene asset)
         {
             var path = asset.path;
-            return GetRelPathFromAssetPath(path);
+            return GetRelPathFromAssetPath(subfolder, path);
         }
 
         public static DateTime GetLastWriteTimeUtc(Object asset)
         {
             if (asset == null)
                 return DateTime.MinValue;
-            var relPath = GetRelPathFromAsset(asset);
+            var relPath = GetRelPathFromAsset(null, asset);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
         public static DateTime GetLastWriteTimeUtc(params Object[] assets)
@@ -67,7 +94,7 @@ namespace UnityToCustomEngineExporter.Editor
 
         public static DateTime GetLastWriteTimeUtc(string assetPath)
         {
-            var relPath = GetRelPathFromAssetPath(assetPath);
+            var relPath = GetRelPathFromAssetPath("", assetPath);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
 
