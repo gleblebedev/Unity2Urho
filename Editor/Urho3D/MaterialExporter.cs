@@ -417,8 +417,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 //writer.WriteWhitespace(Environment.NewLine);
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
-                WriteTechnique(writer, "Techniques/DiffSkyboxHDRScale.xml");
-                //WriteTechnique(writer, "Techniques/DiffSkybox.xml");
+                var technique = "Techniques/DiffSkyboxHDRScale.xml";
+
                 var anyFace = arguments.BackTex ?? arguments.DownTex ?? arguments.FrontTex ??
                               arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
                 if (arguments.Skybox != null)
@@ -428,7 +428,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     if (arguments.Skybox is Cubemap cubemap)
                         name = _engine.EvaluateCubemapName(cubemap);
                     else
+                    {
                         name = _engine.EvaluateTextrueName(arguments.Skybox);
+                        technique = "Techniques/DiffSkydome.xml";
+                    }
+
                     if (!String.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse");
                 }
                 else if (anyFace != null)
@@ -471,6 +475,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse");
                 }
+
+                WriteTechnique(writer, technique);
 
                 {
                     writer.WriteWhitespace("\t");

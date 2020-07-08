@@ -18,7 +18,7 @@ void VS(float4 iPos : POSITION,
     #ifdef VERTEXCOLOR
         float4 iColor : COLOR0,
     #endif
-    #if defined(LIGHTMAP) || defined(AO)
+    #if defined(LIGHTMAP)
         float2 iTexCoord2 : TEXCOORD1,
     #endif
     #if (defined(NORMALMAP) || defined(TRAILFACECAM) || defined(TRAILBONE)) && !defined(BILLBOARD) && !defined(DIRBILLBOARD)

@@ -42,7 +42,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             : base(cancellationToken)
         {
             _dataFolder = dataFolder;
-            _subfolder = subfolder ?? "";
+            _subfolder = (subfolder ?? "").FixAssetSeparator().Trim('/');
+            if (!string.IsNullOrWhiteSpace(_subfolder))
+            {
+                _subfolder += "/";
+            }
             _exportUpdatedOnly = exportUpdatedOnly;
             _usePhysicalValues = usePhysicalValues;
             _audioExporter = new AudioExporter(this);
@@ -53,8 +57,52 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _sceneExporter = new SceneExporter(this, exportSceneAsPrefab, skipDisabled);
             _prefabExporter = new PrefabExporter(this, skipDisabled);
             _terrainExporter = new TerrainExporter(this);
-            RequiredResources.Copy(this);
+            CopyFolder(_subfolder, "bcc1b6196266be34e88c40110ba206ce");
+            CopyFolder("", "a20749a09ce562043815b33e8eec4077");
             _createdFiles.Clear();
+        }
+
+        public void CopyFolder(string subfolder, string guid)
+        {
+            var assetsPath = AssetDatabase.GUIDToAssetPath(guid);
+            var rootPath = Path.GetDirectoryName(Application.dataPath) + Path.DirectorySeparatorChar;
+            var sourceFolderPath = Path.Combine(rootPath, assetsPath) + Path.DirectorySeparatorChar;
+            foreach (var file in Directory.GetFiles(sourceFolderPath, "*", SearchOption.AllDirectories))
+            {
+                if (string.Equals(Path.GetExtension(file), ".Meta", StringComparison.InvariantCultureIgnoreCase))
+                    continue;
+                var target = file.Substring(sourceFolderPath.Length).FixAssetSeparator();
+                if (!string.IsNullOrWhiteSpace(target))
+                {
+                    if (!string.IsNullOrWhiteSpace(subfolder))
+                    {
+                        target = subfolder + target;
+                    }
+
+                    string assetPath = file.Substring(rootPath.Length);
+                    var sourceFilePath = Path.Combine(Path.GetDirectoryName(Application.dataPath), assetPath);
+                    if (File.Exists(sourceFilePath))
+                    {
+                        var targetPath = GetTargetFilePath(target);
+                        if (_exportUpdatedOnly)
+                        {
+                            if (File.Exists(targetPath))
+                            {
+                                var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
+                                var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
+                                if (sourceLastWriteTimeUtc <= lastWriteTimeUtc)
+                                {
+                                    continue;
+                                }
+                            }
+                        }
+                        var directoryName = Path.GetDirectoryName(targetPath);
+                        if (directoryName != null) Directory.CreateDirectory(directoryName);
+
+                        File.Copy(sourceFilePath, targetPath, true);
+                    }
+                }
+            }
         }
 
         public string Subfolder => _subfolder;

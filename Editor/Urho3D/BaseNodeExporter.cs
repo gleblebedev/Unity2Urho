@@ -409,12 +409,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             string subSubPrefix = subPrefix + "\t";
             StartComponent(writer, subPrefix, "Skybox");
+            if (skyboxMaterial.shader.name == "Skybox/Panoramic")
+            {
+                // Export sphere
+                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Sphere);
+                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                Object.DestroyImmediate(gameObject);
+                _engine.ScheduleAssetExport(mesh);
+                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
+            }
+            else
             {
                 // Export cube
                 var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
                 var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
                 Object.DestroyImmediate(gameObject);
-                //var sharedMeshName = "UnityBuiltIn/Cube.mdl";
                 _engine.ScheduleAssetExport(mesh);
                 WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
             }

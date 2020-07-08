@@ -58,6 +58,7 @@ namespace UnityToCustomEngineExporter.Editor
                     switch (propertyName)
                     {
                         case "_Tex": setupProceduralSkybox.Skybox = texture; break;
+                        case "_MainTex": setupProceduralSkybox.Skybox = texture; break;
                         case "_FrontTex": setupProceduralSkybox.FrontTex = texture; break;
                         case "_BackTex": setupProceduralSkybox.BackTex = texture; break;
                         case "_LeftTex": setupProceduralSkybox.LeftTex = texture; break;
