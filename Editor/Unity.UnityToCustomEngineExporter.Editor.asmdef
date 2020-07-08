@@ -1,7 +1,8 @@
 {
     "name": "UnityToCustomEngineExporter.Editor",
     "references": [
-        "UnityToCustomEngineExporter"
+        "UnityToCustomEngineExporter",
+        "Unity.ProBuilder"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],

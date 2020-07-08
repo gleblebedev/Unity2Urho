@@ -55,7 +55,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return specularTexture;
         }
 
-        public void WriteOptions(string assetGuid, string urhoTextureName, DateTime lastWriteTimeUtc, TextureOptions options)
+        public void WriteOptions(AssetKey assetGuid, string urhoTextureName, DateTime lastWriteTimeUtc, TextureOptions options)
         {
             if (options == null)
                 return;
@@ -108,13 +108,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             CopyTexture(texture);
         }
 
-        public string EvaluateTextrueName(Texture texture, TextureReference reference)
+        public string EvaluateTextureName(Texture texture, TextureReference reference)
         {
-            var baseName = EvaluateTextrueName(texture);
+            var baseName = EvaluateTextureName(texture);
             return GetTextureOutputName(baseName, reference);
         }
 
-        public string EvaluateTextrueName(Texture texture)
+        public string EvaluateTextureName(Texture texture)
         {
             if (texture == null)
                 return null;
@@ -139,7 +139,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void CopyTexture(Texture texture)
         {
             var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, texture);
-            var newName = EvaluateTextrueName(texture);
+            var newName = EvaluateTextureName(texture);
             if (relPath != newName)
             {
                 CopyTextureAsPng(texture);
@@ -147,15 +147,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             else
             {
                 _engine.TryCopyFile(AssetDatabase.GetAssetPath(texture), newName);
-                WriteOptions(texture.GetGUID(), newName, ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetTextureOptions(texture));
+                WriteOptions(texture.GetKey(), newName, ExportUtils.GetLastWriteTimeUtc(texture), ExportUtils.GetTextureOptions(texture));
             }
         }
 
         private void CopyTextureAsPng(Texture texture)
         {
-            var outputAssetName = EvaluateTextrueName(texture);
+            var outputAssetName = EvaluateTextureName(texture);
             var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(texture);
-            var assetGuid = texture.GetGUID();
+            var assetGuid = texture.GetKey();
             if (_engine.IsUpToDate(assetGuid, outputAssetName, sourceFileTimestampUtc)) return;
 
             var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
@@ -178,7 +178,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void TransformDiffuse(SpecularGlossinessShaderArguments arguments, string baseColorName)
         {
             var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Diffuse, arguments.PBRSpecular.Texture, arguments.Smoothness.Texture);
-            var assetGuid = (arguments.Diffuse ?? arguments.PBRSpecular.Texture ?? arguments.Smoothness.Texture).GetGUID();
+            var assetGuid = (arguments.Diffuse ?? arguments.PBRSpecular.Texture ?? arguments.Smoothness.Texture).GetKey();
             if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToBaseColor"));
@@ -225,7 +225,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void TransformMetallicGlossiness(MetallicGlossinessShaderArguments arguments, string baseColorName)
         {
             var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.MetallicGloss, arguments.Smoothness);
-            var assetGuid = (arguments.MetallicGloss ?? arguments.Smoothness).GetGUID();
+            var assetGuid = (arguments.MetallicGloss ?? arguments.Smoothness).GetKey();
             if (_engine.IsUpToDate(assetGuid,baseColorName, sourceFileTimestampUtc)) return;
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness"));
@@ -254,7 +254,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void TransformSpecularGlossiness(SpecularGlossinessShaderArguments arguments, string baseColorName)
         {
             var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Diffuse, arguments.PBRSpecular.Texture, arguments.Smoothness.Texture);
-            var assetGuid = (arguments.Diffuse ?? arguments.PBRSpecular.Texture ?? arguments.Smoothness.Texture).GetGUID();
+            var assetGuid = (arguments.Diffuse ?? arguments.PBRSpecular.Texture ?? arguments.Smoothness.Texture).GetKey();
             if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
 
             var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertSpecularToMetallicRoughness"));
@@ -289,6 +289,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 TransformMetallicGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
             }
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.AOTexture))
+            {
+                TransformAOTexture(arguments, urhoMaterial.AOTexture);
+            }
         }
         public void ExportPBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
@@ -300,6 +304,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 TransformDiffuse(arguments, urhoMaterial.BaseColorTexture);
             }
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.AOTexture))
+            {
+                TransformAOTexture(arguments, urhoMaterial.AOTexture);
+            }
+        }
+
+        private void TransformAOTexture(SpecularGlossinessShaderArguments arguments, string urhoMaterialAoTexture)
+        {
+            
         }
     }
 }

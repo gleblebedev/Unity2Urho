@@ -9,7 +9,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
         }
 
-        public void ExportPrefab(string assetGuid, string assetPath, GameObject gameObject)
+        public void ExportPrefab(AssetKey assetGuid, string assetPath, GameObject gameObject)
         {
             using (var writer = _engine.TryCreateXml(assetGuid,EvaluatePrefabName(assetPath),
                 ExportUtils.GetLastWriteTimeUtc(assetPath)))

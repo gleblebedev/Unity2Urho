@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using UnityEditor;
+using UnityEngine.ProBuilder;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -40,10 +41,14 @@ namespace UnityToCustomEngineExporter.Editor
         private IEnumerable<ProgressBarReport> ExportAsset(Object asset)
         {
             var assetPath = AssetDatabase.GetAssetPath(asset);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return ExportDynamicAsset(asset);
             if (assetPath == "Library/unity default resources" || assetPath == "Resources/unity_builtin_extra")
                 return ExportUnityDefaultResource(asset, assetPath);
             return ExportAssetsAtPath(assetPath);
         }
+
+        protected abstract IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset);
 
         private IEnumerable<ProgressBarReport> ExportUnityDefaultResource(Object asset, string assetPath)
         {

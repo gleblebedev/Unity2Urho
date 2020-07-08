@@ -42,7 +42,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
 
             var resourceName = EvaluateCubemapName(texture);
-            using (var writer = _engine.TryCreateXml(texture.GetGUID(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            using (var writer = _engine.TryCreateXml(texture.GetKey(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
             {
                 if (writer != null)
                 {

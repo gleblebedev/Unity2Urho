@@ -17,6 +17,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
             material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
             material.AOTexture = _engine.EvaluateTextrueName(arguments.Occlusion);
+            if (!string.IsNullOrWhiteSpace(material.AOTexture))
+            {
+            }
             var diffuseTextrueName = _engine.EvaluateTextrueName(arguments.Diffuse);
             var specularTexture = _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture);
             string smoothnessTexture;
@@ -363,7 +366,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             var path = EvaluateMaterialName(material);
             var mat = new MaterialDescription(material);
-            var assetGuid = material.GetGUID();
+            var assetGuid = material.GetKey();
             if (mat.SpecularGlossiness != null)
             {
                 ExportSpecularGlossiness(assetGuid, path, mat.SpecularGlossiness);
@@ -407,7 +410,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        private void ExportSkybox(string assetGuid, string urhoPath, SkyboxShaderArguments arguments)
+        private void ExportSkybox(AssetKey assetGuid, string urhoPath, SkyboxShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {
@@ -502,7 +505,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void ExportLegacy(string assetGuid, string urhoPath, LegacyShaderArguments arguments)
+        private void ExportLegacy(AssetKey assetGuid, string urhoPath, LegacyShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {
@@ -545,7 +548,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void ExportMetallicRoughness(string assetGuid, string urhoPath, MetallicGlossinessShaderArguments arguments)
+        private void ExportMetallicRoughness(AssetKey assetGuid, string urhoPath, MetallicGlossinessShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {
@@ -612,7 +615,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
 
-        private void ExportSpecularGlossiness(string assetGuid, string urhoPath, SpecularGlossinessShaderArguments arguments)
+        private void ExportSpecularGlossiness(AssetKey assetGuid, string urhoPath, SpecularGlossinessShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {

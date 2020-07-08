@@ -1,9 +1,10 @@
 {
 	"name": "com.gleblebedev.unityexporter",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"displayName": "Unity To Custom Engine Exporter",
 	"description": "Export assets to be used in a custom game engine (like Urho3D, etc)",
 	"unity": "2019.1",
 	"dependencies": {
+		"com.unity.probuilder": "4.3.1"
 	}
 }

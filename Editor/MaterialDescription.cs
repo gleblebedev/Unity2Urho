@@ -13,6 +13,8 @@ namespace UnityToCustomEngineExporter.Editor
                 SpecularGlossiness = SetupSpecularGlossinessPBR(material);
             else if (material.shader.name == "Standard")
                 MetallicGlossiness = SetupMetallicRoughnessPBR(material);
+            else if (material.shader.name == "ProBuilder/Standard Vertex Color")
+                MetallicGlossiness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name == "UnityChan/Skin")
                 MetallicGlossiness = SetupMetallicRoughnessPBR(material);
             else if (material.shader.name.StartsWith("Skybox/"))
@@ -28,21 +30,6 @@ namespace UnityToCustomEngineExporter.Editor
         public SkyboxShaderArguments Skybox { get; set; }
         public LegacyShaderArguments Legacy { get; set; }
 
-        private static void LogShaderParameters(Shader shader)
-        {
-            var sb = new StringBuilder();
-            sb.AppendFormat("Shader parameters for \"" + shader.name + "\"");
-            sb.AppendLine();
-            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
-            {
-                var propertyName = ShaderUtil.GetPropertyName(shader, i);
-                var propertyType = ShaderUtil.GetPropertyType(shader, i);
-                sb.AppendFormat("{0} {1}", propertyType, propertyName);
-                sb.AppendLine();
-            }
-
-            Debug.Log(sb.ToString());
-        }
 
         private SkyboxShaderArguments SetupSkybox(Material material)
         {

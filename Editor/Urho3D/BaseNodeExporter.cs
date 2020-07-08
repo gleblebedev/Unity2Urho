@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
 using UnityToCustomEngineExporter.Urho3D;
 using Object = UnityEngine.Object;
@@ -236,7 +237,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
             var meshFilter = obj.GetComponent<MeshFilter>();
-            //var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
+            var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
             var lodGroup = obj.GetComponent<LODGroup>();
@@ -250,17 +251,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
-                if (meshFilter != null) // || proBuilderMesh != null)
+                if (meshFilter != null || proBuilderMesh != null)
                 {
                     StartComponent(writer, subPrefix, "StaticModel");
 
                     string meshPath;
-                    //if (proBuilderMesh != null)
-                    //{
-                    //    _engine.ScheduleAssetExport(proBuilderMesh);
-                    //    meshPath = _engine.EvaluateMeshName(proBuilderMesh);
-                    //}
-                    //else
+                    if (proBuilderMesh != null)
+                    {
+                        _engine.ScheduleAssetExport(proBuilderMesh);
+                        meshPath = _engine.EvaluateMeshName(proBuilderMesh);
+                    }
+                    else
                     {
                         var sharedMesh = meshFilter.sharedMesh;
                         _engine.ScheduleAssetExport(sharedMesh);
