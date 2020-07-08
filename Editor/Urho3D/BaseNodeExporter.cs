@@ -548,7 +548,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var (min, max, size) = GetTerrainSize(terrainData);
 
-            var offset = new Vector3(terrainSize.x * 0.5f, -min, terrainSize.z * 0.5f);
+            var offset = new Vector3(terrainSize.x * 0.5f, terrainSize.y * ( min), terrainSize.z * 0.5f);
             WriteAttribute(writer, subPrefix, "Position", offset);
             StartComponent(writer, subPrefix, "Terrain");
 
@@ -557,8 +557,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteAttribute(writer, subSubPrefix, "Material",
                 "Material;" + _engine.EvaluateTerrainMaterial(terrainData));
             //WriteTerrainMaterial(terrainData, materialFileName, "Textures/Terrains/" + folderAndName + ".Weights.tga");
+            var vertexSpacing = new Vector3(terrainSize.x / size.x, terrainSize.y * (max - min) / 255.0f, terrainSize.z / size.y);
             WriteAttribute(writer, subSubPrefix, "Vertex Spacing",
-                new Vector3(terrainSize.x / size.x, 2.0f * (max - min), terrainSize.z / size.y));
+                vertexSpacing);
             EndElement(writer, subPrefix);
             if (terrainCollider != null)
             {
