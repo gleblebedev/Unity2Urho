@@ -141,37 +141,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Light light)
                 {
-                    if (light != null && light.type != LightType.Area)
-                    {
-                        StartComponent(writer, subPrefix, "Light");
-                        if (light.type == LightType.Directional)
-                        {
-                            WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
-                            WriteAttribute(writer, subSubPrefix, "CSM Splits", "2 16 128 1024");
-                        }
-                        else if (light.type == LightType.Spot)
-                        {
-                            WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
-                        }
-                        else if (light.type == LightType.Point)
-                        {
-                            WriteAttribute(writer, subSubPrefix, "Range", light.range);
-                        }
-
-                        WriteAttribute(writer, subSubPrefix, "Color", light.color);
-                        WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);
-                        WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
-                        WriteAttribute(writer, subSubPrefix, "Depth Constant Bias", 0.0001f);
-                        WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
-                        if (light.cookie != null)
-                        {
-                            _engine.ScheduleTexture(light.cookie);
-                            WriteAttribute(writer, subSubPrefix, "Light Shape Texture",
-                                "Texture2D;" + _engine.EvaluateTextrueName(light.cookie));
-                        }
-
-                        EndElement(writer, subPrefix);
-                    }
+                    ExportLight(writer, light, subPrefix, subSubPrefix);
                 }
                 else if (component is AudioSource audioSource)
                 {
@@ -350,6 +320,73 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private void ExportLight(XmlWriter writer, Light light, string subPrefix, string subSubPrefix)
+        {
+            if (light != null && light.type != LightType.Area)
+            {
+                StartComponent(writer, subPrefix, "Light");
+                if (light.type == LightType.Directional)
+                {
+                    WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
+                    var shadowCascades = QualitySettings.shadowCascades;
+                    if (shadowCascades > 0)
+                    {
+                        if (shadowCascades > 4)
+                            shadowCascades = 4;
+                        var cascadeMask = new Vector4[]
+                        {
+                            new Vector4(0, 0, 0, 0),
+                            new Vector4(1, 0, 0, 0),
+                            new Vector4(1, 1, 0, 0),
+                            new Vector4(1, 1, 1, 0),
+                        };
+                        var shadowCascade4Split = QualitySettings.shadowCascade4Split * QualitySettings.shadowDistance;
+                        var csmSplits = Vector4.Scale(
+                            new Vector4(shadowCascade4Split.x, shadowCascade4Split.y, shadowCascade4Split.z, QualitySettings.shadowDistance),
+                            cascadeMask[shadowCascades-1]);
+                        switch (shadowCascades)
+                        {
+                            case 1: csmSplits.x = QualitySettings.shadowDistance; break;
+                            case 2: csmSplits.y = QualitySettings.shadowDistance; break;
+                            case 3: csmSplits.z = QualitySettings.shadowDistance; break;
+                            case 4: csmSplits.w = QualitySettings.shadowDistance; break;
+                        }
+                        WriteAttribute(writer, subSubPrefix, "CSM Splits", csmSplits);
+                    }
+                }
+                else if (light.type == LightType.Spot)
+                {
+                    WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
+                }
+                else if (light.type == LightType.Point)
+                {
+                    WriteAttribute(writer, subSubPrefix, "Range", light.range);
+                }
+
+                WriteAttribute(writer, subSubPrefix, "Color", light.color.linear);
+                if (_engine.UsePhysicalValues)
+                {
+                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);
+                    WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
+                }
+                else
+                {
+                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * Mathf.PI * 2.0f);
+                    WriteAttribute(writer, subSubPrefix, "Use Physical Values", "false");
+                }
+                WriteAttribute(writer, subSubPrefix, "Depth Constant Bias", 0.0001f);
+                WriteAttribute(writer, subSubPrefix, "Cast Shadows", light.shadows != LightShadows.None);
+                if (light.cookie != null)
+                {
+                    _engine.ScheduleTexture(light.cookie);
+                    WriteAttribute(writer, subSubPrefix, "Light Shape Texture",
+                        "Texture2D;" + _engine.EvaluateTextrueName(light.cookie));
+                }
+
+                EndElement(writer, subPrefix);
+            }
         }
 
         private void ExportAudioSource(XmlWriter writer, AudioSource audioSource, string subPrefix)

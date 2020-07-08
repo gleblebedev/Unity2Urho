@@ -24,6 +24,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly string _dataFolder;
         private readonly string _subfolder;
         private readonly bool _exportUpdatedOnly;
+        private readonly bool _usePhysicalValues;
         private Dictionary<Object, string> _assetPaths = new Dictionary<Object, string>();
         private readonly Dictionary<string, string> _createdFiles = new Dictionary<string, string>();
         private readonly TextureExporter _textureExporter;
@@ -35,13 +36,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly PrefabExporter _prefabExporter;
         private readonly TerrainExporter _terrainExporter;
 
-        public Urho3DEngine(string dataFolder, string subfolder, CancellationToken cancellationToken, bool exportUpdatedOnly,
-            bool exportSceneAsPrefab, bool skipDisabled)
+        public Urho3DEngine(string dataFolder, string subfolder, CancellationToken cancellationToken,
+            bool exportUpdatedOnly,
+            bool exportSceneAsPrefab, bool skipDisabled, bool usePhysicalValues)
             : base(cancellationToken)
         {
             _dataFolder = dataFolder;
             _subfolder = subfolder ?? "";
             _exportUpdatedOnly = exportUpdatedOnly;
+            _usePhysicalValues = usePhysicalValues;
             _audioExporter = new AudioExporter(this);
             _textureExporter = new TextureExporter(this);
             _cubemapExporter = new CubemapExporter(this);
@@ -55,6 +58,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         public string Subfolder => _subfolder;
+
+        public bool UsePhysicalValues => _usePhysicalValues;
 
         public string GetTargetFilePath(string relativePath)
         {

@@ -15,11 +15,13 @@ namespace UnityToCustomEngineExporter.Editor
         private static readonly string _exportUpdatedOnlyKey = "UnityToCustomEngineExporter.UpdatedOnly";
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
+        private static readonly string _usePhysicalValuesKey = "UnityToCustomEngineExporter.UsePhysicalValues";
         private string _exportFolder = "";
         private string _subfolder = "";
         private bool _exportUpdatedOnly;
         private bool _exportSceneAsPrefab;
         private bool _skipDisabled;
+        private bool _usePhysicalValues;
 
         private IDestinationEngine _engine;
         private CancellationTokenSource _cancellationTokenSource;
@@ -51,6 +53,8 @@ namespace UnityToCustomEngineExporter.Editor
             if (GUILayout.Button("Pick")) PickFolder();
 
             _subfolder = EditorGUILayout.TextField("Subfolder", _subfolder);
+
+            _usePhysicalValues = EditorGUILayout.Toggle("Use physical values", _usePhysicalValues);
 
             _exportUpdatedOnly = EditorGUILayout.Toggle("Export only updated resources", _exportUpdatedOnly);
 
@@ -123,7 +127,7 @@ namespace UnityToCustomEngineExporter.Editor
             if (_engine != null) return null;
             _cancellationTokenSource = new CancellationTokenSource();
             return new Urho3DEngine(_exportFolder, _subfolder, _cancellationTokenSource.Token, _exportUpdatedOnly,
-                _exportSceneAsPrefab, _skipDisabled);
+                _exportSceneAsPrefab, _skipDisabled, _usePhysicalValues);
         }
 
         private void PickFolder()
@@ -168,6 +172,8 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportSceneAsPrefab = EditorPrefs.GetBool(_exportSceneAsPrefabKey);
             if (EditorPrefs.HasKey(_skipDisabledKey))
                 _skipDisabled = EditorPrefs.GetBool(_skipDisabledKey);
+            if (EditorPrefs.HasKey(_usePhysicalValuesKey))
+                _usePhysicalValues = EditorPrefs.GetBool(_usePhysicalValuesKey);
         }
 
         private void OnLostFocus()
@@ -182,6 +188,7 @@ namespace UnityToCustomEngineExporter.Editor
             EditorPrefs.SetBool(_exportUpdatedOnlyKey, _exportUpdatedOnly);
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
+            EditorPrefs.SetBool(_usePhysicalValuesKey, _usePhysicalValues);
         }
 
         private void OnDestroy()
