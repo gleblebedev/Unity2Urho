@@ -16,10 +16,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var material = new UrhoPBRMaterial();
             material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
             material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = _engine.EvaluateTextrueName(arguments.Occlusion);
-            if (!string.IsNullOrWhiteSpace(material.AOTexture))
-            {
-            }
+            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             var diffuseTextrueName = _engine.EvaluateTextrueName(arguments.Diffuse);
             var specularTexture = _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture);
             string smoothnessTexture;
@@ -165,7 +162,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var material = new UrhoPBRMaterial();
             material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
             material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = _engine.EvaluateTextrueName(arguments.Occlusion);
+            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             material.BaseColorTexture = _engine.EvaluateTextrueName(arguments.BaseColor);
             var metalicGlossinesTexture = _engine.EvaluateTextrueName(arguments.MetallicGloss);
             var smoothnessTexture = _engine.EvaluateTextrueName(arguments.Smoothness);
@@ -219,6 +216,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
             material.EvaluateTechnique();
             return material;
+        }
+
+        private string BuildAOTextureName(Texture occlusion, float occlusionStrength)
+        {
+            if (occlusion == null)
+                return null;
+            if (occlusionStrength <= 0)
+                return null;
+            var baseName = _engine.EvaluateTextrueName(occlusion);
+            if (occlusionStrength >= 0.999f)
+            {
+                return ExportUtils.ReplaceExtension(baseName, ".AO.png");
+            }
+            else
+            {
+                return ExportUtils.ReplaceExtension(baseName, string.Format(CultureInfo.InvariantCulture, ".AO.{0:0.000}.png", occlusionStrength));
+            }
         }
 
 
@@ -566,7 +580,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _engine.SchedulePBRTextures(arguments, urhoMaterial);
 
                 _engine.ScheduleTexture(arguments.Emission, new TextureReference(TextureSemantic.Emission));
-                _engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
+                //_engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
             }
         }
 
@@ -631,7 +645,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _engine.SchedulePBRTextures(arguments, urhoMaterial);
 
                 _engine.ScheduleTexture(arguments.Emission, new TextureReference(TextureSemantic.Emission));
-                _engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
+                //_engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
             }
         }
 

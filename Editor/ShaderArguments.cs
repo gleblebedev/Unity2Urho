@@ -12,6 +12,7 @@ namespace UnityToCustomEngineExporter.Editor
         public float BumpScale { get; set; } = 1.0f;
         public Color EmissiveColor { get; set; } = Color.black;
         public Texture Occlusion { get; set; }
+        public float OcclusionStrength { get; set; } = 1.0f;
         public Texture Bump { get; set; }
         public Texture Detail { get; set; }
         public Texture DetailNormal { get; set; }

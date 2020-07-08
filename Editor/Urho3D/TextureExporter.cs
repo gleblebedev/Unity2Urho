@@ -310,9 +310,27 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void TransformAOTexture(SpecularGlossinessShaderArguments arguments, string urhoMaterialAoTexture)
+        private void TransformAOTexture(ShaderArguments arguments, string baseColorName)
         {
-            
+            if (arguments.Occlusion == null)
+                return;
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Occlusion);
+            var assetGuid = (arguments.Occlusion).GetKey();
+            if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
+
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/PremultiplyOcclusionStrength"));
+            try
+            {
+                var mainTexture = arguments.Occlusion;
+                tmpMaterial.SetTexture("_MainTex", mainTexture);
+                tmpMaterial.SetFloat("_OcclusionStrength", arguments.OcclusionStrength);
+                new TextureProcessor().ProcessAndSaveTexture(mainTexture, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(assetGuid, baseColorName, sourceFileTimestampUtc, (ExportUtils.GetTextureOptions(mainTexture)).WithSRGB(true));
+            }
+            finally
+            {
+                Object.DestroyImmediate(tmpMaterial);
+            }
         }
     }
 }

@@ -124,7 +124,9 @@ namespace UnityToCustomEngineExporter.Editor
                                 break;
                             case "_GlossMapScale": break;
                             case "_Glossiness": break;
-                            case "_OcclusionStrength": break;
+                            case "_OcclusionStrength":
+                                arguments.OcclusionStrength = value;
+                                break;
                             case "_Parallax": break;
                         }
 
@@ -242,7 +244,9 @@ namespace UnityToCustomEngineExporter.Editor
                             case "_Glossiness":
                                 arguments.Glossiness = value;
                                 break;
-                            case "_OcclusionStrength": break;
+                            case "_OcclusionStrength":
+                                arguments.OcclusionStrength = value;
+                                break;
                             case "_Parallax": break;
                         }
 
@@ -370,7 +374,9 @@ namespace UnityToCustomEngineExporter.Editor
                             case "_Metallic":
                                 arguments.Metallic = value;
                                 break;
-                            case "_OcclusionStrength": break;
+                            case "_OcclusionStrength":
+                                arguments.OcclusionStrength = value;
+                                break;
                             case "_Parallax": break;
                         }
 
