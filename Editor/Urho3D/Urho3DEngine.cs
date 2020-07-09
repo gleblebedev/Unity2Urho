@@ -7,6 +7,7 @@ using System.Xml;
 using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.ProBuilder;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -315,7 +316,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 foreach (var asset in assets)
                     if (asset is Mesh mesh)
                         EditorTaskScheduler.Default.ScheduleForegroundTask(
-                            () => _meshExporter.ExportMeshModel(mesh, null), mesh.name + " from " + assetPath);
+                            () => _meshExporter.ExportMeshModel(new MeshSource(mesh), EvaluateMeshName(mesh), mesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(mesh)), mesh.name + " from " + assetPath);
             }
 
             foreach (var asset in assets)
@@ -415,6 +416,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             return false;
+        }
+
+        public void ExportNavMesh()
+        {
+            _meshExporter.ExportMesh(NavMesh.CalculateTriangulation());
+        }
+
+        public string EvaluateAnimationName(AnimationClip clip)
+        {
+            if (clip == null)
+                return null;
+            return _meshExporter.EvaluateAnimationName(clip);
         }
     }
 }

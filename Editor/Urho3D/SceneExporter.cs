@@ -79,6 +79,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
                     }
                 }
+                _engine.ExportNavMesh();
             }
             finally
             {

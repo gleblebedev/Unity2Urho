@@ -111,15 +111,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
             writer.WriteStartElement("node");
-            writer.WriteAttributeString("id", (++_id).ToString());
-            writer.WriteWhitespace("\n");
+            writer.WriteAttributeString("id", (++_id).ToString(CultureInfo.InvariantCulture));
+            writer.WriteWhitespace(Environment.NewLine);
 
             var subPrefix = prefix + "\t";
             var subSubPrefix = subPrefix + "\t";
 
             WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
             WriteAttribute(writer, subPrefix, "Name", obj.name);
-            WriteAttribute(writer, subPrefix, "Tags", obj.tag);
+            if (!string.IsNullOrWhiteSpace(obj.tag))
+            {
+                writer.WriteWhitespace(subPrefix);
+                writer.WriteStartElement("attribute");
+                writer.WriteAttributeString("name", "Tags");
+                writer.WriteStartElement("string");
+                writer.WriteAttributeString("value", obj.tag);
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+                writer.WriteWhitespace(Environment.NewLine);
+            }
+            //WriteAttribute(writer, subPrefix, "Tags", obj.tag);
             WriteAttribute(writer, subPrefix, "Position", obj.transform.localPosition);
             WriteAttribute(writer, subPrefix, "Rotation", obj.transform.localRotation);
             WriteAttribute(writer, subPrefix, "Scale", obj.transform.localScale);
@@ -238,6 +249,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
             var meshFilter = obj.GetComponent<MeshFilter>();
+            var animator = obj.GetComponent<Animator>();
             var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
@@ -247,33 +259,69 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
-                foreach (var renderer in lod.renderers)
-                    localExcludeList.Add(renderer);
+                {
+                    foreach (var renderer in lod.renderers)
+                        localExcludeList.Add(renderer);
+                }
             }
 
-            if (meshRenderer != null && !localExcludeList.Contains(meshRenderer))
-                if (meshFilter != null || proBuilderMesh != null)
+            if (meshRenderer != null)
+            {
+                if (!localExcludeList.Contains(meshRenderer))
+                    if (meshFilter != null || proBuilderMesh != null)
+                    {
+                        StartComponent(writer, subPrefix, "StaticModel");
+
+                        string meshPath;
+                        if (proBuilderMesh != null)
+                        {
+                            _engine.ScheduleAssetExport(proBuilderMesh);
+                            meshPath = _engine.EvaluateMeshName(proBuilderMesh);
+                        }
+                        else
+                        {
+                            var sharedMesh = meshFilter.sharedMesh;
+                            _engine.ScheduleAssetExport(sharedMesh);
+                            meshPath = _engine.EvaluateMeshName(sharedMesh);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(meshPath))
+                            WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
+
+                        var materials = "Material";
+                        foreach (var material in meshRenderer.sharedMaterials)
+                        {
+                            _engine.ScheduleAssetExport(material);
+                            var path = _engine.EvaluateMaterialName(material);
+                            materials += ";" + path;
+                        }
+
+                        WriteAttribute(writer, subSubPrefix, "Material", materials);
+
+                        WriteAttribute(writer, subSubPrefix, "Cast Shadows",
+                            meshRenderer.shadowCastingMode != ShadowCastingMode.Off);
+
+                        EndElement(writer, subPrefix);
+
+                        WriteAnimator(writer, subPrefix, animator);
+                    }
+            }
+
+            else if (skinnedMeshRenderer != null)
+            {
+                if (!localExcludeList.Contains(skinnedMeshRenderer))
                 {
-                    StartComponent(writer, subPrefix, "StaticModel");
+                    StartComponent(writer, subPrefix, "AnimatedModel");
 
-                    string meshPath;
-                    if (proBuilderMesh != null)
-                    {
-                        _engine.ScheduleAssetExport(proBuilderMesh);
-                        meshPath = _engine.EvaluateMeshName(proBuilderMesh);
-                    }
-                    else
-                    {
-                        var sharedMesh = meshFilter.sharedMesh;
-                        _engine.ScheduleAssetExport(sharedMesh);
-                        meshPath = _engine.EvaluateMeshName(sharedMesh);
-                    }
 
+                    var sharedMesh = skinnedMeshRenderer.sharedMesh;
+                    _engine.ScheduleAssetExport(sharedMesh);
+                    var meshPath = _engine.EvaluateMeshName(sharedMesh);
                     if (!string.IsNullOrWhiteSpace(meshPath))
                         WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
 
                     var materials = "Material";
-                    foreach (var material in meshRenderer.sharedMaterials)
+                    foreach (var material in skinnedMeshRenderer.sharedMaterials)
                     {
                         _engine.ScheduleAssetExport(material);
                         var path = _engine.EvaluateMaterialName(material);
@@ -283,36 +331,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Material", materials);
 
                     WriteAttribute(writer, subSubPrefix, "Cast Shadows",
-                        meshRenderer.shadowCastingMode != ShadowCastingMode.Off);
+                        skinnedMeshRenderer.shadowCastingMode != ShadowCastingMode.Off);
+
+                    WriteAnimationStates(writer, animator, subPrefix);
 
                     EndElement(writer, subPrefix);
                 }
-
-            if (skinnedMeshRenderer != null && !localExcludeList.Contains(skinnedMeshRenderer))
+            }
+            else if (animator != null)
             {
-                StartComponent(writer, subPrefix, "AnimatedModel");
-
-
-                var sharedMesh = skinnedMeshRenderer.sharedMesh;
-                _engine.ScheduleAssetExport(sharedMesh);
-                var meshPath = _engine.EvaluateMeshName(sharedMesh);
-                if (!string.IsNullOrWhiteSpace(meshPath))
-                    WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
-
-                var materials = "Material";
-                foreach (var material in skinnedMeshRenderer.sharedMaterials)
-                {
-                    _engine.ScheduleAssetExport(material);
-                    var path = _engine.EvaluateMaterialName(material);
-                    materials += ";" + path;
-                }
-
-                WriteAttribute(writer, subSubPrefix, "Material", materials);
-
-                WriteAttribute(writer, subSubPrefix, "Cast Shadows",
-                    skinnedMeshRenderer.shadowCastingMode != ShadowCastingMode.Off);
-
-                EndElement(writer, subPrefix);
+                WriteAnimator(writer, subPrefix, animator);
             }
 
             foreach (Transform childTransform in obj.transform)
@@ -325,6 +353,83 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private void WriteAnimator(XmlWriter writer, string prefix, Animator animator)
+        {
+            if (animator == null)
+                return;
+            StartComponent(writer, prefix, "AnimatedModel");
+            var subPrefix = prefix + "\t";
+
+            WriteAnimationStates(writer, animator, subPrefix);
+            EndElement(writer, prefix);
+        }
+
+        private void WriteAnimationStates(XmlWriter writer, Animator animator, string subPrefix)
+        {
+            if (animator == null)
+                return;
+            writer.WriteWhitespace(subPrefix);
+            writer.WriteStartElement("attribute");
+            writer.WriteAttributeString("name", "Animation States");
+            writer.WriteWhitespace(Environment.NewLine);
+            var subSubPrefix = subPrefix + "\t";
+            var controller = animator.runtimeAnimatorController;
+            if (controller == null)
+            {
+                WriteVariant(writer, subSubPrefix, 0);
+            }
+            else
+            {
+                WriteVariant(writer, subSubPrefix, controller.animationClips.Length);
+                foreach (var clip in controller.animationClips)
+                {
+                    WriteVariant(writer, subSubPrefix, "ResourceRef", "Animation;" + _engine.EvaluateAnimationName(clip));
+                    _engine.ScheduleAssetExport(clip);
+                    var startBone = "";
+                    bool isLooped = true;
+                    float weight = 1.0f;
+                    float time = 0.0f;
+                    int layer = 0;
+                    WriteVariant(writer, subSubPrefix, startBone);
+                    WriteVariant(writer, subSubPrefix, isLooped);
+                    WriteVariant(writer, subSubPrefix, weight);
+                    WriteVariant(writer, subSubPrefix, time);
+                    WriteVariant(writer, subSubPrefix, layer);
+                }
+            }
+
+            writer.WriteWhitespace(subPrefix);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        private void WriteVariant(XmlWriter writer, string subSubPrefix, int value)
+        {
+            WriteVariant(writer, subSubPrefix, "Int", value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static void WriteVariant(XmlWriter writer, string subSubPrefix, string type, string valueStr)
+        {
+            writer.WriteWhitespace(subSubPrefix);
+            writer.WriteStartElement("variant");
+            writer.WriteAttributeString("type", type);
+            writer.WriteAttributeString("value", valueStr);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        private void WriteVariant(XmlWriter writer, string subSubPrefix, float value)
+        {
+            WriteVariant(writer, subSubPrefix, "Float", value.ToString(CultureInfo.InvariantCulture));
+        }
+        private void WriteVariant(XmlWriter writer, string subSubPrefix, bool value)
+        {
+            WriteVariant(writer, subSubPrefix, "Bool", value?"true":"false");
+        }
+        private void WriteVariant(XmlWriter writer, string subSubPrefix, string value)
+        {
+            WriteVariant(writer, subSubPrefix, "String", value);
+        }
         protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial)
         {
             var subSubPrefix = subPrefix + "\t";

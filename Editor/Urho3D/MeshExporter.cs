@@ -6,17 +6,19 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.ProBuilder;
+using UnityEngine.SceneManagement;
 using Math = System.Math;
 using Object = UnityEngine.Object;
-
-//using UnityEngine.ProBuilder;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class MeshExporter
     {
         public const uint Magic2 = 0x32444d55;
+
+        
 
         private static readonly string[] animationProperties =
         {
@@ -112,7 +114,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             ExportProBuilderMeshModel(proBuilderMesh);
         }
-
+        public string ExportMesh(NavMeshTriangulation mesh)
+        {
+            var mdlFilePath = EvaluateMeshName(mesh);
+            ExportMeshModel(new NavMeshSource(mesh), mdlFilePath, SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
+            return mdlFilePath;
+        }
         public void ExportMesh(GameObject go)
         {
             var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
@@ -131,32 +138,37 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (skinnedMeshRenderer != null)
                     mesh = skinnedMeshRenderer.sharedMesh;
                 else if (meshFilter != null) mesh = meshFilter.sharedMesh;
-                ExportMeshModel(mesh, skinnedMeshRenderer);
+                var meshSource = new MeshSource(mesh, skinnedMeshRenderer);
+                ExportMeshModel(meshSource, EvaluateMeshName(mesh), mesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(mesh));
             }
 
 
             for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject);
         }
 
-        public void ExportMeshModel(Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
+        private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh)
         {
-            var mdlFilePath = EvaluateMeshName(mesh);
-            using (var file = _engine.TryCreate(mesh.GetKey(), mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
+            ExportMeshModel(new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh), proBuilderMesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh));
+        }
+
+        public void ExportMeshModel(IMeshSource mesh, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
+        {
+            using (var file = _engine.TryCreate(key, mdlFilePath, lastWriteDateTimeUtc))
             {
                 if (file != null)
                     using (var writer = new BinaryWriter(file))
                     {
-                        WriteMesh(writer, mesh, BuildBones(skinnedMeshRenderer));
+                        WriteMesh(writer, mesh);
                     }
             }
         }
 
-        public string EvaluateAnimationName(AnimationClip mesh)
+        public string EvaluateAnimationName(AnimationClip clip)
         {
-            if (mesh == null)
+            if (clip == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "") + "/" +
-                   ExportUtils.SafeFileName(mesh.name) + ".ani";
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip), "") + "/" +
+                   ExportUtils.SafeFileName(clip.name) + ".ani";
         }
 
         public string EvaluateMeshName(Mesh mesh)
@@ -177,8 +189,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = _engine.TempFolder + ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +
-                       ".mdl";
+                name = _engine.TempFolder + ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count + ".mdl";
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
@@ -187,18 +198,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                    ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 
-        private void ExportProBuilderMeshModel(ProBuilderMesh mesh)
+        public string EvaluateMeshName(NavMeshTriangulation mesh)
         {
-            var mdlFilePath = EvaluateMeshName(mesh);
-            using (var file = _engine.TryCreate(mesh.gameObject.GetKey(), mdlFilePath,
-                ExportUtils.GetLastWriteTimeUtc(mesh)))
-            {
-                if (file != null)
-                    using (var writer = new BinaryWriter(file))
-                    {
-                        WriteProBuilderMesh(writer, mesh);
-                    }
-            }
+            return _engine.TempFolder + "NavMesh.mdl";
         }
 
         private IEnumerable<GameObject> CloneTree(GameObject go)
@@ -271,10 +273,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void WriteTracksAsIs(AnimationClip clipAnimation, BinaryWriter writer)
         {
+            var positionAdapter = new Vector3AnimationCurveAdapter("m_LocalPosition", Vector3.zero);
+            var rotationAdapter = new QuaternionAnimationCurveAdapter("m_LocalRotation");
+            var eulerAnglesRawAdapter = new EulerAnglesAnimationCurveAdapter("localEulerAnglesRaw");
+            var scaleAdapter = new Vector3AnimationCurveAdapter("m_LocalScale", Vector3.one);
+            var allAdapters = new IAnimationCurveAdapter[] {positionAdapter, rotationAdapter ,scaleAdapter, eulerAnglesRawAdapter };
             var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-            var propertiesToKeep = new HashSet<string>(animationProperties);
 
-            var bindingGroups = allBindings.Where(_ => propertiesToKeep.Contains(_.propertyName)).GroupBy(_ => _.path)
+            var bindingGroups = allBindings.Where(_ => allAdapters.Any(a=>a.HasProperty(_.propertyName))).GroupBy(_ => _.path)
                 .OrderBy(_ => _.Key.Length).ToArray();
             var timeStep = 1.0f / clipAnimation.frameRate;
             var numKeyFrames = 1 + (int) (clipAnimation.length * clipAnimation.frameRate);
@@ -283,24 +289,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.Write(numTracks);
             foreach (var group in bindingGroups)
             {
+                foreach (var adapter in allAdapters)
+                {
+                    adapter.PickTracks(clipAnimation, @group);
+                }
+
                 var boneName = group.Key;
                 boneName = boneName.Substring(boneName.LastIndexOf('/') + 1);
                 WriteStringSZ(writer, boneName);
 
-                var curves = new AnimationCurve[animationProperties.Length];
-                for (var index = 0; index < animationProperties.Length; index++)
-                {
-                    var curveBinding = group.FirstOrDefault(_ => _.propertyName == animationProperties[index]);
-                    if (curveBinding.propertyName != null)
-                        curves[index] = AnimationUtility.GetEditorCurve(clipAnimation, curveBinding);
-                }
+                IAnimationCurveAdapter<Vector3> position = null;
+                if (positionAdapter.HasTracks)
+                    position = positionAdapter;
+
+                IAnimationCurveAdapter<Quaternion> rotation = new IAnimationCurveAdapter<Quaternion>[]{ rotationAdapter, eulerAnglesRawAdapter }.FirstOrDefault(_=>_.HasTracks);
+
+                IAnimationCurveAdapter<Vector3> scale = null;
+                if (scaleAdapter.HasTracks)
+                    scale = scaleAdapter;
 
                 byte trackMask = 0;
-                if (curves[0] != null || curves[1] != null || curves[2] != null)
+                if (position != null)
                     trackMask |= 1;
-                if (curves[3] != null || curves[4] != null || curves[5] != null || curves[6] != null)
+                if (rotation != null)
                     trackMask |= 2;
-                if (curves[7] != null || curves[8] != null || curves[9] != null)
+                if (scale != null)
                     trackMask |= 4;
                 writer.Write(trackMask);
                 writer.Write(numKeyFrames);
@@ -311,31 +324,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                     if ((trackMask & 1) != 0)
                     {
-                        var pos = Vector3.zero;
-                        if (curves[0] != null) pos.x = curves[0].Evaluate(t);
-                        if (curves[1] != null) pos.y = curves[1].Evaluate(t);
-                        if (curves[2] != null) pos.z = curves[2].Evaluate(t);
+                        var pos = position.Evaluate(t);
                         Write(writer, pos);
                     }
 
                     if ((trackMask & 2) != 0)
                     {
-                        var rot = Quaternion.identity;
-                        if (curves[3] != null) rot.w = curves[3].Evaluate(t);
-                        if (curves[4] != null) rot.x = curves[4].Evaluate(t);
-                        if (curves[5] != null) rot.y = curves[5].Evaluate(t);
-                        if (curves[6] != null) rot.z = curves[6].Evaluate(t);
-                        rot.Normalize();
+                        var rot = rotation.Evaluate(t);
                         Write(writer, rot);
                     }
 
                     if ((trackMask & 4) != 0)
                     {
-                        var scale = Vector3.one;
-                        if (curves[7] != null) scale.x = curves[7].Evaluate(t);
-                        if (curves[8] != null) scale.y = curves[8].Evaluate(t);
-                        if (curves[9] != null) scale.z = curves[9].Evaluate(t);
-                        Write(writer, scale);
+                        var scaleV = scale.Evaluate(t);
+                        Write(writer, scaleV);
                     }
                 }
             }
@@ -345,29 +347,28 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             var path = editorCurveBinding.path;
             if (string.IsNullOrEmpty(path))
-                return null;
+                return path;
             var slash = path.IndexOf('/');
             if (slash < 0)
                 return path;
             return path.Substring(0, slash);
         }
 
-        private Urho3DBone[] BuildBones(SkinnedMeshRenderer skinnedMeshRenderer)
+        private Urho3DBone[] BuildBones(IMeshSource skinnedMeshRenderer)
         {
-            if (skinnedMeshRenderer == null || skinnedMeshRenderer.bones.Length == 0)
+            if (skinnedMeshRenderer == null || skinnedMeshRenderer.BonesCount == 0)
                 return new Urho3DBone[0];
-            var unityBones = skinnedMeshRenderer.bones;
-            var bones = new Urho3DBone[unityBones.Length];
+            //var unityBones = skinnedMeshRenderer.bones;
+            var bones = new Urho3DBone[skinnedMeshRenderer.BonesCount];
             for (var index = 0; index < bones.Length; index++)
             {
                 var bone = new Urho3DBone();
-                var unityBone = unityBones[index];
-                for (var pIndex = 0; pIndex < bones.Length; ++pIndex)
-                    if (unityBones[pIndex] == unityBone.parent)
-                    {
-                        bone.parent = pIndex;
-                        break;
-                    }
+                var unityBone = skinnedMeshRenderer.GetBoneTransform(index);
+                var parentIndex = skinnedMeshRenderer.GetBoneParent(index);
+                if (parentIndex.HasValue)
+                {
+                    bone.parent = parentIndex.Value;
+                }
 
                 bone.name = unityBone.name ?? "bone" + index;
                 //if (bone.parent != 0)
@@ -383,7 +384,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 //    bone.actualScale = unityBone.lossyScale;
                 //}
 
-                bone.binding = skinnedMeshRenderer.sharedMesh.bindposes[index];
+                bone.binding = skinnedMeshRenderer.GetBoneBindPose(index);
                 bones[index] = bone;
             }
 
@@ -399,33 +400,58 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return name;
         }
 
-        private void WriteProBuilderMesh(BinaryWriter writer, ProBuilderMesh _mesh)
+        private void WriteMesh(BinaryWriter writer, IMeshSource mesh)
         {
             writer.Write(Magic2);
             writer.Write(1);
             for (var vbIndex = 0; vbIndex < 1 /*_mesh.vertexBufferCount*/; ++vbIndex)
             {
-                var positions = _mesh.positions;
-                var normals = _mesh.GetNormals();
-                var colors = _mesh.GetColors();
-                var tangents = _mesh.GetTangents();
-                var uvs = _mesh.textures;
+                var positions = mesh.Vertices;
+                var normals = mesh.Normals;
+                var colors = mesh.Colors;
+                var tangents = mesh.Tangents;
+                var boneWeights = mesh.BoneWeights;
+                var uvs = mesh.TexCoords0;
+                var uvs2 = mesh.TexCoords1;
+                var uvs3 = mesh.TexCoords2;
+                var uvs4 = mesh.TexCoords3;
 
                 writer.Write(positions.Count);
                 var elements = new List<MeshStreamWriter>();
                 if (positions.Count > 0)
                     elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
-                if (normals.Length > 0)
+                if (normals.Count > 0)
                     elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
+                if (boneWeights.Length > 0)
+                {
+                    var indices = new Vector4[boneWeights.Length];
+                    var weights = new Vector4[boneWeights.Length];
+                    for (var i = 0; i < boneWeights.Length; ++i)
+                    {
+                        indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
+                            boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
+                        weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
+                            boneWeights[i].weight2, boneWeights[i].weight3);
+                    }
 
-                //if (colors.Length > 0)
-                //{
-                //    elements.Add(new MeshColorStream(colors, VertexElementSemantic.SEM_COLOR));
-                //}
-                if (tangents.Length > 0)
+                    elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
+                    elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
+                }
+
+                if (colors.Count > 0)
+                {
+                    elements.Add(new MeshColor32Stream(colors, VertexElementSemantic.SEM_COLOR));
+                }
+                if (tangents.Count > 0)
                     elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
                 if (uvs.Count > 0)
                     elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
+                if (uvs2.Count > 0)
+                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
+                if (uvs3.Count > 0)
+                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 2));
+                if (uvs4.Count > 0)
+                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 3));
                 writer.Write(elements.Count);
                 for (var i = 0; i < elements.Count; ++i)
                     writer.Write(elements[i].Element);
@@ -436,20 +462,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 for (var index = 0; index < positions.Count; ++index)
                 for (var i = 0; i < elements.Count; ++i)
                     elements[i].Write(writer, index);
-                var indicesPerSubMesh = new List<List<int>>();
+                var indicesPerSubMesh = new List<IList<int>>();
                 var totalIndices = 0;
-                var subMeshCount = _mesh.faces.Select(_ => _.submeshIndex).Max() + 1;
-                for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
+                for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                 {
-                    var indices = new List<int>();
-                    foreach (var face in _mesh.faces.Where(_ => _.submeshIndex == subMeshIndex))
-                        for (var tIndex = 2; tIndex < face.indexes.Count; ++tIndex)
-                        {
-                            indices.Add(face.indexes[0]);
-                            indices.Add(face.indexes[tIndex - 1]);
-                            indices.Add(face.indexes[tIndex]);
-                        }
-
+                    var indices = mesh.GetIndices(subMeshIndex);
                     indicesPerSubMesh.Add(indices);
                     totalIndices += indices.Count;
                 }
@@ -459,14 +476,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (positions.Count < 65536)
                 {
                     writer.Write(2);
-                    for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
+                    for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
                         writer.Write((ushort) indicesPerSubMesh[subMeshIndex][i]);
                 }
                 else
                 {
                     writer.Write(4);
-                    for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
+                    for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
                         writer.Write(indicesPerSubMesh[subMeshIndex][i]);
                 }
@@ -491,152 +508,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var numMorphTargets = 0;
                 writer.Write(numMorphTargets);
 
-                var numOfBones = 0;
-                writer.Write(numOfBones);
-                var boneIndex = 0;
-
-                float minX, minY, minZ;
-                float maxX, maxY, maxZ;
-                maxX = maxY = maxZ = float.MinValue;
-                minX = minY = minZ = float.MaxValue;
-                for (var i = 0; i < positions.Count; ++i)
-                {
-                    if (minX > positions[i].x)
-                        minX = positions[i].x;
-                    if (minY > positions[i].y)
-                        minY = positions[i].y;
-                    if (minZ > positions[i].z)
-                        minZ = positions[i].z;
-                    if (maxX < positions[i].x)
-                        maxX = positions[i].x;
-                    if (maxY < positions[i].y)
-                        maxY = positions[i].y;
-                    if (maxZ < positions[i].z)
-                        maxZ = positions[i].z;
-                }
-
-                writer.Write(minX);
-                writer.Write(minY);
-                writer.Write(minZ);
-                writer.Write(maxX);
-                writer.Write(maxY);
-                writer.Write(maxZ);
-            }
-        }
-
-        private void WriteMesh(BinaryWriter writer, Mesh _mesh, Urho3DBone[] bones)
-        {
-            writer.Write(Magic2);
-            writer.Write(1);
-            for (var vbIndex = 0; vbIndex < 1 /*_mesh.vertexBufferCount*/; ++vbIndex)
-            {
-                var positions = _mesh.vertices;
-                var normals = _mesh.normals;
-                var colors = _mesh.colors;
-                var tangents = _mesh.tangents;
-                var boneWeights = _mesh.boneWeights;
-                var uvs = _mesh.uv;
-                var uvs2 = _mesh.uv2;
-                var uvs3 = _mesh.uv3;
-                var uvs4 = _mesh.uv4;
-
-                writer.Write(positions.Length);
-                var elements = new List<MeshStreamWriter>();
-                if (positions.Length > 0)
-                    elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
-                if (normals.Length > 0)
-                    elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
-                if (boneWeights.Length > 0)
-                {
-                    var indices = new Vector4[boneWeights.Length];
-                    var weights = new Vector4[boneWeights.Length];
-                    for (var i = 0; i < boneWeights.Length; ++i)
-                    {
-                        indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
-                            boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
-                        weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
-                            boneWeights[i].weight2, boneWeights[i].weight3);
-                    }
-
-                    elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
-                    elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
-                }
-
-                //if (colors.Length > 0)
-                //{
-                //    elements.Add(new MeshColorStream(colors, VertexElementSemantic.SEM_COLOR));
-                //}
-                if (tangents.Length > 0)
-                    elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
-                if (uvs.Length > 0)
-                    elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
-                if (uvs2.Length > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
-                if (uvs3.Length > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 2));
-                if (uvs4.Length > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 3));
-                writer.Write(elements.Count);
-                for (var i = 0; i < elements.Count; ++i)
-                    writer.Write(elements[i].Element);
-                var morphableVertexRangeStartIndex = 0;
-                var morphableVertexCount = 0;
-                writer.Write(morphableVertexRangeStartIndex);
-                writer.Write(morphableVertexCount);
-                for (var index = 0; index < positions.Length; ++index)
-                for (var i = 0; i < elements.Count; ++i)
-                    elements[i].Write(writer, index);
-                var indicesPerSubMesh = new List<int[]>();
-                var totalIndices = 0;
-                for (var subMeshIndex = 0; subMeshIndex < _mesh.subMeshCount; ++subMeshIndex)
-                {
-                    var indices = _mesh.GetIndices(subMeshIndex);
-                    indicesPerSubMesh.Add(indices);
-                    totalIndices += indices.Length;
-                }
-
-                writer.Write(1);
-                writer.Write(totalIndices);
-                if (positions.Length < 65536)
-                {
-                    writer.Write(2);
-                    for (var subMeshIndex = 0; subMeshIndex < _mesh.subMeshCount; ++subMeshIndex)
-                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Length; ++i)
-                        writer.Write((ushort) indicesPerSubMesh[subMeshIndex][i]);
-                }
-                else
-                {
-                    writer.Write(4);
-                    for (var subMeshIndex = 0; subMeshIndex < _mesh.subMeshCount; ++subMeshIndex)
-                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Length; ++i)
-                        writer.Write(indicesPerSubMesh[subMeshIndex][i]);
-                }
-
-                writer.Write(indicesPerSubMesh.Count);
-                totalIndices = 0;
-                for (var subMeshIndex = 0; subMeshIndex < indicesPerSubMesh.Count; ++subMeshIndex)
-                {
-                    var numberOfBoneMappingEntries = 0;
-                    writer.Write(numberOfBoneMappingEntries);
-                    var numberOfLODLevels = 1;
-                    writer.Write(numberOfLODLevels);
-                    writer.Write(0.0f);
-                    writer.Write((int) PrimitiveType.TRIANGLE_LIST);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(totalIndices);
-                    writer.Write(indicesPerSubMesh[subMeshIndex].Length);
-                    totalIndices += indicesPerSubMesh[subMeshIndex].Length;
-                }
-
-                var numMorphTargets = 0;
-                writer.Write(numMorphTargets);
-
+                var bones = BuildBones(mesh);
                 var numOfBones = bones.Length;
                 writer.Write(numOfBones);
-                var boneIndex = 0;
+                int boneIndex = 0;
                 foreach (var bone in bones)
                 {
+
                     WriteStringSZ(writer, bone.name);
                     writer.Write(bone.parent); //Parent
                     Write(writer, bone.actualPos);
@@ -699,7 +577,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 float maxX, maxY, maxZ;
                 maxX = maxY = maxZ = float.MinValue;
                 minX = minY = minZ = float.MaxValue;
-                for (var i = 0; i < positions.Length; ++i)
+                for (var i = 0; i < positions.Count; ++i)
                 {
                     if (minX > positions[i].x)
                         minX = positions[i].x;
@@ -858,7 +736,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.Write(positions[index].w);
             }
         }
+        internal class MeshColor32Stream : MeshStreamWriter
+        {
+            private readonly IList<Color32> colors;
 
+            public MeshColor32Stream(IList<Color32> colors, VertexElementSemantic sem, int index = 0)
+            {
+                this.colors = colors;
+                Element = (int)VertexElementType.TYPE_UBYTE4_NORM | ((int)sem << 8) | (index << 16);
+            }
+
+            public override void Write(BinaryWriter writer, int index)
+            {
+                writer.Write(colors[index].r);
+                writer.Write(colors[index].g);
+                writer.Write(colors[index].b);
+                writer.Write(colors[index].a);
+            }
+        }
         internal class MeshUByte4Stream : MeshStreamWriter
         {
             private readonly Vector4[] positions;
