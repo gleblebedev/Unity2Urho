@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -32,7 +31,6 @@ namespace UnityToCustomEngineExporter.Editor
             var window = (ExportOptions) GetWindow(typeof(ExportOptions));
             window.Show();
         }
-
 
 
         private static bool ValidateExportPath(string exportFolder)

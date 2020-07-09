@@ -11,231 +11,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class MaterialExporter
     {
-        public UrhoPBRMaterial FromSpecularGlossiness(SpecularGlossinessShaderArguments arguments)
-        {
-            var material = new UrhoPBRMaterial();
-            material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
-            material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
-            var diffuseTextrueName = _engine.EvaluateTextrueName(arguments.Diffuse);
-            var specularTexture = _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture);
-            string smoothnessTexture;
-            if (arguments.Smoothness.Texture == arguments.Diffuse)
-            {
-                smoothnessTexture = diffuseTextrueName;
-            }
-            else
-            {
-                smoothnessTexture = specularTexture;
-            }
-
-            if (string.IsNullOrWhiteSpace(specularTexture) && string.IsNullOrWhiteSpace(diffuseTextrueName))
-            {
-                var pbrValues = PBRUtils.ConvertToMetallicRoughnessSRGB(new PBRUtils.SpecularGlossiness()
-                {
-                    diffuse = arguments.DiffuseColor,
-                    specular = arguments.PBRSpecular.Color,
-                    opacity = arguments.DiffuseColor.a,
-                    glossiness = arguments.Glossiness
-                }).linear();
-                material.BaseColor = pbrValues.baseColor;
-                material.Metallic = pbrValues.metallic;
-                material.Roughness = pbrValues.roughness;
-            }
-            else
-            {
-                {
-                    var baseColorTextureNameBuilder = new StringBuilder();
-                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
-                    {
-                        baseColorTextureNameBuilder.Append(Path.GetDirectoryName(diffuseTextrueName).FixAssetSeparator());
-                    }
-                    else
-                    {
-                        baseColorTextureNameBuilder.Append(Path.GetDirectoryName(specularTexture).FixAssetSeparator());
-                    }
-                    if (baseColorTextureNameBuilder.Length > 0) baseColorTextureNameBuilder.Append('/');
-                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
-                    {
-                        baseColorTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(diffuseTextrueName));
-                    }
-                    else
-                    {
-                        baseColorTextureNameBuilder.Append(FormatRGB(arguments.DiffuseColor.linear));
-                    }
-                    baseColorTextureNameBuilder.Append('.');
-                    if (!string.IsNullOrWhiteSpace(specularTexture))
-                    {
-                        baseColorTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(specularTexture));
-                    }
-                    else
-                    {
-                        baseColorTextureNameBuilder.Append(FormatRGB(arguments.PBRSpecular.Color.linear));
-                    }
-
-                    baseColorTextureNameBuilder.Append(".BaseColor.png");
-                    material.BaseColorTexture = baseColorTextureNameBuilder.ToString();
-                }
-                {
-                    var metallicTextureNameBuilder = new StringBuilder();
-                    if (!string.IsNullOrWhiteSpace(specularTexture))
-                    {
-                        metallicTextureNameBuilder.Append(Path.GetDirectoryName(specularTexture).FixAssetSeparator());
-                    }
-                    else
-                    {
-                        metallicTextureNameBuilder.Append(Path.GetDirectoryName(diffuseTextrueName).FixAssetSeparator());
-                    }
-                    if (metallicTextureNameBuilder.Length > 0) metallicTextureNameBuilder.Append('/');
-                    if (!string.IsNullOrWhiteSpace(specularTexture))
-                    {
-                        metallicTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(specularTexture));
-                    }
-                    else
-                    {
-                        metallicTextureNameBuilder.Append(FormatRGB(arguments.PBRSpecular.Color.linear));
-                    }
-
-                    metallicTextureNameBuilder.Append('.');
-                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
-                    {
-                        metallicTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(diffuseTextrueName));
-                    }
-                    else
-                    {
-                        metallicTextureNameBuilder.Append(FormatRGB(arguments.DiffuseColor.linear));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(smoothnessTexture))
-                    {
-                        if (arguments.GlossinessTextureScale < 0.999f)
-                        {
-                            metallicTextureNameBuilder.Append('.');
-                            metallicTextureNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}", arguments.GlossinessTextureScale);
-                        }
-                    }
-                    else
-                    {
-                        if (arguments.Glossiness > 0)
-                        {
-                            metallicTextureNameBuilder.Append('.');
-                            metallicTextureNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}", arguments.Glossiness);
-                        }
-                    }
-                    metallicTextureNameBuilder.Append(".MetallicRoughness.png");
-                    material.MetallicRoughnessTexture = metallicTextureNameBuilder.ToString();
-                }
-
-                if (arguments.Diffuse != null)
-                {
-                    material.BaseColor = arguments.DiffuseColor.linear;
-                }
-                else
-                {
-                    material.BaseColor = Color.white;
-                }
-            }
-            material.AlphaBlend = arguments.Transparent;
-            material.AlphaTest = arguments.AlphaTest;
-            if (arguments.Emission != null)
-            {
-                material.EmissiveColor = Color.white;
-            }
-            else
-            {
-                material.EmissiveColor = arguments.EmissiveColor.linear;
-            }
-            material.MatSpecColor = new Color(1, 1, 1, 0);
-            material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
-            material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
-            material.EvaluateTechnique();
-            return material;
-        }
-
-        private string FormatRGB(Color32 color)
-        {
-            return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);
-        }
-
-        public UrhoPBRMaterial FromMetallicGlossiness(MetallicGlossinessShaderArguments arguments)
-        {
-            var material = new UrhoPBRMaterial();
-            material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
-            material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
-            material.BaseColorTexture = _engine.EvaluateTextrueName(arguments.BaseColor);
-            var metalicGlossinesTexture = _engine.EvaluateTextrueName(arguments.MetallicGloss);
-            var smoothnessTexture = _engine.EvaluateTextrueName(arguments.Smoothness);
-            var linearMetallic = new Color(arguments.Metallic, 0, 0, 1).linear.r;
-            if (string.IsNullOrWhiteSpace(metalicGlossinesTexture) && string.IsNullOrWhiteSpace(smoothnessTexture))
-            {
-                material.Metallic = linearMetallic;
-                material.Roughness = 1.0f - arguments.Glossiness;
-            }
-            else
-            {
-                var texNameBuilder = new StringBuilder();
-                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
-                {
-                    texNameBuilder.Append(Path.GetDirectoryName(metalicGlossinesTexture).FixAssetSeparator());
-                }
-                else
-                {
-                    texNameBuilder.Append(Path.GetDirectoryName(smoothnessTexture).FixAssetSeparator());
-                }
-                if (texNameBuilder.Length > 0) texNameBuilder.Append('/');
-
-                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
-                {
-                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(metalicGlossinesTexture));
-                }
-                else
-                {
-                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.00}", linearMetallic);
-                }
-
-                if (smoothnessTexture != metalicGlossinesTexture)
-                {
-                    texNameBuilder.Append('.');
-                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(smoothnessTexture));
-                }
-                if (arguments.GlossinessTextureScale < 0.999f)
-                {
-                    texNameBuilder.Append('.');
-                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}", arguments.GlossinessTextureScale);
-                }
-                texNameBuilder.Append(".MetallicRoughness.png");
-                material.MetallicRoughnessTexture = texNameBuilder.ToString();
-            }
-            material.BaseColor = arguments.BaseColorColor.linear;
-            material.AlphaBlend = arguments.Transparent;
-            material.AlphaTest = arguments.AlphaTest;
-            material.EmissiveColor = arguments.EmissiveColor.linear;
-            material.MatSpecColor = new Color(1,1,1,0);
-            material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
-            material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
-            material.EvaluateTechnique();
-            return material;
-        }
-
-        private string BuildAOTextureName(Texture occlusion, float occlusionStrength)
-        {
-            if (occlusion == null)
-                return null;
-            if (occlusionStrength <= 0)
-                return null;
-            var baseName = _engine.EvaluateTextrueName(occlusion);
-            if (occlusionStrength >= 0.999f)
-            {
-                return ExportUtils.ReplaceExtension(baseName, ".AO.png");
-            }
-            else
-            {
-                return ExportUtils.ReplaceExtension(baseName, string.Format(CultureInfo.InvariantCulture, ".AO.{0:0.000}.png", occlusionStrength));
-            }
-        }
-
-
         public static Technique[] Techniques =
         {
             new Technique {Material = new LegacyTechniqueFlags(), Name = "NoTexture.xml"},
@@ -340,6 +115,174 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
         }
+
+        public UrhoPBRMaterial FromSpecularGlossiness(SpecularGlossinessShaderArguments arguments)
+        {
+            var material = new UrhoPBRMaterial();
+            material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
+            material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
+            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            var diffuseTextrueName = _engine.EvaluateTextrueName(arguments.Diffuse);
+            var specularTexture = _engine.EvaluateTextrueName(arguments.PBRSpecular.Texture);
+            string smoothnessTexture;
+            if (arguments.Smoothness.Texture == arguments.Diffuse)
+                smoothnessTexture = diffuseTextrueName;
+            else
+                smoothnessTexture = specularTexture;
+
+            if (string.IsNullOrWhiteSpace(specularTexture) && string.IsNullOrWhiteSpace(diffuseTextrueName))
+            {
+                var pbrValues = PBRUtils.ConvertToMetallicRoughnessSRGB(new PBRUtils.SpecularGlossiness
+                {
+                    diffuse = arguments.DiffuseColor,
+                    specular = arguments.PBRSpecular.Color,
+                    opacity = arguments.DiffuseColor.a,
+                    glossiness = arguments.Glossiness
+                }).linear();
+                material.BaseColor = pbrValues.baseColor;
+                material.Metallic = pbrValues.metallic;
+                material.Roughness = pbrValues.roughness;
+            }
+            else
+            {
+                {
+                    var baseColorTextureNameBuilder = new StringBuilder();
+                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
+                        baseColorTextureNameBuilder.Append(
+                            Path.GetDirectoryName(diffuseTextrueName).FixAssetSeparator());
+                    else
+                        baseColorTextureNameBuilder.Append(Path.GetDirectoryName(specularTexture).FixAssetSeparator());
+                    if (baseColorTextureNameBuilder.Length > 0) baseColorTextureNameBuilder.Append('/');
+                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
+                        baseColorTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(diffuseTextrueName));
+                    else
+                        baseColorTextureNameBuilder.Append(FormatRGB(arguments.DiffuseColor.linear));
+                    baseColorTextureNameBuilder.Append('.');
+                    if (!string.IsNullOrWhiteSpace(specularTexture))
+                        baseColorTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(specularTexture));
+                    else
+                        baseColorTextureNameBuilder.Append(FormatRGB(arguments.PBRSpecular.Color.linear));
+
+                    baseColorTextureNameBuilder.Append(".BaseColor.png");
+                    material.BaseColorTexture = baseColorTextureNameBuilder.ToString();
+                }
+                {
+                    var metallicTextureNameBuilder = new StringBuilder();
+                    if (!string.IsNullOrWhiteSpace(specularTexture))
+                        metallicTextureNameBuilder.Append(Path.GetDirectoryName(specularTexture).FixAssetSeparator());
+                    else
+                        metallicTextureNameBuilder.Append(Path.GetDirectoryName(diffuseTextrueName)
+                            .FixAssetSeparator());
+                    if (metallicTextureNameBuilder.Length > 0) metallicTextureNameBuilder.Append('/');
+                    if (!string.IsNullOrWhiteSpace(specularTexture))
+                        metallicTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(specularTexture));
+                    else
+                        metallicTextureNameBuilder.Append(FormatRGB(arguments.PBRSpecular.Color.linear));
+
+                    metallicTextureNameBuilder.Append('.');
+                    if (!string.IsNullOrWhiteSpace(diffuseTextrueName))
+                        metallicTextureNameBuilder.Append(Path.GetFileNameWithoutExtension(diffuseTextrueName));
+                    else
+                        metallicTextureNameBuilder.Append(FormatRGB(arguments.DiffuseColor.linear));
+
+                    if (!string.IsNullOrWhiteSpace(smoothnessTexture))
+                    {
+                        if (arguments.GlossinessTextureScale < 0.999f)
+                        {
+                            metallicTextureNameBuilder.Append('.');
+                            metallicTextureNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}",
+                                arguments.GlossinessTextureScale);
+                        }
+                    }
+                    else
+                    {
+                        if (arguments.Glossiness > 0)
+                        {
+                            metallicTextureNameBuilder.Append('.');
+                            metallicTextureNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}",
+                                arguments.Glossiness);
+                        }
+                    }
+
+                    metallicTextureNameBuilder.Append(".MetallicRoughness.png");
+                    material.MetallicRoughnessTexture = metallicTextureNameBuilder.ToString();
+                }
+
+                if (arguments.Diffuse != null)
+                    material.BaseColor = arguments.DiffuseColor.linear;
+                else
+                    material.BaseColor = Color.white;
+            }
+
+            material.AlphaBlend = arguments.Transparent;
+            material.AlphaTest = arguments.AlphaTest;
+            if (arguments.Emission != null)
+                material.EmissiveColor = Color.white;
+            else
+                material.EmissiveColor = arguments.EmissiveColor.linear;
+            material.MatSpecColor = new Color(1, 1, 1, 0);
+            material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
+            material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
+            material.EvaluateTechnique();
+            return material;
+        }
+
+        public UrhoPBRMaterial FromMetallicGlossiness(MetallicGlossinessShaderArguments arguments)
+        {
+            var material = new UrhoPBRMaterial();
+            material.NormalTexture = _engine.EvaluateTextrueName(arguments.Bump);
+            material.EmissiveTexture = _engine.EvaluateTextrueName(arguments.Emission);
+            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            material.BaseColorTexture = _engine.EvaluateTextrueName(arguments.BaseColor);
+            var metalicGlossinesTexture = _engine.EvaluateTextrueName(arguments.MetallicGloss);
+            var smoothnessTexture = _engine.EvaluateTextrueName(arguments.Smoothness);
+            var linearMetallic = new Color(arguments.Metallic, 0, 0, 1).linear.r;
+            if (string.IsNullOrWhiteSpace(metalicGlossinesTexture) && string.IsNullOrWhiteSpace(smoothnessTexture))
+            {
+                material.Metallic = linearMetallic;
+                material.Roughness = 1.0f - arguments.Glossiness;
+            }
+            else
+            {
+                var texNameBuilder = new StringBuilder();
+                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
+                    texNameBuilder.Append(Path.GetDirectoryName(metalicGlossinesTexture).FixAssetSeparator());
+                else
+                    texNameBuilder.Append(Path.GetDirectoryName(smoothnessTexture).FixAssetSeparator());
+                if (texNameBuilder.Length > 0) texNameBuilder.Append('/');
+
+                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
+                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(metalicGlossinesTexture));
+                else
+                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.00}", linearMetallic);
+
+                if (smoothnessTexture != metalicGlossinesTexture)
+                {
+                    texNameBuilder.Append('.');
+                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(smoothnessTexture));
+                }
+
+                if (arguments.GlossinessTextureScale < 0.999f)
+                {
+                    texNameBuilder.Append('.');
+                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}",
+                        arguments.GlossinessTextureScale);
+                }
+
+                texNameBuilder.Append(".MetallicRoughness.png");
+                material.MetallicRoughnessTexture = texNameBuilder.ToString();
+            }
+
+            material.BaseColor = arguments.BaseColorColor.linear;
+            material.AlphaBlend = arguments.Transparent;
+            material.AlphaTest = arguments.AlphaTest;
+            material.EmissiveColor = arguments.EmissiveColor.linear;
+            material.MatSpecColor = new Color(1, 1, 1, 0);
+            material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
+            material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
+            material.EvaluateTechnique();
+            return material;
+        }
         //private void ExportStandartMaterial(Material mat, XmlWriter xmlStream)
         //{
         //    var _MainTex = mat.GetTexture("_MainTex");
@@ -368,12 +311,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (material == null)
                 return null;
             var assetPath = AssetDatabase.GetAssetPath(material);
-            if (String.IsNullOrWhiteSpace(assetPath))
+            if (string.IsNullOrWhiteSpace(assetPath))
                 return null;
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
-                return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath), ".xml");
+                return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath),
+                    ".xml");
             var newExt = "/" + ExportUtils.SafeFileName(material.name) + ".xml";
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath), newExt);
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath),
+                newExt);
         }
 
         public void ExportMaterial(Material material)
@@ -382,15 +327,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var mat = new MaterialDescription(material);
             var assetGuid = material.GetKey();
             if (mat.SpecularGlossiness != null)
-            {
                 ExportSpecularGlossiness(assetGuid, path, mat.SpecularGlossiness);
-            }
             else if (mat.MetallicGlossiness != null)
                 ExportMetallicRoughness(assetGuid, path, mat.MetallicGlossiness);
             else if (mat.Skybox != null)
                 ExportSkybox(assetGuid, path, mat.Skybox);
             else
                 ExportLegacy(assetGuid, path, mat.Legacy ?? new LegacyShaderArguments());
+        }
+
+        private string FormatRGB(Color32 color)
+        {
+            return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);
+        }
+
+        private string BuildAOTextureName(Texture occlusion, float occlusionStrength)
+        {
+            if (occlusion == null)
+                return null;
+            if (occlusionStrength <= 0)
+                return null;
+            var baseName = _engine.EvaluateTextrueName(occlusion);
+            if (occlusionStrength >= 0.999f)
+                return ExportUtils.ReplaceExtension(baseName, ".AO.png");
+            return ExportUtils.ReplaceExtension(baseName,
+                string.Format(CultureInfo.InvariantCulture, ".AO.{0:0.000}.png", occlusionStrength));
         }
 
         private void WriteTechnique(XmlWriter writer, string name)
@@ -411,7 +372,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private bool WriteTexture(string urhoAssetName, XmlWriter writer, string name)
         {
-            if (String.IsNullOrWhiteSpace(urhoAssetName))
+            if (string.IsNullOrWhiteSpace(urhoAssetName))
                 return false;
             {
                 writer.WriteWhitespace("\t");
@@ -443,24 +404,30 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     _engine.ScheduleAssetExport(arguments.Skybox);
                     string name;
                     if (arguments.Skybox is Cubemap cubemap)
+                    {
                         name = _engine.EvaluateCubemapName(cubemap);
+                    }
                     else
                     {
                         name = _engine.EvaluateTextrueName(arguments.Skybox);
                         technique = "Techniques/DiffSkydome.xml";
                     }
 
-                    if (!String.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse");
+                    if (!string.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse");
                 }
                 else if (anyFace != null)
                 {
-                    var cubemapName = ExportUtils.ReplaceExtension(urhoPath,".Cubemap.xml");
+                    var cubemapName = ExportUtils.ReplaceExtension(urhoPath, ".Cubemap.xml");
                     using (var cubemapWriter = _engine.TryCreateXml(assetGuid, cubemapName, DateTime.MaxValue))
                     {
                         if (cubemapWriter != null)
                         {
                             cubemapWriter.WriteStartElement("cubemap");
-                            foreach (var tex in new []{arguments.RightTex, arguments.LeftTex, arguments.UpTex, arguments.DownTex, arguments.FrontTex, arguments.BackTex })
+                            foreach (var tex in new[]
+                            {
+                                arguments.RightTex, arguments.LeftTex, arguments.UpTex, arguments.DownTex,
+                                arguments.FrontTex, arguments.BackTex
+                            })
                             {
                                 cubemapWriter.WriteWhitespace(Environment.NewLine);
                                 cubemapWriter.WriteStartElement("face");
@@ -468,6 +435,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                                 cubemapWriter.WriteEndElement();
                                 _engine.ScheduleTexture(tex, new TextureReference(TextureSemantic.Other));
                             }
+
                             cubemapWriter.WriteWhitespace(Environment.NewLine);
                             cubemapWriter.WriteStartElement("address");
                             cubemapWriter.WriteAttributeString("coord", "uv");
@@ -483,9 +451,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             cubemapWriter.WriteEndElement();
                             cubemapWriter.WriteWhitespace(Environment.NewLine);
                             cubemapWriter.WriteEndElement();
-
                         }
                     }
+
                     WriteTexture(cubemapName, writer, "diffuse");
                 }
                 else
@@ -562,7 +530,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void ExportMetallicRoughness(AssetKey assetGuid, string urhoPath, MetallicGlossinessShaderArguments arguments)
+        private void ExportMetallicRoughness(AssetKey assetGuid, string urhoPath,
+            MetallicGlossinessShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {
@@ -607,13 +576,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteTexture(urhoMaterial.NormalTexture, writer, "normal");
             WriteTexture(urhoMaterial.MetallicRoughnessTexture, writer, "specular");
             if (!string.IsNullOrWhiteSpace(urhoMaterial.EmissiveTexture))
-            {
                 WriteTexture(urhoMaterial.EmissiveTexture, writer, "emissive");
-            }
             else
-            {
                 WriteTexture(urhoMaterial.AOTexture, writer, "emissive");
-            }
 
             writer.WriteParameter("MatEmissiveColor", urhoMaterial.EmissiveColor);
             writer.WriteParameter("MatDiffColor", urhoMaterial.BaseColor);
@@ -629,7 +594,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
 
-        private void ExportSpecularGlossiness(AssetKey assetGuid, string urhoPath, SpecularGlossinessShaderArguments arguments)
+        private void ExportSpecularGlossiness(AssetKey assetGuid, string urhoPath,
+            SpecularGlossinessShaderArguments arguments)
         {
             using (var writer = _engine.TryCreateXml(assetGuid, urhoPath, DateTime.MaxValue))
             {
@@ -651,10 +617,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void WriteCommonParameters(XmlWriter writer, ShaderArguments arguments)
         {
-            writer.WriteParameter( "UOffset", new Vector4(arguments.MainTextureScale.x, 0, 0,
-                    arguments.MainTextureOffset.x));
+            writer.WriteParameter("UOffset", new Vector4(arguments.MainTextureScale.x, 0, 0,
+                arguments.MainTextureOffset.x));
             writer.WriteParameter("VOffset", new Vector4(0, arguments.MainTextureScale.y, 0,
-                    arguments.MainTextureOffset.y));
+                arguments.MainTextureOffset.y));
             if (arguments.AlphaTest) WriteAlphaTest(writer);
         }
     }

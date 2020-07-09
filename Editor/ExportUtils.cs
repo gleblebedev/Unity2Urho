@@ -4,7 +4,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -26,9 +25,7 @@ namespace UnityToCustomEngineExporter.Editor
             if (asset == null)
                 return AssetKey.Empty;
             if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long localId))
-            {
                 return new AssetKey(guid, localId);
-            }
             var assetPath = AssetDatabase.GetAssetPath(asset);
             if (string.IsNullOrWhiteSpace(assetPath))
                 return AssetKey.Empty;
@@ -54,14 +51,11 @@ namespace UnityToCustomEngineExporter.Editor
             if (!string.IsNullOrWhiteSpace(subfolder))
             {
                 if (subfolder.EndsWith("/"))
-                {
                     result = subfolder + result;
-                }
                 else
-                {
                     result = subfolder + "/" + result;
-                }
             }
+
             return result;
         }
 
@@ -86,12 +80,14 @@ namespace UnityToCustomEngineExporter.Editor
             var relPath = GetRelPathFromAsset(null, asset);
             return GetLastWriteTimeUtcFromRelPath(relPath);
         }
+
         public static DateTime GetLastWriteTimeUtc(params Object[] assets)
         {
             if (assets == null)
                 return DateTime.MinValue;
             return MaxDateTime(assets.Select(_ => GetLastWriteTimeUtc(_)).ToArray());
         }
+
         public static string SafeFileName(string name)
         {
             if (string.IsNullOrEmpty(name)) return name;
@@ -117,21 +113,11 @@ namespace UnityToCustomEngineExporter.Editor
             return max;
         }
 
-        private static DateTime GetLastWriteTimeUtcFromRelPath(string relPath)
-        {
-            if (string.IsNullOrWhiteSpace(relPath))
-                return DateTime.MaxValue;
-            var file = Path.Combine(Application.dataPath, relPath);
-            if (!File.Exists(file))
-                return DateTime.MaxValue;
-            return File.GetLastWriteTimeUtc(file);
-        }
-
         public static Object[] LoadAllAssetsAtPath(string assetPath)
         {
-            return typeof(SceneAsset).Equals(AssetDatabase.GetMainAssetTypeAtPath(assetPath)) ?
-                new[] { AssetDatabase.LoadMainAssetAtPath(assetPath) } :
-                AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            return typeof(SceneAsset).Equals(AssetDatabase.GetMainAssetTypeAtPath(assetPath))
+                ? new[] {AssetDatabase.LoadMainAssetAtPath(assetPath)}
+                : AssetDatabase.LoadAllAssetsAtPath(assetPath);
         }
 
         public static TextureOptions GetTextureOptions(Texture texture)
@@ -142,7 +128,7 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 var options = new TextureOptions();
                 var type = tImporter.textureType;
-                options.sRGBTexture = (type == TextureImporterType.Default)?tImporter.sRGBTexture:false;
+                options.sRGBTexture = type == TextureImporterType.Default ? tImporter.sRGBTexture : false;
                 options.filterMode = tImporter.filterMode;
                 options.wrapMode = tImporter.wrapMode;
                 options.mipmapEnabled = tImporter.mipmapEnabled;
@@ -150,6 +136,16 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             return null;
+        }
+
+        private static DateTime GetLastWriteTimeUtcFromRelPath(string relPath)
+        {
+            if (string.IsNullOrWhiteSpace(relPath))
+                return DateTime.MaxValue;
+            var file = Path.Combine(Application.dataPath, relPath);
+            if (!File.Exists(file))
+                return DateTime.MaxValue;
+            return File.GetLastWriteTimeUtc(file);
         }
     }
 }

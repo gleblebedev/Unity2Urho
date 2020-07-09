@@ -1,5 +1,4 @@
-﻿using System.Text;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -44,14 +43,30 @@ namespace UnityToCustomEngineExporter.Editor
                     var texture = material.GetTexture(propertyName);
                     switch (propertyName)
                     {
-                        case "_Tex": setupProceduralSkybox.Skybox = texture; break;
-                        case "_MainTex": setupProceduralSkybox.Skybox = texture; break;
-                        case "_FrontTex": setupProceduralSkybox.FrontTex = texture; break;
-                        case "_BackTex": setupProceduralSkybox.BackTex = texture; break;
-                        case "_LeftTex": setupProceduralSkybox.LeftTex = texture; break;
-                        case "_RightTex": setupProceduralSkybox.RightTex = texture; break;
-                        case "_UpTex": setupProceduralSkybox.UpTex = texture; break;
-                        case "_DownTex": setupProceduralSkybox.DownTex = texture; break;
+                        case "_Tex":
+                            setupProceduralSkybox.Skybox = texture;
+                            break;
+                        case "_MainTex":
+                            setupProceduralSkybox.Skybox = texture;
+                            break;
+                        case "_FrontTex":
+                            setupProceduralSkybox.FrontTex = texture;
+                            break;
+                        case "_BackTex":
+                            setupProceduralSkybox.BackTex = texture;
+                            break;
+                        case "_LeftTex":
+                            setupProceduralSkybox.LeftTex = texture;
+                            break;
+                        case "_RightTex":
+                            setupProceduralSkybox.RightTex = texture;
+                            break;
+                        case "_UpTex":
+                            setupProceduralSkybox.UpTex = texture;
+                            break;
+                        case "_DownTex":
+                            setupProceduralSkybox.DownTex = texture;
+                            break;
                     }
                 }
             }

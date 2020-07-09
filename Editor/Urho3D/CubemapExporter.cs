@@ -42,7 +42,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return;
 
             var resourceName = EvaluateCubemapName(texture);
-            using (var writer = _engine.TryCreateXml(texture.GetKey(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
+            using (var writer =
+                _engine.TryCreateXml(texture.GetKey(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
             {
                 if (writer != null)
                 {
@@ -52,7 +53,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteStartElement("cubemap");
                     writer.WriteWhitespace(Environment.NewLine);
                     writer.WriteStartElement("srgb");
-                    writer.WriteAttributeString("enable", srgb?"true":"false");
+                    writer.WriteAttributeString("enable", srgb ? "true" : "false");
                     writer.WriteEndElement();
                     writer.WriteStartElement("image");
                     writer.WriteAttributeString("name", Path.GetFileName(ddsName));

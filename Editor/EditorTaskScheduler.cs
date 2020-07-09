@@ -115,6 +115,23 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
+        public void DisplayProgressBar()
+        {
+            lock (_gate)
+            {
+                if (_foregroundTasks.Count == 0 && _enumeration == null)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+                else
+                {
+                    var counter = (float) _completeForegroundTasksCounter;
+                    EditorUtility.DisplayProgressBar("Hold on...", CurrentReport.Message,
+                        counter / (counter + _foregroundTasks.Count + 1));
+                }
+            }
+        }
+
         private async Task CallBackgroundTask(Func<Task> task, ProgressBarReport report)
         {
             CurrentReport = report;
@@ -173,10 +190,8 @@ namespace UnityToCustomEngineExporter.Editor
                                     EditorApplication.CallbackFunction;
                             return;
                         }
-                        else
-                        {
-                            ++_completeForegroundTasksCounter;
-                        }
+
+                        ++_completeForegroundTasksCounter;
 
                         task = _foregroundTasks.Dequeue();
                     }
@@ -191,22 +206,6 @@ namespace UnityToCustomEngineExporter.Editor
                         Debug.LogError(exception);
                     }
                 }
-        }
-
-        public void DisplayProgressBar()
-        {
-            lock (_gate)
-            {
-                if (_foregroundTasks.Count == 0 && _enumeration == null)
-                {
-                    EditorUtility.ClearProgressBar();
-                }
-                else
-                {
-                    var counter = (float)_completeForegroundTasksCounter;
-                    EditorUtility.DisplayProgressBar("Hold on...", CurrentReport.Message, counter/(counter+_foregroundTasks.Count+1));
-                }
-            }
         }
     }
 }

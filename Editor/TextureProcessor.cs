@@ -33,7 +33,8 @@ namespace UnityToCustomEngineExporter.Editor
             ProcessAndSaveTexture(sourceTexture, sourceTexture.width, sourceTexture.height, material, fullOutputPath);
         }
 
-        public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material, string fullOutputPath)
+        public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material,
+            string fullOutputPath)
         {
             RenderTexture renderTex = null;
             Texture2D texture = null;

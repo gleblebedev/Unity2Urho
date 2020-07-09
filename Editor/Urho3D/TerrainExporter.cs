@@ -33,17 +33,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateHeightMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Heightmap.tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+                ".Heightmap.tga");
         }
 
         public string EvaluateWeightsMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Weights.tga");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+                ".Weights.tga");
         }
 
         public string EvaluateMaterial(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData), ".Material.xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+                ".Material.xml");
         }
 
         public void ExportTerrain(TerrainData terrainData)
@@ -60,7 +63,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void WriteTerrainMaterial(TerrainData terrain)
         {
             using (var writer =
-                _engine.TryCreateXml(terrain.GetKey(), EvaluateMaterial(terrain), ExportUtils.GetLastWriteTimeUtc(terrain)))
+                _engine.TryCreateXml(terrain.GetKey(), EvaluateMaterial(terrain),
+                    ExportUtils.GetLastWriteTimeUtc(terrain)))
             {
                 if (writer == null)
                     return;

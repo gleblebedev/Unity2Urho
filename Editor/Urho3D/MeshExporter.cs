@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.ProBuilder;
 using Math = System.Math;
 using Object = UnityEngine.Object;
+
 //using UnityEngine.ProBuilder;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -38,6 +39,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly HashSet<Mesh> _meshes = new HashSet<Mesh>();
         private HashSet<Material> _materials = new HashSet<Material>();
 
+        private readonly Dictionary<Object, string> _dynamicMeshNames = new Dictionary<Object, string>();
+
         public MeshExporter(Urho3DEngine engine)
         {
             _engine = engine;
@@ -55,7 +58,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
             var aniFilePath = EvaluateAnimationName(clipAnimation);
-            using (var file = _engine.TryCreate(clipAnimation.GetKey(), aniFilePath, ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
+            using (var file = _engine.TryCreate(clipAnimation.GetKey(), aniFilePath,
+                ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
             {
                 if (file == null)
                     return;
@@ -134,21 +138,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject);
         }
 
-        private void ExportProBuilderMeshModel(ProBuilderMesh mesh)
-        {
-            var mdlFilePath = EvaluateMeshName(mesh);
-            using (var file = _engine.TryCreate(mesh.gameObject.GetKey(), mdlFilePath, ExportUtils.GetLastWriteTimeUtc(mesh)))
-            {
-                if (file != null)
-                {
-                    using (var writer = new BinaryWriter(file))
-                    {
-                        WriteProBuilderMesh(writer, mesh);
-                    }
-                }
-            }
-        }
-
         public void ExportMeshModel(Mesh mesh, SkinnedMeshRenderer skinnedMeshRenderer)
         {
             var mdlFilePath = EvaluateMeshName(mesh);
@@ -178,8 +167,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                    ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 
-        private Dictionary<Object, string> _dynamicMeshNames = new Dictionary<Object, string>();
-
         public string EvaluateMeshName(ProBuilderMesh mesh)
         {
             if (mesh == null)
@@ -190,13 +177,30 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = _engine.TempFolder + ExportUtils.SafeFileName(mesh.name)+"."+ _dynamicMeshNames .Count+ ".mdl";
+                name = _engine.TempFolder + ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +
+                       ".mdl";
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
+
             return ExportUtils.ReplaceExtension(assetUrhoAssetName, "") + "/" +
                    ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
+
+        private void ExportProBuilderMeshModel(ProBuilderMesh mesh)
+        {
+            var mdlFilePath = EvaluateMeshName(mesh);
+            using (var file = _engine.TryCreate(mesh.gameObject.GetKey(), mdlFilePath,
+                ExportUtils.GetLastWriteTimeUtc(mesh)))
+            {
+                if (file != null)
+                    using (var writer = new BinaryWriter(file))
+                    {
+                        WriteProBuilderMesh(writer, mesh);
+                    }
+            }
+        }
+
         private IEnumerable<GameObject> CloneTree(GameObject go)
         {
             if (go == null)
@@ -430,8 +434,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.Write(morphableVertexRangeStartIndex);
                 writer.Write(morphableVertexCount);
                 for (var index = 0; index < positions.Count; ++index)
-                    for (var i = 0; i < elements.Count; ++i)
-                        elements[i].Write(writer, index);
+                for (var i = 0; i < elements.Count; ++i)
+                    elements[i].Write(writer, index);
                 var indicesPerSubMesh = new List<List<int>>();
                 var totalIndices = 0;
                 var subMeshCount = _mesh.faces.Select(_ => _.submeshIndex).Max() + 1;
@@ -439,14 +443,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     var indices = new List<int>();
                     foreach (var face in _mesh.faces.Where(_ => _.submeshIndex == subMeshIndex))
-                    {
                         for (var tIndex = 2; tIndex < face.indexes.Count; ++tIndex)
                         {
                             indices.Add(face.indexes[0]);
                             indices.Add(face.indexes[tIndex - 1]);
                             indices.Add(face.indexes[tIndex]);
                         }
-                    }
 
                     indicesPerSubMesh.Add(indices);
                     totalIndices += indices.Count;
@@ -458,15 +460,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     writer.Write(2);
                     for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
-                        for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
-                            writer.Write((ushort)indicesPerSubMesh[subMeshIndex][i]);
+                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
+                        writer.Write((ushort) indicesPerSubMesh[subMeshIndex][i]);
                 }
                 else
                 {
                     writer.Write(4);
                     for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
-                        for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
-                            writer.Write(indicesPerSubMesh[subMeshIndex][i]);
+                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
+                        writer.Write(indicesPerSubMesh[subMeshIndex][i]);
                 }
 
                 writer.Write(indicesPerSubMesh.Count);
@@ -478,7 +480,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     var numberOfLODLevels = 1;
                     writer.Write(numberOfLODLevels);
                     writer.Write(0.0f);
-                    writer.Write((int)PrimitiveType.TRIANGLE_LIST);
+                    writer.Write((int) PrimitiveType.TRIANGLE_LIST);
                     writer.Write(0);
                     writer.Write(0);
                     writer.Write(totalIndices);

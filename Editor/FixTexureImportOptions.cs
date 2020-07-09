@@ -9,18 +9,25 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class FixTexureImportOptions : EditorWindow
     {
+        private readonly HashSet<Material> _visitedMaterials = new HashSet<Material>();
+        private readonly HashSet<Texture> _visitedTextures = new HashSet<Texture>();
+        private int _assetCount;
+
+        private int _assetIndex;
+
         //[MenuItem("Assets/Export/Fix texture import settings (sRGB, etc)")]
         public static void FixTextureSettings()
         {
-            var window = (FixTexureImportOptions)GetWindow(typeof(FixTexureImportOptions));
+            var window = (FixTexureImportOptions) GetWindow(typeof(FixTexureImportOptions));
             window.Show();
-            EditorTaskScheduler.Default.ScheduleForegroundTask(()=>window.FetchAllMaterials());
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => window.FetchAllMaterials());
         }
 
-        private HashSet<Material> _visitedMaterials = new HashSet<Material>();
-        private HashSet<Texture> _visitedTextures = new HashSet<Texture>();
-        private int _assetCount;
-        private int _assetIndex;
+        public void OnGUI()
+        {
+            EditorUtility.DisplayProgressBar("Hold on...", EditorTaskScheduler.Default.CurrentReport.Message,
+                _assetIndex / (float) _assetCount);
+        }
 
         private IEnumerable<ProgressBarReport> FetchAllMaterials()
         {
@@ -37,7 +44,6 @@ namespace UnityToCustomEngineExporter.Editor
                     assetsAtPath = ExportUtils.LoadAllAssetsAtPath(path);
 
                     foreach (var material in assetsAtPath.OfType<Material>())
-                    {
                         if (_visitedMaterials.Add(material))
                         {
                             var materialDescription = new MaterialDescription(material);
@@ -53,12 +59,8 @@ namespace UnityToCustomEngineExporter.Editor
                                 EnsureNormalMap(materialDescription.SpecularGlossiness.Bump);
                             }
 
-                            if (materialDescription.Legacy != null)
-                            {
-                                EnsureNormalMap(materialDescription.Legacy.Bump);
-                            }
+                            if (materialDescription.Legacy != null) EnsureNormalMap(materialDescription.Legacy.Bump);
                         }
-                    }
                 }
             }
             finally
@@ -66,12 +68,12 @@ namespace UnityToCustomEngineExporter.Editor
                 EditorUtility.ClearProgressBar();
             }
 
-            this.Close();
+            Close();
         }
 
         private void EnsureNormalMap(Texture texture)
         {
-            UpdateImporter(texture, (importer) =>
+            UpdateImporter(texture, importer =>
             {
                 if (importer.textureType != TextureImporterType.NormalMap)
                 {
@@ -102,20 +104,15 @@ namespace UnityToCustomEngineExporter.Editor
 
         private void DropSRGBFlag(Texture texture)
         {
-            UpdateImporter(texture, (importer) =>
+            UpdateImporter(texture, importer =>
             {
-                if (importer.sRGBTexture != false)
+                if (importer.sRGBTexture)
                 {
                     Debug.Log("Reimport texture " + AssetDatabase.GetAssetPath(texture) + "");
                     importer.sRGBTexture = false;
                     importer.SaveAndReimport();
                 }
             });
-        }
-
-        public void OnGUI()
-        {
-            EditorUtility.DisplayProgressBar("Hold on...", EditorTaskScheduler.Default.CurrentReport.Message, _assetIndex/(float)_assetCount);
         }
     }
 }

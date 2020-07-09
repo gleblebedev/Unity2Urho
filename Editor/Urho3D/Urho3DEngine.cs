@@ -5,26 +5,18 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
-using GLTF.Schema;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.ProBuilder;
-using Animation = UnityEngine.Animation;
-using Material = UnityEngine.Material;
-using Mesh = UnityEngine.Mesh;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
-using Scene = UnityEngine.SceneManagement.Scene;
-using Texture = UnityEngine.Texture;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class Urho3DEngine : AbstractDestinationEngine, IDestinationEngine
     {
         private readonly string _dataFolder;
-        private readonly string _subfolder;
         private readonly bool _exportUpdatedOnly;
-        private readonly bool _usePhysicalValues;
-        private Dictionary<Object, string> _assetPaths = new Dictionary<Object, string>();
         private readonly Dictionary<string, AssetKey> _createdFiles = new Dictionary<string, AssetKey>();
         private readonly TextureExporter _textureExporter;
         private readonly CubemapExporter _cubemapExporter;
@@ -34,6 +26,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly SceneExporter _sceneExporter;
         private readonly PrefabExporter _prefabExporter;
         private readonly TerrainExporter _terrainExporter;
+        private Dictionary<Object, string> _assetPaths = new Dictionary<Object, string>();
         private string _tempFolder;
 
         public Urho3DEngine(string dataFolder, string subfolder, CancellationToken cancellationToken,
@@ -42,15 +35,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             : base(cancellationToken)
         {
             _dataFolder = dataFolder;
-            _subfolder = (subfolder ?? "").FixAssetSeparator().Trim('/');
-            if (!string.IsNullOrWhiteSpace(_subfolder))
-            {
-                _subfolder += "/";
-            }
+            Subfolder = (subfolder ?? "").FixAssetSeparator().Trim('/');
+            if (!string.IsNullOrWhiteSpace(Subfolder)) Subfolder += "/";
 
-            TempFolder = _subfolder;
+            TempFolder = Subfolder;
             _exportUpdatedOnly = exportUpdatedOnly;
-            _usePhysicalValues = usePhysicalValues;
+            UsePhysicalValues = usePhysicalValues;
             _audioExporter = new AudioExporter(this);
             _textureExporter = new TextureExporter(this);
             _cubemapExporter = new CubemapExporter(this);
@@ -59,9 +49,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _sceneExporter = new SceneExporter(this, exportSceneAsPrefab, skipDisabled);
             _prefabExporter = new PrefabExporter(this, skipDisabled);
             _terrainExporter = new TerrainExporter(this);
-            CopyFolder(_subfolder, "bcc1b6196266be34e88c40110ba206ce");
+            CopyFolder(Subfolder, "bcc1b6196266be34e88c40110ba206ce");
             CopyFolder("", "a20749a09ce562043815b33e8eec4077");
             _createdFiles.Clear();
+        }
+
+        public string Subfolder { get; }
+
+        public bool UsePhysicalValues { get; }
+
+        public string TempFolder
+        {
+            get => _tempFolder;
+            set
+            {
+                _tempFolder = (value ?? "").FixAssetSeparator().Trim('/');
+                if (!string.IsNullOrWhiteSpace(_tempFolder))
+                    _tempFolder += "/";
+            }
         }
 
         public void CopyFolder(string subfolder, string guid)
@@ -76,28 +81,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var target = file.Substring(sourceFolderPath.Length).FixAssetSeparator();
                 if (!string.IsNullOrWhiteSpace(target))
                 {
-                    if (!string.IsNullOrWhiteSpace(subfolder))
-                    {
-                        target = subfolder + target;
-                    }
+                    if (!string.IsNullOrWhiteSpace(subfolder)) target = subfolder + target;
 
-                    string assetPath = file.Substring(rootPath.Length);
+                    var assetPath = file.Substring(rootPath.Length);
                     var sourceFilePath = Path.Combine(Path.GetDirectoryName(Application.dataPath), assetPath);
                     if (File.Exists(sourceFilePath))
                     {
                         var targetPath = GetTargetFilePath(target);
                         if (_exportUpdatedOnly)
-                        {
                             if (File.Exists(targetPath))
                             {
                                 var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
                                 var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
-                                if (sourceLastWriteTimeUtc <= lastWriteTimeUtc)
-                                {
-                                    continue;
-                                }
+                                if (sourceLastWriteTimeUtc <= lastWriteTimeUtc) continue;
                             }
-                        }
+
                         var directoryName = Path.GetDirectoryName(targetPath);
                         if (directoryName != null) Directory.CreateDirectory(directoryName);
 
@@ -107,27 +105,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        public string Subfolder => _subfolder;
-
-        public bool UsePhysicalValues => _usePhysicalValues;
-
-        public string TempFolder
-        {
-            get => _tempFolder;
-            set
-            {
-                _tempFolder = (value ?? "").FixAssetSeparator().Trim('/');
-                if (!string.IsNullOrWhiteSpace(_tempFolder))
-                    _tempFolder += "/";
-            }
-        }
-
         public string GetTargetFilePath(string relativePath)
         {
             return Path.Combine(_dataFolder, relativePath.FixDirectorySeparator()).FixDirectorySeparator();
         }
 
-        public void TryWriteFile(AssetKey assetGuid, string destinationFilePath, byte[] bytes, DateTime sourceLastWriteTimeUtc)
+        public void TryWriteFile(AssetKey assetGuid, string destinationFilePath, byte[] bytes,
+            DateTime sourceLastWriteTimeUtc)
         {
             if (destinationFilePath == null)
                 return;
@@ -152,23 +136,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             File.WriteAllBytes(targetPath, bytes);
         }
 
-        private bool CheckForFileUniqueness(string targetPath, AssetKey assetGuid)
-        {
-            if (!_createdFiles.TryGetValue(targetPath, out var existingAsset))
-            {
-                _createdFiles.Add(targetPath, assetGuid);
-                return true;
-            }
-
-            if (existingAsset != assetGuid)
-            {
-                Debug.LogError("Asset file name collision: "+AssetDatabase.GUIDToAssetPath(assetGuid.Guid)+" and "+AssetDatabase.GUIDToAssetPath(existingAsset.Guid) +" attempt to write into same file "+targetPath);
-                return false;
-            }
-
-            return false;
-        }
-
         public void TryCopyFile(string assetPath, string destinationFilePath)
         {
             if (destinationFilePath == null)
@@ -180,7 +147,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var targetPath = GetTargetFilePath(destinationFilePath);
 
             //Skip file if it already exported
-            if (!CheckForFileUniqueness(targetPath, new AssetKey(AssetDatabase.AssetPathToGUID(assetPath),0))) return;
+            if (!CheckForFileUniqueness(targetPath, new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0))) return;
 
             //Skip file if it is already up to date
             if (_exportUpdatedOnly)
@@ -208,9 +175,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (existingAsset != assetGuid)
                 {
-                    Debug.LogError("Asset file name collision: " + AssetDatabase.GUIDToAssetPath(assetGuid.Guid) + " and " + AssetDatabase.GUIDToAssetPath(existingAsset.Guid) + " attempt to write into same file " + targetPath);
+                    Debug.LogError("Asset file name collision: " + AssetDatabase.GUIDToAssetPath(assetGuid.Guid) +
+                                   " and " + AssetDatabase.GUIDToAssetPath(existingAsset.Guid) +
+                                   " attempt to write into same file " + targetPath);
                     return true;
                 }
+
                 return true;
             }
 
@@ -303,6 +273,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _terrainExporter.EvaluateMaterial(terrainData);
         }
 
+        public void SchedulePBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _textureExporter.ExportPBRTextures(arguments, urhoMaterial),
+                urhoMaterial.MetallicRoughnessTexture);
+        }
+
+        public void SchedulePBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _textureExporter.ExportPBRTextures(arguments, urhoMaterial),
+                urhoMaterial.MetallicRoughnessTexture);
+        }
+
+        public string EvaluateAudioClipName(AudioClip audioClip)
+        {
+            return _audioExporter.EvaluateAudioClipName(audioClip);
+        }
+
         public void ExportScene(Scene scene)
         {
             _sceneExporter.ExportScene(scene);
@@ -318,7 +307,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
                 _meshExporter.ExportMesh(prefab);
-                _prefabExporter.ExportPrefab(new AssetKey(AssetDatabase.AssetPathToGUID(assetPath),0), _prefabExporter.EvaluatePrefabName(assetPath), prefab);
+                _prefabExporter.ExportPrefab(new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0),
+                    _prefabExporter.EvaluatePrefabName(assetPath), prefab);
             }
             else
             {
@@ -371,7 +361,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (asset is AudioClip audioClip)
                 {
-                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _audioExporter.ExportClip(audioClip), audioClip.name + " from " + assetPath);
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(() => _audioExporter.ExportClip(audioClip),
+                        audioClip.name + " from " + assetPath);
                 }
                 else if (asset is Material material)
                 {
@@ -399,33 +390,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     EditorTaskScheduler.Default.ScheduleForegroundTask(
                         () => _meshExporter.ExportAnimation(animationClip), animationClip.name + " from " + assetPath);
                 }
-                else
-                {
-                    //Debug.LogWarning("UnknownAssetType " + asset.GetType().Name);
-                }
         }
 
         protected override IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset)
         {
-            if (asset is ProBuilderMesh proBuilderMesh)
-            {
-                _meshExporter.ExportMesh(proBuilderMesh);
-            }
+            if (asset is ProBuilderMesh proBuilderMesh) _meshExporter.ExportMesh(proBuilderMesh);
             yield break;
         }
 
-        public void SchedulePBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        private bool CheckForFileUniqueness(string targetPath, AssetKey assetGuid)
         {
-            EditorTaskScheduler.Default.ScheduleForegroundTask(()=>_textureExporter.ExportPBRTextures(arguments, urhoMaterial), urhoMaterial.MetallicRoughnessTexture);
-        }
-        public void SchedulePBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
-        {
-            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _textureExporter.ExportPBRTextures(arguments, urhoMaterial), urhoMaterial.MetallicRoughnessTexture);
-        }
+            if (!_createdFiles.TryGetValue(targetPath, out var existingAsset))
+            {
+                _createdFiles.Add(targetPath, assetGuid);
+                return true;
+            }
 
-        public string EvaluateAudioClipName(AudioClip audioClip)
-        {
-            return _audioExporter.EvaluateAudioClipName(audioClip);
+            if (existingAsset != assetGuid)
+            {
+                Debug.LogError("Asset file name collision: " + AssetDatabase.GUIDToAssetPath(assetGuid.Guid) + " and " +
+                               AssetDatabase.GUIDToAssetPath(existingAsset.Guid) + " attempt to write into same file " +
+                               targetPath);
+                return false;
+            }
+
+            return false;
         }
     }
 }

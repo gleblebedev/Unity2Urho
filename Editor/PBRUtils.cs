@@ -11,7 +11,8 @@ namespace UnityToCustomEngineExporter.Editor
         /// <summary>
         ///     Linear space dielectric specular value is 0.04f
         /// </summary>
-        private static readonly Color dielectricSpecularColor = new Color(dielectricSpecular, dielectricSpecular, dielectricSpecular, 0.0f);
+        private static readonly Color dielectricSpecularColor =
+            new Color(dielectricSpecular, dielectricSpecular, dielectricSpecular, 0.0f);
 
         public static SpecularGlossiness ConvertToSpecularGlossinessSRGB(MetallicRoughness metallicRoughness)
         {
@@ -69,7 +70,8 @@ namespace UnityToCustomEngineExporter.Editor
 
             var oneMinusSpecularStrength = 1 - specular.maxColorComponent;
             //var metallic = SolveMetallic(diffuse.GetPerceivedBrightness(), specular.GetPerceivedBrightness(), oneMinusSpecularStrength);
-            var metallic = SolveMetallic(diffuse.maxColorComponent, specular.maxColorComponent, oneMinusSpecularStrength, dielectricSpecular);
+            var metallic = SolveMetallic(diffuse.maxColorComponent, specular.maxColorComponent,
+                oneMinusSpecularStrength, dielectricSpecular);
 
             var baseColorFromDiffuse =
                 diffuse * (oneMinusSpecularStrength / (1 - dielectricSpecular) / Mathf.Max(1 - metallic, epsilon));
@@ -114,17 +116,18 @@ namespace UnityToCustomEngineExporter.Editor
 
             public MetallicRoughness linear()
             {
-                return new MetallicRoughness()
+                return new MetallicRoughness
                 {
                     baseColor = baseColor.linear,
                     opacity = opacity,
-                    metallic = new Color(metallic,0,0).linear.r,
+                    metallic = new Color(metallic, 0, 0).linear.r,
                     roughness = roughness
                 };
             }
+
             public MetallicRoughness gamma()
             {
-                return new MetallicRoughness()
+                return new MetallicRoughness
                 {
                     baseColor = baseColor.gamma,
                     opacity = opacity,
@@ -149,7 +152,7 @@ namespace UnityToCustomEngineExporter.Editor
 
             public SpecularGlossiness linear()
             {
-                return new SpecularGlossiness()
+                return new SpecularGlossiness
                 {
                     specular = specular.linear,
                     opacity = opacity,
@@ -157,9 +160,10 @@ namespace UnityToCustomEngineExporter.Editor
                     glossiness = glossiness
                 };
             }
+
             public SpecularGlossiness gamma()
             {
-                return new SpecularGlossiness()
+                return new SpecularGlossiness
                 {
                     specular = specular.gamma,
                     opacity = opacity,
