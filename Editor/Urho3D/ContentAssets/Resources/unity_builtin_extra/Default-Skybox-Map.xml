@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-
 <cubemap>
+    <srgb enable="true" />
     <image name="Default-Skybox-Map.dds" />
 </cubemap>

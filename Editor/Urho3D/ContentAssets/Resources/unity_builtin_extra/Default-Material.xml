@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
-
 <material>
     <technique name="Techniques/PBR/PBRNoTexture.xml" />
     <parameter name="MatDiffColor" value="1 1 1 1" />
