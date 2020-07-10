@@ -303,7 +303,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                         EndElement(writer, subPrefix);
 
-                        WriteAnimator(writer, subPrefix, animator);
+                        //WriteAnimationController(writer, subPrefix, animator);
                     }
             }
 
@@ -333,14 +333,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Cast Shadows",
                         skinnedMeshRenderer.shadowCastingMode != ShadowCastingMode.Off);
 
-                    WriteAnimationStates(writer, animator, subPrefix);
+                    //WriteAnimationStates(writer, animator, subPrefix, "Animation States");
 
                     EndElement(writer, subPrefix);
                 }
             }
-            else if (animator != null)
+
+            if (animator != null)
             {
-                WriteAnimator(writer, subPrefix, animator);
+                WriteAnimationController(writer, subPrefix, animator);
             }
 
             foreach (Transform childTransform in obj.transform)
@@ -353,24 +354,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
-        private void WriteAnimator(XmlWriter writer, string prefix, Animator animator)
+        private void WriteAnimationController(XmlWriter writer, string prefix, Animator animator)
         {
             if (animator == null)
                 return;
-            StartComponent(writer, prefix, "AnimatedModel");
+            StartComponent(writer, prefix, "AnimationController");
             var subPrefix = prefix + "\t";
 
-            WriteAnimationStates(writer, animator, subPrefix);
+            WriteAnimationStates(writer, animator, subPrefix, "Node Animation States");
             EndElement(writer, prefix);
         }
 
-        private void WriteAnimationStates(XmlWriter writer, Animator animator, string subPrefix)
+        private void WriteAnimationStates(XmlWriter writer, Animator animator, string subPrefix, string statesAttr)
         {
             if (animator == null)
                 return;
             writer.WriteWhitespace(subPrefix);
             writer.WriteStartElement("attribute");
-            writer.WriteAttributeString("name", "Animation States");
+            writer.WriteAttributeString("name", statesAttr);
             writer.WriteWhitespace(Environment.NewLine);
             var subSubPrefix = subPrefix + "\t";
             var controller = animator.runtimeAnimatorController;
@@ -387,7 +388,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     _engine.ScheduleAssetExport(clip);
                     var startBone = "";
                     bool isLooped = true;
-                    float weight = 1.0f;
+                    float weight = 0.0f;
                     float time = 0.0f;
                     int layer = 0;
                     WriteVariant(writer, subSubPrefix, startBone);

@@ -167,8 +167,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (clip == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip), "") + "/" +
-                   ExportUtils.SafeFileName(clip.name) + ".ani";
+            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip);
+            if (Path.GetExtension(relPath).ToLowerInvariant() == ".anim")
+            {
+                return ExportUtils.ReplaceExtension(relPath, ".ani");
+            }
+            return ExportUtils.ReplaceExtension(relPath, "") + "/" + ExportUtils.SafeFileName(clip.name) + ".ani";
         }
 
         public string EvaluateMeshName(Mesh mesh)
