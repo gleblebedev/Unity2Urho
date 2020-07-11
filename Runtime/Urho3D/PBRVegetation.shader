@@ -7,6 +7,15 @@
         _Glossiness ("Smoothness", Range(0,1)) = 0
         _Metallic ("Metallic", Range(0,1)) = 0.0
         _Cutoff("Alpha cutoff", Range(0,1)) = 0.5
+
+        _WindHeightFactor("WindHeightFactor", Range(0,1)) = 0.0
+        _WindHeightPivot("WindHeightPivot", Float) = 0.0
+        _WindStemAxisX("WindStemAxis X",  Float) = 0.0
+        _WindStemAxisY("WindStemAxis Y",  Float) = 1.0
+        _WindStemAxisZ("WindStemAxis Z",  Float) = 0.0
+        _WindPeriod("WindPeriod", Range(0,1)) = 0.0
+        _WindWorldSpacingX("WindWorldSpacing X", Range(0,1)) = 0.0
+        _WindWorldSpacingY("WindWorldSpacing Y", Range(0,1)) = 0.0
     }
     SubShader
     {
@@ -16,10 +25,28 @@
 
         CGPROGRAM
         // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf Standard addshadow fullforwardshadows alphatest:_Cutoff
+        #pragma surface surf Standard addshadow fullforwardshadows alphatest:_Cutoff vertex:vert
 
         // Use shader model 3.0 target, to get nicer looking lighting
         #pragma target 3.0
+
+        half _WindHeightFactor;
+        half _WindHeightPivot;
+        half _WindStemAxisX;
+        half _WindStemAxisY;
+        half _WindStemAxisZ;
+        half _WindPeriod;
+        half _WindWorldSpacingX;
+        half _WindWorldSpacingY;
+
+        void vert(inout appdata_full v) {
+
+            half stemDistance = dot(v.vertex, half3(_WindStemAxisX, _WindStemAxisY, _WindStemAxisZ));
+            float windStrength = max((stemDistance - _WindHeightPivot), 0.0) * _WindHeightFactor;
+            float3 worldPos = mul(unity_ObjectToWorld, v.vertex);
+            float windPeriod = _Time.y * _WindPeriod + dot(worldPos.xz, float2(_WindWorldSpacingX, _WindWorldSpacingY));
+            v.vertex.xyz += mul(unity_WorldToObject, float3(windStrength * sin(windPeriod), 0, windStrength * cos(windPeriod)));
+        }
 
         sampler2D _MainTex;
 
@@ -38,6 +65,8 @@
         UNITY_INSTANCING_BUFFER_START(Props)
             // put more per-instance properties here
         UNITY_INSTANCING_BUFFER_END(Props)
+
+
 
         void surf (Input IN, inout SurfaceOutputStandard o)
         {
