@@ -47,6 +47,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
         }
 
+        private static void WriteVariant(XmlWriter writer, string subSubPrefix, string type, string valueStr)
+        {
+            writer.WriteWhitespace(subSubPrefix);
+            writer.WriteStartElement("variant");
+            writer.WriteAttributeString("type", type);
+            writer.WriteAttributeString("value", valueStr);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
 
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, float pos)
         {
@@ -130,6 +140,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteEndElement();
                 writer.WriteWhitespace(Environment.NewLine);
             }
+
             //WriteAttribute(writer, subPrefix, "Tags", obj.tag);
             WriteAttribute(writer, subPrefix, "Position", obj.transform.localPosition);
             WriteAttribute(writer, subPrefix, "Rotation", obj.transform.localRotation);
@@ -259,10 +270,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
-                {
-                    foreach (var renderer in lod.renderers)
-                        localExcludeList.Add(renderer);
-                }
+                foreach (var renderer in lod.renderers)
+                    localExcludeList.Add(renderer);
             }
 
             if (meshRenderer != null)
@@ -339,10 +348,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            if (animator != null)
-            {
-                WriteAnimationController(writer, subPrefix, animator);
-            }
+            if (animator != null) WriteAnimationController(writer, subPrefix, animator);
 
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
@@ -352,6 +358,35 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial)
+        {
+            var subSubPrefix = subPrefix + "\t";
+            StartComponent(writer, subPrefix, "Skybox");
+            if (skyboxMaterial.shader.name == "Skybox/Panoramic")
+            {
+                // Export sphere
+                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Sphere);
+                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                Object.DestroyImmediate(gameObject);
+                _engine.ScheduleAssetExport(mesh);
+                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
+            }
+            else
+            {
+                // Export cube
+                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
+                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
+                Object.DestroyImmediate(gameObject);
+                _engine.ScheduleAssetExport(mesh);
+                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
+            }
+
+            _engine.ScheduleAssetExport(skyboxMaterial);
+            var materials = "Material;" + _engine.EvaluateMaterialName(skyboxMaterial);
+            WriteAttribute(writer, subSubPrefix, "Material", materials);
+            EndElement(writer, subPrefix);
         }
 
         private void WriteAnimationController(XmlWriter writer, string prefix, Animator animator)
@@ -384,13 +419,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 WriteVariant(writer, subSubPrefix, controller.animationClips.Length);
                 foreach (var clip in controller.animationClips)
                 {
-                    WriteVariant(writer, subSubPrefix, "ResourceRef", "Animation;" + _engine.EvaluateAnimationName(clip));
+                    WriteVariant(writer, subSubPrefix, "ResourceRef",
+                        "Animation;" + _engine.EvaluateAnimationName(clip));
                     _engine.ScheduleAssetExport(clip);
                     var startBone = "";
-                    bool isLooped = true;
-                    float weight = 0.0f;
-                    float time = 0.0f;
-                    int layer = 0;
+                    var isLooped = true;
+                    var weight = 0.0f;
+                    var time = 0.0f;
+                    var layer = 0;
                     WriteVariant(writer, subSubPrefix, startBone);
                     WriteVariant(writer, subSubPrefix, isLooped);
                     WriteVariant(writer, subSubPrefix, weight);
@@ -409,55 +445,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteVariant(writer, subSubPrefix, "Int", value.ToString(CultureInfo.InvariantCulture));
         }
 
-        private static void WriteVariant(XmlWriter writer, string subSubPrefix, string type, string valueStr)
-        {
-            writer.WriteWhitespace(subSubPrefix);
-            writer.WriteStartElement("variant");
-            writer.WriteAttributeString("type", type);
-            writer.WriteAttributeString("value", valueStr);
-            writer.WriteEndElement();
-            writer.WriteWhitespace(Environment.NewLine);
-        }
-
         private void WriteVariant(XmlWriter writer, string subSubPrefix, float value)
         {
             WriteVariant(writer, subSubPrefix, "Float", value.ToString(CultureInfo.InvariantCulture));
         }
+
         private void WriteVariant(XmlWriter writer, string subSubPrefix, bool value)
         {
-            WriteVariant(writer, subSubPrefix, "Bool", value?"true":"false");
+            WriteVariant(writer, subSubPrefix, "Bool", value ? "true" : "false");
         }
+
         private void WriteVariant(XmlWriter writer, string subSubPrefix, string value)
         {
             WriteVariant(writer, subSubPrefix, "String", value);
-        }
-        protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial)
-        {
-            var subSubPrefix = subPrefix + "\t";
-            StartComponent(writer, subPrefix, "Skybox");
-            if (skyboxMaterial.shader.name == "Skybox/Panoramic")
-            {
-                // Export sphere
-                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Sphere);
-                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
-                Object.DestroyImmediate(gameObject);
-                _engine.ScheduleAssetExport(mesh);
-                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
-            }
-            else
-            {
-                // Export cube
-                var gameObject = GameObject.CreatePrimitive(UnityEngine.PrimitiveType.Cube);
-                var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
-                Object.DestroyImmediate(gameObject);
-                _engine.ScheduleAssetExport(mesh);
-                WriteAttribute(writer, subSubPrefix, "Model", "Model;" + _engine.EvaluateMeshName(mesh));
-            }
-
-            _engine.ScheduleAssetExport(skyboxMaterial);
-            var materials = "Material;" + _engine.EvaluateMaterialName(skyboxMaterial);
-            WriteAttribute(writer, subSubPrefix, "Material", materials);
-            EndElement(writer, subPrefix);
         }
 
         private void ExportLight(XmlWriter writer, Light light, string subPrefix, string subSubPrefix)

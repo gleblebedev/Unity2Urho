@@ -59,6 +59,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace(Environment.NewLine);
         }
 
+        public static void WriteParameter(this XmlWriter writer, string name, Quaternion value)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("parameter");
+            writer.WriteAttributeString("name", name);
+            writer.WriteAttributeString("value",
+                string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.w, value.x, value.y, value.z));
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
         public static void WriteParameter(this XmlWriter writer, string name, Color value)
         {
             writer.WriteWhitespace("\t");

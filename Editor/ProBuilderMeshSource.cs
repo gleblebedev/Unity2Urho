@@ -9,8 +9,8 @@ namespace UnityToCustomEngineExporter.Editor
     public class ProBuilderMeshSource : AbstractMeshSource, IMeshSource
     {
         private readonly ProBuilderMesh _mesh;
-        private Color32[] _colors;
-        private List<List<int>> _indicesPerSubMesh;
+        private readonly Color32[] _colors;
+        private readonly List<List<int>> _indicesPerSubMesh;
 
         public ProBuilderMeshSource(ProBuilderMesh mesh)
         {
@@ -19,11 +19,9 @@ namespace UnityToCustomEngineExporter.Editor
             if (_mesh.colors != null)
             {
                 _colors = new Color32[_mesh.colors.Count];
-                for (var index = 0; index < _mesh.colors.Count; index++)
-                {
-                    _colors[index] = _mesh.colors[index];
-                }
+                for (var index = 0; index < _mesh.colors.Count; index++) _colors[index] = _mesh.colors[index];
             }
+
             _indicesPerSubMesh = new List<List<int>>();
             for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
             {
@@ -35,18 +33,20 @@ namespace UnityToCustomEngineExporter.Editor
                         indices.Add(face.indexes[tIndex - 1]);
                         indices.Add(face.indexes[tIndex]);
                     }
+
                 _indicesPerSubMesh.Add(indices);
             }
         }
 
 
-        public override IList<Vector3> Vertices { get => _mesh.positions ?? Array.Empty<Vector3>(); }
+        public override IList<Vector3> Vertices => _mesh.positions ?? Array.Empty<Vector3>();
 
-        public override IList<Vector3> Normals { get => _mesh.normals ?? Array.Empty<Vector3>(); }
-        public override IList<Color32> Colors { get => _colors ?? Array.Empty<Color32>(); }
-        public override IList<Vector4> Tangents { get => _mesh.tangents ?? Array.Empty<Vector4>(); }
-        public override IList<Vector2> TexCoords0 { get => _mesh.textures ?? Array.Empty<Vector2>(); }
+        public override IList<Vector3> Normals => _mesh.normals ?? Array.Empty<Vector3>();
+        public override IList<Color32> Colors => _colors ?? Array.Empty<Color32>();
+        public override IList<Vector4> Tangents => _mesh.tangents ?? Array.Empty<Vector4>();
+        public override IList<Vector2> TexCoords0 => _mesh.textures ?? Array.Empty<Vector2>();
         public override int SubMeshCount => _indicesPerSubMesh.Count;
+
         public override IList<int> GetIndices(int subMeshIndex)
         {
             return _indicesPerSubMesh[subMeshIndex];

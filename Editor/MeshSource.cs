@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
 {
-    public class MeshSource: AbstractMeshSource, IMeshSource
+    public class MeshSource : AbstractMeshSource, IMeshSource
     {
         private readonly Mesh _mesh;
         private readonly SkinnedMeshRenderer _skin;
@@ -24,20 +24,18 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        public override IList<Vector3> Vertices { get => _mesh.vertices; }
+        public override IList<Vector3> Vertices => _mesh.vertices;
 
-        public override IList<Vector3> Normals { get => _mesh.normals; }
-        public override IList<Color32> Colors { get => _mesh.colors32; }
-        public override IList<Vector4> Tangents { get => _mesh.tangents; }
-        public override BoneWeight[] BoneWeights { get => _mesh.boneWeights; }
-        public override IList<Vector2> TexCoords0 { get => _mesh.uv; }
-        public override IList<Vector2> TexCoords1 { get => _mesh.uv2; }
-        public override IList<Vector2> TexCoords2 { get => _mesh.uv3; }
-        public override IList<Vector2> TexCoords3 { get => _mesh.uv4; }
-        public override int SubMeshCount
-        {
-            get { return _mesh.subMeshCount; }
-        }
+        public override IList<Vector3> Normals => _mesh.normals;
+        public override IList<Color32> Colors => _mesh.colors32;
+        public override IList<Vector4> Tangents => _mesh.tangents;
+        public override BoneWeight[] BoneWeights => _mesh.boneWeights;
+        public override IList<Vector2> TexCoords0 => _mesh.uv;
+        public override IList<Vector2> TexCoords1 => _mesh.uv2;
+        public override IList<Vector2> TexCoords2 => _mesh.uv3;
+        public override IList<Vector2> TexCoords3 => _mesh.uv4;
+
+        public override int SubMeshCount => _mesh.subMeshCount;
 
         public override Transform GetBoneTransform(int index)
         {
@@ -51,13 +49,12 @@ namespace UnityToCustomEngineExporter.Editor
                 var boneParent = _skin.bones[index].parent;
                 if (boneParent == null)
                     return null;
-                for (int i = 0; i < index; ++i)
-                {
+                for (var i = 0; i < index; ++i)
                     if (_skin.bones[i] == boneParent)
                         return i;
-                }
                 return null;
             }
+
             return null;
         }
 

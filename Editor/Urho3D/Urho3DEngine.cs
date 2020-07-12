@@ -293,6 +293,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _audioExporter.EvaluateAudioClipName(audioClip);
         }
 
+        public void ExportNavMesh()
+        {
+            _meshExporter.ExportMesh(NavMesh.CalculateTriangulation());
+        }
+
+        public string EvaluateAnimationName(AnimationClip clip)
+        {
+            if (clip == null)
+                return null;
+            return _meshExporter.EvaluateAnimationName(clip);
+        }
+
         public void ExportScene(Scene scene)
         {
             _sceneExporter.ExportScene(scene);
@@ -316,7 +328,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 foreach (var asset in assets)
                     if (asset is Mesh mesh)
                         EditorTaskScheduler.Default.ScheduleForegroundTask(
-                            () => _meshExporter.ExportMeshModel(new MeshSource(mesh), EvaluateMeshName(mesh), mesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(mesh)), mesh.name + " from " + assetPath);
+                            () => _meshExporter.ExportMeshModel(new MeshSource(mesh), EvaluateMeshName(mesh),
+                                mesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(mesh)),
+                            mesh.name + " from " + assetPath);
             }
 
             foreach (var asset in assets)
@@ -416,18 +430,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             return false;
-        }
-
-        public void ExportNavMesh()
-        {
-            _meshExporter.ExportMesh(NavMesh.CalculateTriangulation());
-        }
-
-        public string EvaluateAnimationName(AnimationClip clip)
-        {
-            if (clip == null)
-                return null;
-            return _meshExporter.EvaluateAnimationName(clip);
         }
     }
 }

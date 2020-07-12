@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
@@ -42,8 +43,13 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 
         public bool AlphaBlend { get; set; }
 
-        public bool AlphaTest { get; set; }
         public Color EmissiveColor { get; set; } = Color.black;
+
+        public Dictionary<string, object> ExtraParameters { get; } = new Dictionary<string, object>();
+
+        public HashSet<string> PixelShaderDefines { get; } = new HashSet<string>();
+
+        public HashSet<string> VertexShaderDefines { get; } = new HashSet<string>();
 
         public void EvaluateTechnique()
         {

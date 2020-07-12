@@ -17,9 +17,33 @@ namespace UnityToCustomEngineExporter.Editor
         public Vector3AnimationCurveAdapter(string propertyName, Vector3 defaultValue)
         {
             _defaultValue = defaultValue;
-            _xTrackName = propertyName+".x";
+            _xTrackName = propertyName + ".x";
             _yTrackName = propertyName + ".y";
             _zTrackName = propertyName + ".z";
+        }
+
+        public bool HasTracks => _xTrack != null && _yTrack != null && _zTrack != null;
+
+        public bool HasProperty(string propertyName)
+        {
+            return propertyName == _xTrackName
+                   || propertyName == _yTrackName
+                   || propertyName == _zTrackName;
+        }
+
+
+        public void PickTracks(AnimationClip clip, IEnumerable<EditorCurveBinding> bindings)
+        {
+            _xTrack = null;
+            _yTrack = null;
+            _zTrack = null;
+            foreach (var binding in bindings)
+                if (binding.propertyName == _xTrackName)
+                    _xTrack = GetEditorCurve(clip, binding);
+                else if (binding.propertyName == _yTrackName)
+                    _yTrack = GetEditorCurve(clip, binding);
+                else if (binding.propertyName == _zTrackName)
+                    _zTrack = GetEditorCurve(clip, binding);
         }
 
         public Vector3 Evaluate(float t)
@@ -30,32 +54,5 @@ namespace UnityToCustomEngineExporter.Editor
             if (_zTrack != null) pos.z = _zTrack.Evaluate(t);
             return pos;
         }
-
-        public bool HasProperty(string propertyName)
-        {
-            return propertyName == _xTrackName
-                   || propertyName == _yTrackName
-                   || propertyName == _zTrackName;
-        }
-
-
-
-        public void PickTracks(AnimationClip clip, IEnumerable<EditorCurveBinding> bindings)
-        {
-            _xTrack = null;
-            _yTrack = null;
-            _zTrack = null;
-            foreach (var binding in bindings)
-            {
-                if (binding.propertyName == _xTrackName)
-                    _xTrack = GetEditorCurve(clip, binding);
-                else if (binding.propertyName == _yTrackName)
-                    _yTrack = GetEditorCurve(clip, binding);
-                else if (binding.propertyName == _zTrackName)
-                    _zTrack = GetEditorCurve(clip, binding);
-            }
-        }
-
-        public bool HasTracks => _xTrack != null && _yTrack != null && _zTrack != null;
     }
 }

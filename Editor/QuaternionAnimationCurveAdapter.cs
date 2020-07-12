@@ -23,15 +23,7 @@ namespace UnityToCustomEngineExporter.Editor
             _wTrackName = propertyName + ".w";
         }
 
-        public Quaternion Evaluate(float t)
-        {
-            var rot = Quaternion.identity;
-            if (_wTrack != null) rot.w = _wTrack.Evaluate(t);
-            if (_xTrack != null) rot.x = _xTrack.Evaluate(t);
-            if (_yTrack != null) rot.y = _yTrack.Evaluate(t);
-            if (_zTrack != null) rot.z = _zTrack.Evaluate(t);
-            return rot.normalized;
-        }
+        public bool HasTracks => _xTrack != null && _yTrack != null && _zTrack != null && _wTrack != null;
 
         public bool HasProperty(string propertyName)
         {
@@ -48,7 +40,6 @@ namespace UnityToCustomEngineExporter.Editor
             _zTrack = null;
             _wTrack = null;
             foreach (var binding in bindings)
-            {
                 if (binding.propertyName == _xTrackName)
                     _xTrack = GetEditorCurve(clip, binding);
                 else if (binding.propertyName == _yTrackName)
@@ -57,9 +48,16 @@ namespace UnityToCustomEngineExporter.Editor
                     _zTrack = GetEditorCurve(clip, binding);
                 else if (binding.propertyName == _wTrackName)
                     _wTrack = GetEditorCurve(clip, binding);
-            }
         }
 
-        public bool HasTracks => _xTrack != null && _yTrack != null && _zTrack != null && _wTrack != null;
+        public Quaternion Evaluate(float t)
+        {
+            var rot = Quaternion.identity;
+            if (_wTrack != null) rot.w = _wTrack.Evaluate(t);
+            if (_xTrack != null) rot.x = _xTrack.Evaluate(t);
+            if (_yTrack != null) rot.y = _yTrack.Evaluate(t);
+            if (_zTrack != null) rot.z = _zTrack.Evaluate(t);
+            return rot.normalized;
+        }
     }
 }

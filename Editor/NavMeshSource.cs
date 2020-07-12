@@ -7,7 +7,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class NavMeshSource : AbstractMeshSource, IMeshSource
     {
-        private NavMeshTriangulation _mesh;
+        private readonly NavMeshTriangulation _mesh;
 
         public NavMeshSource(NavMeshTriangulation mesh)
         {
@@ -17,19 +17,14 @@ namespace UnityToCustomEngineExporter.Editor
         }
 
 
-        public override IList<Vector3> Vertices
-        {
-            get { return _mesh.vertices; }
-        }
+        public override IList<Vector3> Vertices => _mesh.vertices;
 
         public override IList<Vector3> Normals { get; }
 
         public override IList<Vector2> TexCoords0 { get; }
 
-        public override int SubMeshCount
-        {
-            get { return 1; }
-        }
+        public override int SubMeshCount => 1;
+
         public override IList<int> GetIndices(int subMeshIndex)
         {
             return _mesh.indices;
