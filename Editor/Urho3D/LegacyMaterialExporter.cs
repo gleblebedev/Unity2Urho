@@ -107,7 +107,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        public override void ExportMaterial(Material material)
+        public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             var urhoPath = EvaluateMaterialName(material);
             using (var writer =
@@ -140,10 +140,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                     WriteTechnique(writer, "Techniques/" + bestTechnique.Name);
                 }
-                if (arguments.Diffuse != null) WriteTexture(arguments.Diffuse, writer, "diffuse");
-                if (arguments.Specular != null) WriteTexture(arguments.Specular, writer, "specular");
-                if (arguments.Bump != null) WriteTexture(arguments.Bump, writer, "normal");
-                if (arguments.Emission != null) WriteTexture(arguments.Bump, writer, "emissive");
+                if (arguments.Diffuse != null) WriteTexture(arguments.Diffuse, writer, "diffuse", prefabContext);
+                if (arguments.Specular != null) WriteTexture(arguments.Specular, writer, "specular", prefabContext);
+                if (arguments.Bump != null) WriteTexture(arguments.Bump, writer, "normal", prefabContext);
+                if (arguments.Emission != null) WriteTexture(arguments.Bump, writer, "emissive", prefabContext);
                 writer.WriteParameter("MatDiffColor", arguments.DiffColor);
                 if (arguments.HasEmission)
                     writer.WriteParameter("MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));

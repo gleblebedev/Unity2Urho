@@ -8,7 +8,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         bool CanExportMaterial(Material material);
 
-        void ExportMaterial(Material material);
+        void ExportMaterial(Material material, PrefabContext prefabContext);
 
         string EvaluateMaterialName(Material material);
     }

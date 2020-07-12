@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using UnityEditor;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -17,45 +18,45 @@ namespace UnityToCustomEngineExporter.Editor
             _cancellationToken = cancellationToken;
         }
 
-        public IEnumerable<ProgressBarReport> ExportAssets(string[] assetGUIDs)
+        public IEnumerable<ProgressBarReport> ExportAssets(string[] assetGUIDs, PrefabContext prefabContext)
         {
             yield return "Preparing " + assetGUIDs.Length + " assets to export";
             foreach (var guid in assetGUIDs)
                 EditorTaskScheduler.Default.ScheduleForegroundTask(() =>
-                    ExportAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)));
+                    ExportAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid), prefabContext));
         }
 
-        public void ScheduleAssetExport(Object asset)
+        public void ScheduleAssetExport(Object asset, PrefabContext prefabContext)
         {
-            EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAsset(asset));
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAsset(asset, prefabContext));
         }
 
-        public void ScheduleAssetExportAtPath(string assetPath)
+        public void ScheduleAssetExportAtPath(string assetPath, PrefabContext prefabContext)
         {
-            EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAssetsAtPath(assetPath));
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAssetsAtPath(assetPath, prefabContext));
         }
 
-        protected abstract void ExportAssetBlock(string assetPath, Type mainType, Object[] assets);
+        protected abstract void ExportAssetBlock(string assetPath, Type mainType, Object[] assets, PrefabContext prefabContext);
 
-        protected abstract IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset);
+        protected abstract IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset, PrefabContext prefabContext);
 
-        private IEnumerable<ProgressBarReport> ExportAsset(Object asset)
+        private IEnumerable<ProgressBarReport> ExportAsset(Object asset, PrefabContext prefabContext)
         {
             var assetPath = AssetDatabase.GetAssetPath(asset);
             if (string.IsNullOrWhiteSpace(assetPath))
-                return ExportDynamicAsset(asset);
+                return ExportDynamicAsset(asset, prefabContext);
             if (assetPath == "Library/unity default resources" || assetPath == "Resources/unity_builtin_extra")
                 return ExportUnityDefaultResource(asset, assetPath);
-            return ExportAssetsAtPath(assetPath);
+            return ExportAssetsAtPath(assetPath, prefabContext);
         }
 
         private IEnumerable<ProgressBarReport> ExportUnityDefaultResource(Object asset, string assetPath)
         {
             yield return asset.name;
-            ExportAssetBlock(assetPath, asset.GetType(), new[] {asset});
+            ExportAssetBlock(assetPath, asset.GetType(), new[] {asset}, null);
         }
 
-        private IEnumerable<ProgressBarReport> ExportAssetsAtPath(string assetPath)
+        private IEnumerable<ProgressBarReport> ExportAssetsAtPath(string assetPath, PrefabContext prefabContext)
         {
             if (string.IsNullOrWhiteSpace(assetPath))
                 yield break;
@@ -70,14 +71,14 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 foreach (var guid in AssetDatabase.FindAssets("", new[] {assetPath}))
                     EditorTaskScheduler.Default.ScheduleForegroundTask(() =>
-                        ExportAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)));
+                        ExportAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid), prefabContext));
                 yield break;
             }
 
             yield return "Loading " + assetPath;
             var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
             yield return "Exporting " + assetPath;
-            ExportAssetBlock(assetPath, AssetDatabase.GetMainAssetTypeAtPath(assetPath), assets);
+            ExportAssetBlock(assetPath, AssetDatabase.GetMainAssetTypeAtPath(assetPath), assets, prefabContext);
         }
     }
 }

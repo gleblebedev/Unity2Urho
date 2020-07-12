@@ -11,12 +11,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportPrefab(AssetKey assetGuid, string assetPath, GameObject gameObject)
         {
-            using (var writer = _engine.TryCreateXml(assetGuid, EvaluatePrefabName(assetPath),
-                ExportUtils.GetLastWriteTimeUtc(assetPath)))
+            var relativePath = EvaluatePrefabName(assetPath);
+            using (var writer = _engine.TryCreateXml(assetGuid, relativePath, ExportUtils.GetLastWriteTimeUtc(assetPath)))
             {
                 if (writer == null)
                     return;
-                WriteObject(writer, "", gameObject, new HashSet<Renderer>(), true);
+                var prefabContext = new PrefabContext()
+                {
+                    TempFolder = ExportUtils.ReplaceExtension(relativePath, "")
+                };
+
+                WriteObject(writer, "", gameObject, new HashSet<Renderer>(), true, prefabContext);
             }
         }
 

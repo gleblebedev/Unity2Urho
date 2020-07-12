@@ -31,7 +31,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public abstract bool CanExportMaterial(Material material);
 
-        public abstract void ExportMaterial(Material material);
+        public abstract void ExportMaterial(Material material, PrefabContext prefabContext);
 
         public virtual string EvaluateMaterialName(Material material)
         {
@@ -75,14 +75,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
-        protected bool WriteTexture(Texture texture, XmlWriter writer, string name)
+        protected bool WriteTexture(Texture texture, XmlWriter writer, string name, PrefabContext prefabContext)
         {
-            Engine.ScheduleAssetExport(texture);
+            Engine.ScheduleAssetExport(texture, prefabContext);
             var urhoAssetName = Engine.EvaluateTextrueName(texture);
-            return WriteTexture(urhoAssetName, writer, name);
+            return WriteTexture(urhoAssetName, writer, name, prefabContext);
         }
 
-        protected bool WriteTexture(string urhoAssetName, XmlWriter writer, string name)
+        protected bool WriteTexture(string urhoAssetName, XmlWriter writer, string name, PrefabContext prefabContext)
         {
             if (string.IsNullOrWhiteSpace(urhoAssetName))
                 return false;
@@ -97,20 +97,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        protected void WriteMaterial(XmlWriter writer, string shaderName, UrhoPBRMaterial urhoMaterial)
+        protected void WriteMaterial(XmlWriter writer, string shaderName, UrhoPBRMaterial urhoMaterial, PrefabContext prefabContext)
         {
             writer.WriteStartElement("material");
             writer.WriteWhitespace(Environment.NewLine);
 
             WriteTechnique(writer, urhoMaterial.Technique);
 
-            WriteTexture(urhoMaterial.BaseColorTexture, writer, "diffuse");
-            WriteTexture(urhoMaterial.NormalTexture, writer, "normal");
-            WriteTexture(urhoMaterial.MetallicRoughnessTexture, writer, "specular");
+            WriteTexture(urhoMaterial.BaseColorTexture, writer, "diffuse", prefabContext);
+            WriteTexture(urhoMaterial.NormalTexture, writer, "normal", prefabContext);
+            WriteTexture(urhoMaterial.MetallicRoughnessTexture, writer, "specular", prefabContext);
             if (!string.IsNullOrWhiteSpace(urhoMaterial.EmissiveTexture))
-                WriteTexture(urhoMaterial.EmissiveTexture, writer, "emissive");
+                WriteTexture(urhoMaterial.EmissiveTexture, writer, "emissive", prefabContext);
             else
-                WriteTexture(urhoMaterial.AOTexture, writer, "emissive");
+                WriteTexture(urhoMaterial.AOTexture, writer, "emissive", prefabContext);
 
             writer.WriteParameter("MatEmissiveColor", urhoMaterial.EmissiveColor);
             writer.WriteParameter("MatDiffColor", urhoMaterial.BaseColor);

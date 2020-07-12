@@ -34,58 +34,53 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var exlusion = new HashSet<Renderer>();
 
             var sceneAssetName = ResolveAssetPath(scene);
-            var oldTempName = _engine.TempFolder;
-            _engine.TempFolder = ExportUtils.ReplaceExtension(sceneAssetName, "");
-            try
+            var prefabContext = new PrefabContext()
             {
-                using (var writer = _engine.TryCreateXml(AssetKey.Empty, sceneAssetName, DateTime.MaxValue))
+                TempFolder = ExportUtils.ReplaceExtension(sceneAssetName, "")
+            };
+            using (var writer = _engine.TryCreateXml(AssetKey.Empty, sceneAssetName, DateTime.MaxValue))
+            {
+                if (writer == null) return;
+                var rootGameObjects = scene.GetRootGameObjects();
+                if (_asPrefab)
                 {
-                    if (writer == null) return;
-                    var rootGameObjects = scene.GetRootGameObjects();
-                    if (_asPrefab)
+                    if (rootGameObjects.Length > 1)
                     {
-                        if (rootGameObjects.Length > 1)
-                        {
-                            writer.WriteStartElement("node");
-                            writer.WriteAttributeString("id", (++_id).ToString());
-                            writer.WriteWhitespace("\n");
-                            foreach (var gameObject in rootGameObjects)
-                                WriteObject(writer, "\t", gameObject, exlusion, true);
-                            writer.WriteEndElement();
-                            writer.WriteWhitespace("\n");
-                        }
-                        else
-                        {
-                            foreach (var gameObject in rootGameObjects)
-                                WriteObject(writer, "", gameObject, exlusion, true);
-                        }
+                        writer.WriteStartElement("node");
+                        writer.WriteAttributeString("id", (++_id).ToString());
+                        writer.WriteWhitespace("\n");
+                        foreach (var gameObject in rootGameObjects)
+                            WriteObject(writer, "\t", gameObject, exlusion, true, prefabContext);
+                        writer.WriteEndElement();
+                        writer.WriteWhitespace("\n");
                     }
                     else
                     {
-                        using (var sceneElement = Element.Start(writer, "scene"))
-                        {
-                            WriteAttribute(writer, "\t", "Name", scene.name);
-                            StartComponent(writer, "\t", "Octree");
-                            EndElement(writer, "\t");
-                            StartComponent(writer, "\t", "DebugRenderer");
-                            EndElement(writer, "\t");
-
-                            var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
-                                .Where(_ => _ != null).FirstOrDefault();
-                            if (skybox == null) WriteSkyboxComponent(writer, "\t", RenderSettings.skybox);
-
-                            foreach (var gameObject in rootGameObjects)
-                                WriteObject(writer, "", gameObject, exlusion, true);
-                        }
+                        foreach (var gameObject in rootGameObjects)
+                            WriteObject(writer, "", gameObject, exlusion, true, prefabContext);
                     }
                 }
+                else
+                {
+                    using (var sceneElement = Element.Start(writer, "scene"))
+                    {
+                        WriteAttribute(writer, "\t", "Name", scene.name);
+                        StartComponent(writer, "\t", "Octree");
+                        EndElement(writer, "\t");
+                        StartComponent(writer, "\t", "DebugRenderer");
+                        EndElement(writer, "\t");
 
-                _engine.ExportNavMesh();
+                        var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
+                            .Where(_ => _ != null).FirstOrDefault();
+                        if (skybox == null) WriteSkyboxComponent(writer, "\t", RenderSettings.skybox, prefabContext);
+
+                        foreach (var gameObject in rootGameObjects)
+                            WriteObject(writer, "", gameObject, exlusion, true, prefabContext);
+                    }
+                }
             }
-            finally
-            {
-                _engine.TempFolder = oldTempName;
-            }
+
+            _engine.ExportNavMesh(prefabContext);
         }
     }
 }

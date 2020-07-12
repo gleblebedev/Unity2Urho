@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -146,6 +147,31 @@ namespace UnityToCustomEngineExporter.Editor
             if (!File.Exists(file))
                 return DateTime.MaxValue;
             return File.GetLastWriteTimeUtc(file);
+        }
+
+        public static string Combine(params string[] segments)
+        {
+            var path = new StringBuilder();
+            var separator = "";
+            foreach (var segment in segments)
+            {
+                if (string.IsNullOrWhiteSpace(segment))
+                {
+                    continue;
+                }
+
+                if (path.Length > 0)
+                {
+                    path.Append(separator);
+                    separator = "/";
+                }
+
+                path.Append(segment);
+
+                if (segment.EndsWith("/"))
+                    separator = "";
+            }
+            return path.ToString();
         }
     }
 }

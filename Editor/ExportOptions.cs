@@ -69,11 +69,11 @@ namespace UnityToCustomEngineExporter.Editor
                 if (Selection.assetGUIDs.Length > 0)
                 {
                     if (GUILayout.Button("Export selected (" + Selection.assetGUIDs.Length + ") assets"))
-                        StartExportAssets(Selection.assetGUIDs);
+                        StartExportAssets(Selection.assetGUIDs, null);
                 }
                 else
                 {
-                    if (GUILayout.Button("Export all assets")) StartExportAssets(AssetDatabase.FindAssets(""));
+                    if (GUILayout.Button("Export all assets")) StartExportAssets(AssetDatabase.FindAssets(""), null);
                 }
 
                 if (GUILayout.Button("Export active scene ")) StartExportScene();
@@ -114,10 +114,10 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private void StartExportAssets(string[] assetGuiDs)
+        private void StartExportAssets(string[] assetGuiDs, PrefabContext prefabContext)
         {
             _engine = CreateEngine();
-            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _engine.ExportAssets(assetGuiDs));
+            EditorTaskScheduler.Default.ScheduleForegroundTask(() => _engine.ExportAssets(assetGuiDs, prefabContext));
         }
 
         private IDestinationEngine CreateEngine()

@@ -17,7 +17,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return material.shader.name.StartsWith("Skybox/");
         }
 
-        public override void ExportMaterial(Material material)
+        public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             var assetGuid = material.GetKey();
             var urhoPath = EvaluateMaterialName(material);
@@ -36,7 +36,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                               arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
                 if (arguments.Skybox != null)
                 {
-                    Engine.ScheduleAssetExport(arguments.Skybox);
+                    Engine.ScheduleAssetExport(arguments.Skybox, prefabContext);
                     string name;
                     if (arguments.Skybox is Cubemap cubemap)
                     {
@@ -48,7 +48,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         technique = "Techniques/DiffSkydome.xml";
                     }
 
-                    if (!string.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse");
+                    if (!string.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse", prefabContext);
                 }
                 else if (anyFace != null)
                 {
@@ -89,11 +89,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
                     }
 
-                    WriteTexture(cubemapName, writer, "diffuse");
+                    WriteTexture(cubemapName, writer, "diffuse", prefabContext);
                 }
                 else
                 {
-                    WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse");
+                    WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse", prefabContext);
                 }
 
                 WriteTechnique(writer, technique);

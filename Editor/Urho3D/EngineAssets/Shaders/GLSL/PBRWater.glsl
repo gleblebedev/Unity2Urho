@@ -17,9 +17,7 @@
 #endif
 varying vec3 vNormal;
 varying vec4 vWorldPos;
-#ifdef VERTEXCOLOR
     varying vec4 vColor;
-#endif
 #ifdef PERPIXEL
     #ifdef SHADOW
         #ifndef GL_ES
@@ -53,9 +51,7 @@ void VS()
     vNormal = GetWorldNormal(modelMatrix);
     vWorldPos = vec4(worldPos, GetDepth(gl_Position));
 
-    #ifdef VERTEXCOLOR
-        vColor = iColor;
-    #endif
+    vColor = iColor;
 
     #if defined(NORMALMAP) || defined(DIRBILLBOARD)
         vec4 tangent = GetWorldTangent(modelMatrix);
@@ -90,7 +86,11 @@ void VS()
             // If using lightmap, disregard zone ambient light
             // If using AO, calculate ambient in the PS
             vVertexLight = vec3(0.0, 0.0, 0.0);
-            vTexCoord2 = iTexCoord1;
+            #if defined(LIGHTMAP)
+                vTexCoord2 = iTexCoord1;
+            #else
+                vTexCoord2 = GetTexCoord(iTexCoord);
+            #endif
         #else
             vVertexLight = GetAmbient(GetZonePos(worldPos));
         #endif
@@ -110,6 +110,15 @@ void VS()
 
 void PS()
 {
+    float _FlowSpeed = 0.5;
+    float _TimeScale= 1.0;
+
+    vec2 flowDir = (vColor.xy - vec2(0.5, 0.5)) * _FlowSpeed;
+    vec2 baseUV = vTexCoord.xy;
+    float t = cElapsedTimePS * _TimeScale - floor(cElapsedTimePS * _TimeScale);
+    vec2 uv0 = baseUV + (flowDir * t);
+    vec2 uv1 = baseUV + (flowDir * (t - 1));
+
     // Get material diffuse albedo
     #ifdef DIFFMAP
         vec4 diffInput = texture2D(sDiffMap, vTexCoord.xy);
@@ -117,14 +126,12 @@ void PS()
             if (diffInput.a < 0.5)
                 discard;
         #endif
-        vec4 diffColor = cMatDiffColor * diffInput;
+        vec4 diffColor = cMatDiffColor;// * diffInput;
     #else
         vec4 diffColor = cMatDiffColor;
     #endif
 
-    #ifdef VERTEXCOLOR
-        diffColor *= vColor;
-    #endif
+    diffColor.a *= vColor.a;
 
     #ifdef METALLIC
         vec4 roughMetalSrc = texture2D(sSpecMap, vTexCoord.xy);
@@ -152,7 +159,9 @@ void PS()
     #endif
 
     #ifdef NORMALMAP
-        vec3 nn = DecodeNormal(texture2D(sNormalMap, vTexCoord.xy));
+        vec3 nnA = DecodeNormal(texture2D(sNormalMap, uv0));
+        vec3 nnB = DecodeNormal(texture2D(sNormalMap, uv1));
+        vec3 nn = mix(nnA, nnB, t);
         //nn.rg *= 2.0;
         vec3 normal = normalize(tbn * nn);
     #else
@@ -219,9 +228,11 @@ void PS()
     #else
         // Ambient & per-vertex lighting
         vec3 finalColor = vVertexLight * diffColor.rgb;
+        vec3 ambientOcclusion = vec3(1.0, 1.0, 1.0);
         #ifdef AO
             // If using AO, the vertex light ambient is black, calculate occluded ambient here
-            finalColor += texture2D(sEmissiveMap, vTexCoord2).rgb * cAmbientColor.rgb * diffColor.rgb;
+            ambientOcclusion = texture2D(sEmissiveMap, vTexCoord2).rgb;
+            finalColor += ambientOcclusion * cAmbientColor.rgb * diffColor.rgb;
         #endif
 
         #ifdef MATERIAL
@@ -241,7 +252,7 @@ void PS()
         #ifdef IBL
           vec3 iblColor = ImageBasedLighting(reflection, normal, toCamera, diffColor.rgb, specColor.rgb, roughness, cubeColor);
           float gamma = 0.0;
-          finalColor.rgb += iblColor;
+          finalColor.rgb += iblColor * ambientOcclusion;
         #endif
 
         #ifdef ENVCUBEMAP

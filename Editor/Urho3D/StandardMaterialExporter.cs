@@ -24,7 +24,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                    || material.shader.name.StartsWith("Urho3D/");
         }
 
-        public override void ExportMaterial(Material material)
+        public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             var urhoPath = EvaluateMaterialName(material);
             using (var writer =
@@ -68,7 +68,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var urhoMaterial = FromMetallicGlossiness(material, arguments);
                 var shaderName = arguments.Shader;
-                WriteMaterial(writer, shaderName, urhoMaterial);
+                WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.BaseColor, new TextureReference(TextureSemantic.PBRBaseColor));
                 Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));

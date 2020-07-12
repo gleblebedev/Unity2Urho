@@ -133,7 +133,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return material.shader.name == "Standard (Specular setup)";
         }
 
-        public override void ExportMaterial(Material material)
+        public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             var urhoPath = EvaluateMaterialName(material);
             using (var writer =
@@ -145,7 +145,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var arguments = SetupSpecularGlossinessPBR(material);
                 var urhoMaterial = FromSpecularGlossiness(arguments);
                 var shaderName = arguments.Shader;
-                WriteMaterial(writer, shaderName, urhoMaterial);
+                WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
 

@@ -37,7 +37,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _defaultExporter.EvaluateMaterialName(material);
         }
 
-        public void ExportMaterial(Material material)
+        public void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             if (material == null)
                 return;
@@ -45,11 +45,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             foreach (var materialExporter in _exporters)
                 if (materialExporter.CanExportMaterial(material))
                 {
-                    materialExporter.ExportMaterial(material);
+                    materialExporter.ExportMaterial(material, prefabContext);
                     return;
                 }
 
-            _defaultExporter.ExportMaterial(material);
+            _defaultExporter.ExportMaterial(material, prefabContext);
         }
     }
 }

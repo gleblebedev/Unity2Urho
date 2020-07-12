@@ -52,13 +52,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             void Sample(float time);
         }
 
-        public void ExportAnimation(AnimationClip clipAnimation)
+        public void ExportAnimation(AnimationClip clipAnimation, PrefabContext prefabContext)
         {
             var name = GetSafeFileName(clipAnimation.name);
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
-            var aniFilePath = EvaluateAnimationName(clipAnimation);
+            var aniFilePath = EvaluateAnimationName(clipAnimation, prefabContext);
             using (var file = _engine.TryCreate(clipAnimation.GetKey(), aniFilePath,
                 ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
             {
@@ -109,20 +109,29 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        public void ExportMesh(ProBuilderMesh proBuilderMesh)
+        public void ExportMesh(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
-            ExportProBuilderMeshModel(proBuilderMesh);
+            ExportProBuilderMeshModel(proBuilderMesh, prefabContext);
         }
 
-        public string ExportMesh(NavMeshTriangulation mesh)
+        public void ExportMesh(Mesh mesh, PrefabContext prefabContext)
         {
-            var mdlFilePath = EvaluateMeshName(mesh);
+            var meshSource = new MeshSource(mesh);
+            var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
+            var assetKey = mesh.GetKey();
+            var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
+            ExportMeshModel(meshSource, mdlFilePath, assetKey, lastWriteDateTimeUtc);
+        }
+
+        public string ExportMesh(NavMeshTriangulation mesh, PrefabContext prefabContext)
+        {
+            var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             ExportMeshModel(new NavMeshSource(mesh), mdlFilePath,
                 SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
             return mdlFilePath;
         }
 
-        public void ExportMesh(GameObject go)
+        public void ExportMesh(GameObject go, PrefabContext prefabContext)
         {
             var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
             var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
@@ -132,7 +141,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (proBuilderMesh != null)
             {
-                ExportProBuilderMeshModel(proBuilderMesh);
+                ExportProBuilderMeshModel(proBuilderMesh, prefabContext);
             }
             else
             {
@@ -141,12 +150,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     mesh = skinnedMeshRenderer.sharedMesh;
                 else if (meshFilter != null) mesh = meshFilter.sharedMesh;
                 var meshSource = new MeshSource(mesh, skinnedMeshRenderer);
-                ExportMeshModel(meshSource, EvaluateMeshName(mesh), mesh.GetKey(),
+                ExportMeshModel(meshSource, EvaluateMeshName(mesh, prefabContext), mesh.GetKey(),
                     ExportUtils.GetLastWriteTimeUtc(mesh));
             }
 
 
-            for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject);
+            for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject, prefabContext);
         }
 
         public void ExportMeshModel(IMeshSource mesh, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
@@ -161,25 +170,34 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        public string EvaluateAnimationName(AnimationClip clip)
+        public string EvaluateAnimationName(AnimationClip clip, PrefabContext prefabContext)
         {
             if (clip == null)
                 return null;
             var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip);
             if (Path.GetExtension(relPath).ToLowerInvariant() == ".anim")
                 return ExportUtils.ReplaceExtension(relPath, ".ani");
-            return ExportUtils.ReplaceExtension(relPath, "") + "/" + ExportUtils.SafeFileName(clip.name) + ".ani";
+            var folder = ExportUtils.ReplaceExtension(relPath, "");
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = prefabContext.TempFolder;
+            }
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(clip.name) + ".ani");
         }
 
-        public string EvaluateMeshName(Mesh mesh)
+        public string EvaluateMeshName(Mesh mesh, PrefabContext prefabContext)
         {
             if (mesh == null)
                 return null;
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "") + "/" +
-                   ExportUtils.SafeFileName(mesh.name) + ".mdl";
+            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "");
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = prefabContext.TempFolder;
+            }
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(mesh.name) + ".mdl");
         }
 
-        public string EvaluateMeshName(ProBuilderMesh mesh)
+        public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)
         {
             if (mesh == null)
                 return null;
@@ -189,8 +207,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = _engine.TempFolder + ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +
-                       ".mdl";
+                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +".mdl");
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
@@ -199,14 +216,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                    ExportUtils.SafeFileName(mesh.name) + ".mdl";
         }
 
-        public string EvaluateMeshName(NavMeshTriangulation mesh)
+        public string EvaluateMeshName(NavMeshTriangulation mesh, PrefabContext prefabContext)
         {
-            return _engine.TempFolder + "NavMesh.mdl";
+            return ExportUtils.Combine(prefabContext.TempFolder, "NavMesh.mdl");
         }
 
-        private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh)
+        private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
-            ExportMeshModel(new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh),
+            ExportMeshModel(new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh, prefabContext),
                 proBuilderMesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh));
         }
 
