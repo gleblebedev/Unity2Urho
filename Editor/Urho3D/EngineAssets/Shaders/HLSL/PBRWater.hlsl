@@ -8,6 +8,28 @@
 #include "PBR.hlsl"
 #include "IBL.hlsl"
 
+#ifndef D3D11
+
+// D3D9 uniforms
+uniform float cWaterMetallic;
+uniform float cWaterRoughness;
+uniform float cWaterFlowSpeed;
+uniform float cWaterTimeScale;
+
+#else
+
+// D3D11 constant buffer
+cbuffer CustomVS : register(b6)
+{
+    float cWaterMetallic;
+    float cWaterRoughness;
+    float cWaterFlowSpeed;
+    float cWaterTimeScale;
+}
+
+#endif
+
+
 void VS(float4 iPos : POSITION,
     #if !defined(BILLBOARD) && !defined(TRAILFACECAM)
         float3 iNormal : NORMAL,
@@ -193,21 +215,31 @@ void PS(
     #endif
     out float4 oColor : OUTCOLOR0)
 {
-    // Get material diffuse albedo
-    #ifdef DIFFMAP
-        const float4 diffInput = Sample2D(DiffMap, iTexCoord.xy);
-        #ifdef ALPHAMASK
-            if (diffInput.a < 0.5)
-                discard;
-        #endif
-        float4 diffColor = cMatDiffColor * diffInput;
+    // Flow direction is stored in Red and Green channels of the vertex color
+    float2 flowDir = (float2(iColor.x, 1.0 - iColor.y) - float2(0.5, 0.5)) * cWaterFlowSpeed;
+    // Calculate sampling points based on reminder of the time value
+    float2 baseUV = iTexCoord.xy;
+    float timeFactor = cElapsedTimePS * cWaterTimeScale - floor(cElapsedTimePS * cWaterTimeScale);
+    float2 uv0 = baseUV + (flowDir * timeFactor);
+    float2 uv1 = baseUV + (flowDir * (timeFactor - 1.0));
+
+    // Sample diffuse overlay (foam, debree, leaves, etc.)
+    float4 overlay0 = Sample2D(DiffMap, uv0);
+    float4 overlay1 = Sample2D(DiffMap, uv1);
+    float4 overlay = lerp(overlay0, overlay1, timeFactor);
+
+    // Blend factor between water and diffuse overlay 
+    #ifdef ALPHAMASK
+        float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a)*(1.0 - iColor.b);
     #else
-        float4 diffColor = cMatDiffColor;
+        float overlayFactor = overlay.a*(1.0 - iColor.b);
     #endif
 
-    #ifdef VERTEXCOLOR
-        diffColor *= iColor;
-    #endif
+    // Do the alpha blending of diffuse overlay
+    float4 diffColor = lerp(cMatDiffColor, overlay, overlay.a);
+    // Blue vertex color controls intencity of diffuse overlay over the water material
+    diffColor = lerp(cMatDiffColor, diffColor, (1.0 - iColor.z));
+    diffColor.a = max(cMatDiffColor.a, diffColor.a) * iColor.a;
 
     // Get material specular albedo
     #ifdef METALLIC // METALNESS
@@ -219,6 +251,9 @@ void PS(
         float roughness = cRoughness;
         float metalness = cMetallic;
     #endif
+
+    metalness = lerp(cWaterMetallic, metalness, overlayFactor);
+    roughness = lerp(cWaterRoughness, roughness, overlayFactor);
 
     roughness *= roughness;
 
@@ -236,7 +271,10 @@ void PS(
     #endif
 
     #ifdef NORMALMAP
-        const float3 nn = DecodeNormal(Sample2D(NormalMap, iTexCoord.xy));
+        //float normalScale = length(flowDir)*2.0;
+        const float3 nnA = DecodeNormal(Sample2D(NormalMap, uv0));
+        const float3 nnB = DecodeNormal(Sample2D(NormalMap, uv1));
+        const float3 nn = lerp(nnA, nnB, timeFactor);// * float3(normalScale, normalScale, 1.0);
         //nn.rg *= 2.0;
         const float3 normal = normalize(mul(nn, tbn));
     #else

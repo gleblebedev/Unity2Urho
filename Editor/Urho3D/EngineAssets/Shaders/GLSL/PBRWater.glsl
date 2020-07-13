@@ -7,7 +7,18 @@
 #include "Fog.glsl"
 #include "PBR.glsl"
 #include "IBL.glsl"
-#line 30010
+#line 30011
+
+uniform float cWaterMetallic;
+uniform float cWaterRoughness;
+uniform float cWaterFlowSpeed;
+uniform float cWaterTimeScale;
+uniform float cWaterFresnelPower;
+#ifndef GL_ES
+varying vec4 vEyeVec;
+#else
+varying highp vec4 vEyeVec;
+#endif
 
 #if defined(NORMALMAP)
     varying vec4 vTexCoord;
@@ -50,6 +61,7 @@ void VS()
     gl_Position = GetClipPos(worldPos);
     vNormal = GetWorldNormal(modelMatrix);
     vWorldPos = vec4(worldPos, GetDepth(gl_Position));
+    vEyeVec = vec4(cCameraPos - worldPos, GetDepth(gl_Position));
 
     vColor = iColor;
 
@@ -110,28 +122,51 @@ void VS()
 
 void PS()
 {
-    float _FlowSpeed = 0.5;
-    float _TimeScale= 1.0;
-
-    vec2 flowDir = (vColor.xy - vec2(0.5, 0.5)) * _FlowSpeed;
+    // Flow direction is stored in Red and Green channels of the vertex color
+    vec2 flowDir = (vec2(vColor.x, 1.0 - vColor.y) - vec2(0.5, 0.5)) * cWaterFlowSpeed;
+    // Calculate sampling points based on reminder of the time value
     vec2 baseUV = vTexCoord.xy;
-    float t = cElapsedTimePS * _TimeScale - floor(cElapsedTimePS * _TimeScale);
-    vec2 uv0 = baseUV + (flowDir * t);
-    vec2 uv1 = baseUV + (flowDir * (t - 1));
+    float timeFactor = cElapsedTimePS * cWaterTimeScale - floor(cElapsedTimePS * cWaterTimeScale);
+    vec2 uv0 = baseUV + (flowDir * timeFactor);
+    vec2 uv1 = baseUV + (flowDir * (timeFactor - 1.0));
 
-    // Get material diffuse albedo
-    #ifdef DIFFMAP
-        vec4 diffInput = texture2D(sDiffMap, vTexCoord.xy);
-        #ifdef ALPHAMASK
-            if (diffInput.a < 0.5)
-                discard;
-        #endif
-        vec4 diffColor = cMatDiffColor;// * diffInput;
+    // Sample diffuse overlay (foam, debree, leaves, etc.)
+    vec4 overlay0 = texture2D(sDiffMap, uv0);
+    vec4 overlay1 = texture2D(sDiffMap, uv1);
+    vec4 overlay = mix(overlay0, overlay1, timeFactor);
+
+    // Blend factor between water and diffuse overlay 
+    #ifdef ALPHAMASK
+        float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a)*(1.0 - vColor.b);
     #else
-        vec4 diffColor = cMatDiffColor;
+        float overlayFactor = overlay.a*(1.0 - vColor.b);
     #endif
 
-    diffColor.a *= vColor.a;
+    // Get normal
+    #if defined(NORMALMAP) || defined(DIRBILLBOARD)
+        vec3 tangent = vTangent.xyz;
+        vec3 bitangent = vec3(vTexCoord.zw, vTangent.w);
+        mat3 tbn = mat3(tangent, bitangent, vNormal);
+    #endif
+
+    #ifdef NORMALMAP
+        //float normalScale = length(flowDir)*2.0;
+        vec3 nnA = DecodeNormal(texture2D(sNormalMap, uv0));
+        vec3 nnB = DecodeNormal(texture2D(sNormalMap, uv1));
+        vec3 nn = mix(nnA, nnB, timeFactor);// * vec3(normalScale, normalScale, 1.0);
+        //nn.rg *= 2.0;
+        vec3 normal = normalize(tbn * nn);
+    #else
+        vec3 normal = normalize(vNormal);
+    #endif
+
+    float fresnel = pow(1.0 - clamp(dot(normalize(vEyeVec.xyz), vNormal), 0.0, 1.0), cWaterFresnelPower);
+
+    // Do the alpha blending of diffuse overlay
+    vec4 diffColor = mix(cMatDiffColor, overlay, overlay.a);
+    // Blue vertex color controls intencity of diffuse overlay over the water material
+    diffColor = mix(cMatDiffColor, diffColor, (1.0 - vColor.z));
+    diffColor.a = mix(max(cMatDiffColor.a, diffColor.a), 1.0, fresnel) * vColor.a;
 
     #ifdef METALLIC
         vec4 roughMetalSrc = texture2D(sSpecMap, vTexCoord.xy);
@@ -143,6 +178,9 @@ void PS()
         float metalness = cMetallic;
     #endif
 
+    metalness = mix (cWaterMetallic, metalness, overlayFactor);
+    roughness = mix (cWaterRoughness, roughness, overlayFactor);
+
     roughness *= roughness;
 
     roughness = clamp(roughness, ROUGHNESS_FLOOR, 1.0);
@@ -150,23 +188,6 @@ void PS()
 
     vec3 specColor = mix(0.08 * cMatSpecColor.rgb, diffColor.rgb, metalness);
     diffColor.rgb = diffColor.rgb - diffColor.rgb * metalness;
-
-    // Get normal
-    #if defined(NORMALMAP) || defined(DIRBILLBOARD)
-        vec3 tangent = vTangent.xyz;
-        vec3 bitangent = vec3(vTexCoord.zw, vTangent.w);
-        mat3 tbn = mat3(tangent, bitangent, vNormal);
-    #endif
-
-    #ifdef NORMALMAP
-        vec3 nnA = DecodeNormal(texture2D(sNormalMap, uv0));
-        vec3 nnB = DecodeNormal(texture2D(sNormalMap, uv1));
-        vec3 nn = mix(nnA, nnB, t);
-        //nn.rg *= 2.0;
-        vec3 normal = normalize(tbn * nn);
-    #else
-        vec3 normal = normalize(vNormal);
-    #endif
 
     // Get fog factor
     #ifdef HEIGHTFOG
@@ -252,7 +273,7 @@ void PS()
         #ifdef IBL
           vec3 iblColor = ImageBasedLighting(reflection, normal, toCamera, diffColor.rgb, specColor.rgb, roughness, cubeColor);
           float gamma = 0.0;
-          finalColor.rgb += iblColor * ambientOcclusion;
+          finalColor.rgb += iblColor * ambientOcclusion * fresnel;
         #endif
 
         #ifdef ENVCUBEMAP

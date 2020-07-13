@@ -12,8 +12,7 @@
         _Smoothness("Smoothness", Range(0,1)) = 1
         _FlowSpeed("Flow speed", Range(0,1)) = 0.2
         [PowerSlider(4)] _TimeScale("Time scale", Range(0.1,8)) = 1
-            
-        [PowerSlider(4)] _FresnelExponent("Fresnel Exponent", Range(0.25, 8)) = 1
+        [PowerSlider(4)] _FresnelPower("Fresnel Exponent", Range(0.25, 8)) = 4
     }
         SubShader
         {
@@ -45,7 +44,7 @@
 
             fixed4 _Color;
             half _BumpScale;
-            half _FresnelExponent;
+            half _FresnelPower;
             half _Metallic;
             half _Smoothness;
             half _WaterMetallic;
@@ -69,11 +68,13 @@
                 float2 uv1 = baseUV + (flowDir * (t - 1));
 
                 //float fresnelBase = saturate(1.0 - dot(IN.worldNormal, IN.viewDir));
-                //float fresnel = pow(fresnelBase, _FresnelExponent);
+                //float fresnel = pow(fresnelBase, _FresnelPower);
+                float fresnel = 0;
 
+                //float normalScale = length(flowDir) * 2.0;
                 half3 n0 = UnpackScaleNormal(tex2D(_BumpMap, uv0), _BumpScale);
                 half3 n1 = UnpackScaleNormal(tex2D(_BumpMap, uv1), _BumpScale);
-                half3 n = normalize(n0 + (n1 - n0) * t);
+                half3 n = normalize((n0 + (n1 - n0) * t));// *half3(normalScale, normalScale, 1.0));
                 o.Normal = n;
 
                 half4 overlay0 = tex2D(_MainTex, uv0);
@@ -90,7 +91,7 @@
                 // Metallic and smoothness come from slider variables
                 o.Metallic = lerp(_WaterMetallic, _Metallic, overlayFactor);// *saturate(fresnel);
                 o.Smoothness = lerp(_WaterSmoothness, _Smoothness, overlayFactor);
-                o.Alpha = max(_Color.a, c.a)* IN.color.a;// *fresnel;
+                o.Alpha = lerp(max(_Color.a, c.a), 1.0, fresnel) * IN.color.a;
             }
             ENDCG
         }

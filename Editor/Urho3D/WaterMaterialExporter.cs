@@ -20,19 +20,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected override UrhoPBRMaterial FromMetallicGlossiness(Material mat, MetallicGlossinessShaderArguments arguments)
         {
             var material = base.FromMetallicGlossiness(mat, arguments);
-            //var _WindHeightFactor = mat.GetFloat("_WindHeightFactor");
-            //var _WindHeightPivot = mat.GetFloat("_WindHeightPivot");
-            //var _WindStemAxisX = mat.GetFloat("_WindStemAxisX");
-            //var _WindStemAxisY = mat.GetFloat("_WindStemAxisY");
-            //var _WindStemAxisZ = mat.GetFloat("_WindStemAxisZ");
-            //var _WindPeriod = mat.GetFloat("_WindPeriod");
-            //var _WindWorldSpacingX = mat.GetFloat("_WindWorldSpacingX");
-            //var _WindWorldSpacingY = mat.GetFloat("_WindWorldSpacingY");
-            //material.ExtraParameters.Add("WindHeightFactor", _WindHeightFactor);
-            //material.ExtraParameters.Add("WindHeightPivot", _WindHeightPivot);
-            //material.ExtraParameters.Add("WindStemAxis", new Vector3(_WindStemAxisX, _WindStemAxisY, _WindStemAxisZ));
-            //material.ExtraParameters.Add("WindPeriod", _WindPeriod);
-            //material.ExtraParameters.Add("WindWorldSpacingX", new Vector2(_WindWorldSpacingX, _WindWorldSpacingY));
+            var _WaterMetallic = mat.GetFloat("_WaterMetallic");
+            var _WaterSmoothness = mat.GetFloat("_WaterSmoothness");
+            var _FlowSpeed = mat.GetFloat("_FlowSpeed");
+            var _TimeScale = mat.GetFloat("_TimeScale");
+            var _FresnelPower = mat.GetFloat("_FresnelPower");
+            
+            material.ExtraParameters.Add("WaterMetallic", _WaterMetallic);
+            material.ExtraParameters.Add("WaterRoughness", 1.0f - _WaterSmoothness);
+            material.ExtraParameters.Add("WaterFlowSpeed", _FlowSpeed);
+            material.ExtraParameters.Add("WaterTimeScale", _TimeScale);
+            material.ExtraParameters.Add("WaterFresnelPower", _FresnelPower);
             material.Technique = "Techniques/PBR/PBRWater.xml";
 
             return material;
