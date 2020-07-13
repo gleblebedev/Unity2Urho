@@ -3,6 +3,7 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _BumpScale("Normal Intensity", Range(0, 1)) = 1
     }
     SubShader
     {
@@ -16,6 +17,7 @@
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "Lighting.cginc"
 
             struct appdata
             {
@@ -38,11 +40,14 @@
             }
 
             sampler2D _MainTex;
+            half _BumpScale;
 
             fixed4 frag (v2f i) : SV_Target
             {
+                //half3 tnormal = UnpackScaleNormal(tex2D(_MainTex, i.uv), _BumpScale);
                 half3 tnormal = UnpackNormal(tex2D(_MainTex, i.uv));
-                return fixed4(tnormal.x * 0.5 + 0.5, tnormal.y * 0.5 + 0.5, tnormal.z * 0.5 + 0.5, 1);
+                tnormal = normalize(lerp(half3(0, 0, 1), tnormal, _BumpScale));
+                return fixed4(tnormal.x * 0.5 + 0.5, tnormal.y * 0.5 + 0.5, tnormal.z * 0.5 + 0.5, 1.0);
             }
             ENDCG
         }

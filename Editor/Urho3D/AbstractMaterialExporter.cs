@@ -61,6 +61,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
+        protected string GetScaledNormalTextureName(Texture bump, float bumpScale, UrhoPBRMaterial material)
+        {
+            var normalTexture = Engine.EvaluateTextrueName(bump);
+            if (bumpScale < 0.999f)
+            {
+                normalTexture = ExportUtils.ReplaceExtension(normalTexture, string.Format(CultureInfo.InvariantCulture, "{0:0.000}.png", bumpScale));
+            }
+
+            return normalTexture;
+        }
+
+
         protected string FormatRGB(Color32 color)
         {
             return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);

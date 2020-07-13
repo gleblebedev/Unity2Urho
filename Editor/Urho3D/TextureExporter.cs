@@ -146,6 +146,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 TransformMetallicGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
             if (!string.IsNullOrWhiteSpace(urhoMaterial.AOTexture))
                 TransformAOTexture(arguments, urhoMaterial.AOTexture);
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.NormalTexture))
+                TransformNormal(arguments.Bump, arguments.BumpScale, urhoMaterial.NormalTexture);
         }
 
         public void ExportPBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
@@ -156,6 +158,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 TransformDiffuse(arguments, urhoMaterial.BaseColorTexture);
             if (!string.IsNullOrWhiteSpace(urhoMaterial.AOTexture))
                 TransformAOTexture(arguments, urhoMaterial.AOTexture);
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.NormalTexture))
+                TransformNormal(arguments.Bump, arguments.BumpScale, urhoMaterial.NormalTexture);
         }
 
         private void CopyTexture(Texture texture)
@@ -186,13 +190,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (texType)
             {
                 case TextureImporterType.NormalMap:
-                    new TextureProcessor().ProcessAndSaveTexture(texture,
-                        "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap",
-                        _engine.GetTargetFilePath(outputAssetName));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap", _engine.GetTargetFilePath(outputAssetName));
                     break;
                 default:
-                    new TextureProcessor().ProcessAndSaveTexture(texture,
-                        "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName));
                     WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc,
                         ExportUtils.GetTextureOptions(texture).WithSRGB(true));
                     break;
@@ -329,6 +330,35 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
+        private void TransformNormal(Texture bump, float bumpScale, string baseColorName)
+        {
+            if (bump == null)
+                return;
+
+            if (bumpScale >= 0.999f)
+            {
+                CopyTexture(bump);
+                return;
+            }
+
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(bump);
+            var assetGuid = bump.GetKey();
+            if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
+
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap"));
+            try
+            {
+                var mainTexture = bump;
+                tmpMaterial.SetTexture("_MainTex", mainTexture);
+                tmpMaterial.SetFloat("_BumpScale", bumpScale);
+                new TextureProcessor().ProcessAndSaveTexture(mainTexture, tmpMaterial, _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(assetGuid, baseColorName, sourceFileTimestampUtc, ExportUtils.GetTextureOptions(mainTexture).WithSRGB(false));
+            }
+            finally
+            {
+                Object.DestroyImmediate(tmpMaterial);
+            }
+        }
         private void TransformAOTexture(ShaderArguments arguments, string baseColorName)
         {
             if (arguments.Occlusion == null)
@@ -337,8 +367,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetGuid = arguments.Occlusion.GetKey();
             if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
 
-            var tmpMaterial =
-                new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/PremultiplyOcclusionStrength"));
+            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/PremultiplyOcclusionStrength"));
             try
             {
                 var mainTexture = arguments.Occlusion;

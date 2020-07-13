@@ -20,7 +20,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public UrhoPBRMaterial FromSpecularGlossiness(SpecularGlossinessShaderArguments arguments)
         {
             var material = new UrhoPBRMaterial();
-            material.NormalTexture = Engine.EvaluateTextrueName(arguments.Bump);
+            material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale, material);
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
             material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             var diffuseTextrueName = Engine.EvaluateTextrueName(arguments.Diffuse);
@@ -147,7 +147,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var shaderName = arguments.Shader;
                 WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
 
-                Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
+                //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
 
                 Engine.SchedulePBRTextures(arguments, urhoMaterial);
 

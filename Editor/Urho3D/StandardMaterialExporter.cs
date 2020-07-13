@@ -71,7 +71,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.BaseColor, new TextureReference(TextureSemantic.PBRBaseColor));
-                Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
+                //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
                 Engine.ScheduleTexture(arguments.DetailBaseColor, new TextureReference(TextureSemantic.Detail));
 
                 Engine.SchedulePBRTextures(arguments, urhoMaterial);
@@ -84,7 +84,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected virtual UrhoPBRMaterial FromMetallicGlossiness(Material mat, MetallicGlossinessShaderArguments arguments)
         {
             var material = new UrhoPBRMaterial();
-            material.NormalTexture = Engine.EvaluateTextrueName(arguments.Bump);
+
+            material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale, material);
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
             material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             material.BaseColorTexture = Engine.EvaluateTextrueName(arguments.BaseColor);
