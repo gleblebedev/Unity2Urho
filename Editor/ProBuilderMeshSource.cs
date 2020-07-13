@@ -22,19 +22,16 @@ namespace UnityToCustomEngineExporter.Editor
                 for (var index = 0; index < _mesh.colors.Count; index++) _colors[index] = _mesh.colors[index];
             }
 
-            _indicesPerSubMesh = new List<List<int>>();
+            _indicesPerSubMesh = new List<List<int>>(subMeshCount);
             for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
             {
-                var indices = new List<int>();
-                foreach (var face in _mesh.faces.Where(_ => _.submeshIndex == subMeshIndex))
-                    for (var tIndex = 2; tIndex < face.indexes.Count; ++tIndex)
-                    {
-                        indices.Add(face.indexes[0]);
-                        indices.Add(face.indexes[tIndex - 1]);
-                        indices.Add(face.indexes[tIndex]);
-                    }
+                _indicesPerSubMesh.Add(new List<int>());
+            }
 
-                _indicesPerSubMesh.Add(indices);
+            foreach (var face in _mesh.faces)
+            {
+                var indices = _indicesPerSubMesh[face.submeshIndex];
+                indices.AddRange(face.indexes);
             }
         }
 
