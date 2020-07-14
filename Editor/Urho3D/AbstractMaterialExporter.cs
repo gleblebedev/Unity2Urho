@@ -132,6 +132,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteParameter("Metallic", urhoMaterial.Metallic);
             writer.WriteParameter("UOffset", urhoMaterial.UOffset);
             writer.WriteParameter("VOffset", urhoMaterial.VOffset);
+            writer.WriteElementParameter("cull", "value", urhoMaterial.Cull.ToString());
+            writer.WriteElementParameter("shadowcull", "value", urhoMaterial.ShadowCull.ToString());
 
             foreach (var extraParameter in urhoMaterial.ExtraParameters)
             {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -9,18 +10,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly Urho3DEngine _engine;
         private readonly List<IUrho3DMaterialExporter> _exporters;
         private readonly LegacyMaterialExporter _defaultExporter;
+        private SkyboxMaterialExporter _skyboxMaterialExporter;
 
         public MaterialExporter(Urho3DEngine engine)
         {
             _engine = engine;
             _defaultExporter = new LegacyMaterialExporter(_engine);
+            _skyboxMaterialExporter = new SkyboxMaterialExporter(_engine);
             _exporters = new IUrho3DMaterialExporter[]
             {
                 _defaultExporter,
                 new StandardMaterialExporter(_engine),
                 new StandardSpecularMaterialExporter(_engine),
                 new WaterMaterialExporter(_engine),
-                new SkyboxMaterialExporter(_engine),
+                _skyboxMaterialExporter,
                 new VegetationMaterialExporter(_engine)
             }.OrderByDescending(_ => _.ExporterPriority).ToList();
         }
@@ -50,6 +53,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
             _defaultExporter.ExportMaterial(material, prefabContext);
+        }
+
+        public string TryGetSkyboxCubemap(Material skyboxMaterial)
+        {
+            if (!_skyboxMaterialExporter.CanExportMaterial(skyboxMaterial))
+                return null;
+            var arguments = _skyboxMaterialExporter.SetupSkybox(skyboxMaterial);
+            if (arguments.Skybox != null)
+                return _engine.EvaluateTextrueName(arguments.Skybox);
+            var anyFace = arguments.BackTex ?? arguments.DownTex ?? arguments.FrontTex ??
+                          arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
+            if (anyFace != null)
+            {
+                return ExportUtils.ReplaceExtension(_engine.EvaluateMaterialName(skyboxMaterial), ".Cubemap.xml");
+            }
+
+            return null;
         }
     }
 }

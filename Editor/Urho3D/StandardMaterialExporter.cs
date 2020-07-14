@@ -130,6 +130,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             material.BaseColor = arguments.BaseColorColor.linear;
             material.AlphaBlend = arguments.Transparent;
+            material.Cull = Urho3DCulling.ccw;
+            material.ShadowCull = Urho3DCulling.ccw;
             if (arguments.AlphaTest) material.PixelShaderDefines.Add("ALPHAMASK");
             material.EmissiveColor = arguments.EmissiveColor.linear;
             material.MatSpecColor = new Color(1, 1, 1, 0);

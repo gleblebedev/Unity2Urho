@@ -3,6 +3,7 @@ using System.Threading;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 using UnityToCustomEngineExporter.Editor.Urho3D;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -24,6 +25,7 @@ namespace UnityToCustomEngineExporter.Editor
 
         private IDestinationEngine _engine;
         private CancellationTokenSource _cancellationTokenSource;
+        private GUIStyle _myCustomStyle;
 
         [MenuItem("Assets/Export/Export Assets and Scene")]
         public static void Init()
@@ -43,6 +45,11 @@ namespace UnityToCustomEngineExporter.Editor
 
         public void OnGUI()
         {
+            _myCustomStyle = _myCustomStyle ?? new GUIStyle(GUI.skin.GetStyle("label"))
+            {
+                wordWrap = true
+            };
+
             // if (string.IsNullOrWhiteSpace(_exportFolder)) {
             //    PickFolder();
             // }
@@ -99,8 +106,12 @@ namespace UnityToCustomEngineExporter.Editor
                     }
                 }
             }
-            //EditorGUILayout.BeginHorizontal();
-            //EditorGUILayout.EndHorizontal();
+   
+
+
+            EditorGUILayout.Separator();
+            EditorGUILayout.LabelField("Before exporting the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
+
         }
 
         private void StartExportScene()

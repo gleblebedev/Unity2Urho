@@ -46,10 +46,11 @@ namespace UnityToCustomEngineExporter.Editor
         {
             if (_skin != null)
             {
-                var boneParent = _skin.bones[index].parent;
+                var skinBone = _skin.bones[index];
+                var boneParent = skinBone.parent;
                 if (boneParent == null)
                     return null;
-                for (var i = 0; i < index; ++i)
+                for (var i = 0; i < _skin.bones.Length; ++i)
                     if (_skin.bones[i] == boneParent)
                         return i;
                 return null;

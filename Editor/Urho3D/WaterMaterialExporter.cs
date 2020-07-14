@@ -31,6 +31,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.ExtraParameters.Add("WaterFlowSpeed", _FlowSpeed);
             material.ExtraParameters.Add("WaterTimeScale", _TimeScale);
             material.ExtraParameters.Add("WaterFresnelPower", _FresnelPower);
+            if (arguments.BaseColor != null)
+            {
+                material.PixelShaderDefines.Add("DIFFMAP");
+            }
             material.Technique = "Techniques/PBR/PBRWater.xml";
 
             return material;

@@ -130,16 +130,20 @@ void PS()
     vec2 uv0 = baseUV + (flowDir * timeFactor);
     vec2 uv1 = baseUV + (flowDir * (timeFactor - 1.0));
 
-    // Sample diffuse overlay (foam, debree, leaves, etc.)
-    vec4 overlay0 = texture2D(sDiffMap, uv0);
-    vec4 overlay1 = texture2D(sDiffMap, uv1);
-    vec4 overlay = mix(overlay0, overlay1, timeFactor);
+    #ifdef DIFFMAP
+        // Sample diffuse overlay (foam, debree, leaves, etc.)
+        vec4 overlay0 = texture2D(sDiffMap, uv0);
+        vec4 overlay1 = texture2D(sDiffMap, uv1);
+        vec4 overlay = mix(overlay0, overlay1, timeFactor);
+    #else
+        vec4 overlay = vec4(0.0, 0.0, 0.0, 0.0);
+    #endif
 
     // Blend factor between water and diffuse overlay 
     #ifdef ALPHAMASK
-        float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a)*(1.0 - vColor.b);
+        float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a) * vColor.z;
     #else
-        float overlayFactor = overlay.a*(1.0 - vColor.b);
+        float overlayFactor = overlay.a * vColor.z;
     #endif
 
     // Get normal
@@ -165,7 +169,7 @@ void PS()
     // Do the alpha blending of diffuse overlay
     vec4 diffColor = mix(cMatDiffColor, overlay, overlay.a);
     // Blue vertex color controls intencity of diffuse overlay over the water material
-    diffColor = mix(cMatDiffColor, diffColor, (1.0 - vColor.z));
+    diffColor = mix(cMatDiffColor, diffColor, vColor.z);
     diffColor.a = mix(max(cMatDiffColor.a, diffColor.a), 1.0, fresnel) * vColor.a;
 
     #ifdef METALLIC

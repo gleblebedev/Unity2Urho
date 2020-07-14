@@ -4,6 +4,12 @@ using UnityEngine;
 
 namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
 {
+    public enum Urho3DCulling
+    {
+        ccw,
+        cw,
+        none,
+    }
     public class UrhoPBRMaterial
     {
         public string Technique { get; set; }
@@ -42,6 +48,9 @@ namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
         public Vector4 VOffset { get; set; } = new Vector4(0, 1, 0, 0);
 
         public bool AlphaBlend { get; set; }
+
+        public Urho3DCulling Cull { get; set; } = Urho3DCulling.ccw;
+        public Urho3DCulling ShadowCull { get; set; } = Urho3DCulling.ccw;
 
         public Color EmissiveColor { get; set; } = Color.black;
 

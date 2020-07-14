@@ -250,10 +250,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     switch (reflectionProbe.mode)
                     {
                         case ReflectionProbeMode.Baked:
-                            ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.bakedTexture as Cubemap, prefabContext);
+                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.bakedTexture as Cubemap, prefabContext);
                             break;
                         case ReflectionProbeMode.Custom:
-                            ExportZone(writer, subPrefix, reflectionProbe, reflectionProbe.customBakedTexture as Cubemap, prefabContext);
+                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.customBakedTexture as Cubemap, prefabContext);
                             break;
                     }
                 }
@@ -582,17 +582,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return (min, max, new Vector2(w, h));
         }
 
-        private void ExportZone(XmlWriter writer, string subPrefix, ReflectionProbe reflectionProbe, Cubemap cubemap, PrefabContext prefabContext)
+        protected void ExportZone(XmlWriter writer, string subPrefix, Vector3 size, string cubemap,
+            PrefabContext prefabContext)
         {
-            if (cubemap == null) return;
-
-            var assetPath = AssetDatabase.GetAssetPath(cubemap);
-            if (string.IsNullOrWhiteSpace(assetPath))
-                return;
-
-            _engine.ScheduleAssetExport(cubemap, prefabContext);
-            var texName = _engine.EvaluateCubemapName(cubemap);
-
             StartComponent(writer, subPrefix, "Zone");
 
             var subSubPrefix = subPrefix + "\t";
@@ -616,18 +608,33 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 //}
             }
 
-            WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(reflectionProbe.size * 0.5f));
-            WriteAttribute(writer, subSubPrefix, "Bounding Box Max", reflectionProbe.size * 0.5f);
 
-            var volume = reflectionProbe.size.x * reflectionProbe.size.y * reflectionProbe.size.z;
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Min", -(size * 0.5f));
+            WriteAttribute(writer, subSubPrefix, "Bounding Box Max", size * 0.5f);
+
+            var volume = size.x * size.y * size.z;
             if (volume != 0)
             {
                 var priority = int.MaxValue / (volume * 2);
-                WriteAttribute(writer, subSubPrefix, "Priority", (int) priority);
+                WriteAttribute(writer, subSubPrefix, "Priority", (int)priority);
             }
 
-            WriteAttribute(writer, subSubPrefix, "Zone Texture", "TextureCube;" + texName);
+            WriteAttribute(writer, subSubPrefix, "Zone Texture", "TextureCube;" + cubemap);
             EndElement(writer, subPrefix);
+        }
+
+        protected void ExportZone(XmlWriter writer, string subPrefix, Vector3 size, Cubemap cubemap, PrefabContext prefabContext)
+        {
+            if (cubemap == null) return;
+
+            var assetPath = AssetDatabase.GetAssetPath(cubemap);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return;
+
+            _engine.ScheduleAssetExport(cubemap, prefabContext);
+            var texName = _engine.EvaluateCubemapName(cubemap);
+
+            ExportZone(writer, subPrefix, size, texName, prefabContext);
         }
 
         private void ExportCustomComponent(XmlWriter writer, string subPrefix, IUrho3DComponent customComponent)

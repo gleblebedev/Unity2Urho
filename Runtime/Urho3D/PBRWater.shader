@@ -3,7 +3,7 @@
     Properties
     {
         _Color("Color", Color) = (1,1,1,1)
-        _MainTex("Albedo (RGB)", 2D) = "white" {}
+        _MainTex("Albedo (RGB)", 2D) ="black" {}
         _BumpMap("Normal Map", 2D) = "bump" {}
         _BumpScale("Normal Intensity", Range(0, 1)) = 1
         _WaterMetallic("Water Metallic", Range(0,1)) = 1
@@ -81,9 +81,9 @@
                 half4 overlay1 = tex2D(_MainTex, uv1);
                 half4 overlay = lerp(overlay0, overlay1, t);
 
-                half4 overlayFactor = overlay.a*(1-IN.color.z);
+                half4 overlayFactor = overlay.a * IN.color.z;
 
-                fixed4 c = lerp(_Color, lerp(_Color, overlay, overlay.a), (1 - IN.color.z));
+                fixed4 c = lerp(_Color, lerp(_Color, overlay, overlay.a), IN.color.z);
                 //fixed4 c = lerp(_Color, overlay, overlay.a);
 
                 o.Albedo = c;// fixed3(fresnelBase, 1, 1);// lerp(c, float3(1, 1, 1), fresnel);// float3(fresnel, fresnel, fresnel);// c.rgb;

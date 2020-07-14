@@ -427,5 +427,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             return false;
         }
+
+        public string TryGetSkyboxCubemap(Material skyboxMaterial)
+        {
+            return _materialExporter.TryGetSkyboxCubemap(skyboxMaterial);
+        }
     }
 }

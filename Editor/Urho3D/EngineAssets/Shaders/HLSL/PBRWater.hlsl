@@ -15,7 +15,7 @@ uniform float cWaterMetallic;
 uniform float cWaterRoughness;
 uniform float cWaterFlowSpeed;
 uniform float cWaterTimeScale;
-
+uniform float cWaterFresnelPower;
 #else
 
 // D3D11 constant buffer
@@ -25,6 +25,7 @@ cbuffer CustomVS : register(b6)
     float cWaterRoughness;
     float cWaterFlowSpeed;
     float cWaterTimeScale;
+    float cWaterFresnelPower;
 }
 
 #endif
@@ -77,16 +78,14 @@ void VS(float4 iPos : POSITION,
     #else
         out float3 oVertexLight : TEXCOORD4,
         out float4 oScreenPos : TEXCOORD5,
-        #ifdef ENVCUBEMAP
-            out float3 oReflectionVec : TEXCOORD6,
-        #endif
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             out float2 oTexCoord2 : TEXCOORD7,
         #endif
     #endif
-    #ifdef VERTEXCOLOR
+        #ifdef VERTEXCOLOR
         out float4 oColor : COLOR0,
     #endif
+    out float4 oEyeVec : TEXCOORD6,
     #if defined(D3D11) && defined(CLIPPLANE)
         out float oClip : SV_CLIPDISTANCE0,
     #endif
@@ -102,6 +101,7 @@ void VS(float4 iPos : POSITION,
     oPos = GetClipPos(worldPos);
     oNormal = GetWorldNormal(modelMatrix);
     oWorldPos = float4(worldPos, GetDepth(oPos));
+    oEyeVec = float4(cCameraPos - worldPos, GetDepth(oPos));
 
     #if defined(D3D11) && defined(CLIPPLANE)
         oClip = dot(oPos, cClipPlane);
@@ -139,15 +139,13 @@ void VS(float4 iPos : POSITION,
         #endif
     #else
         // Ambient & per-vertex lighting
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             // If using lightmap, disregard zone ambient light
+            oVertexLight = float3(0.0, 0.0, 0.0);
+            oTexCoord2 = iTexCoord2;
+        #elif defined(AO)
             // If using AO, calculate ambient in the PS
             oVertexLight = float3(0.0, 0.0, 0.0);
-            #if defined(LIGHTMAP)
-                oTexCoord2 = iTexCoord2;
-            #else
-                oTexCoord2 = GetTexCoord(iTexCoord);
-            #endif
         #else
             oVertexLight = GetAmbient(GetZonePos(worldPos));
         #endif
@@ -158,10 +156,6 @@ void VS(float4 iPos : POSITION,
         #endif
 
         oScreenPos = GetScreenPos(oPos);
-
-        #ifdef ENVCUBEMAP
-            oReflectionVec = worldPos - cCameraPos;
-        #endif
     #endif
 }
 
@@ -187,13 +181,11 @@ void PS(
     #else
         float3 iVertexLight : TEXCOORD4,
         float4 iScreenPos : TEXCOORD5,
-        #ifdef ENVCUBEMAP
-            float3 iReflectionVec : TEXCOORD6,
-        #endif
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             float2 iTexCoord2 : TEXCOORD7,
         #endif
     #endif
+    float4 vEyeVec : TEXCOORD6,
     #ifdef VERTEXCOLOR
         float4 iColor : COLOR0,
     #endif
@@ -216,30 +208,54 @@ void PS(
     out float4 oColor : OUTCOLOR0)
 {
     // Flow direction is stored in Red and Green channels of the vertex color
-    float2 flowDir = (float2(iColor.x, 1.0 - iColor.y) - float2(0.5, 0.5)) * cWaterFlowSpeed;
+    const float2 flowDir = (float2(iColor.x, 1.0 - iColor.y) - float2(0.5, 0.5)) * cWaterFlowSpeed;
     // Calculate sampling points based on reminder of the time value
-    float2 baseUV = iTexCoord.xy;
-    float timeFactor = cElapsedTimePS * cWaterTimeScale - floor(cElapsedTimePS * cWaterTimeScale);
-    float2 uv0 = baseUV + (flowDir * timeFactor);
-    float2 uv1 = baseUV + (flowDir * (timeFactor - 1.0));
+    const float2 baseUV = iTexCoord.xy;
+    const float timeFactor = cElapsedTimePS * cWaterTimeScale - floor(cElapsedTimePS * cWaterTimeScale);
+    const float2 uv0 = baseUV + (flowDir * timeFactor);
+    const float2 uv1 = baseUV + (flowDir * (timeFactor - 1.0));
 
-    // Sample diffuse overlay (foam, debree, leaves, etc.)
-    float4 overlay0 = Sample2D(DiffMap, uv0);
-    float4 overlay1 = Sample2D(DiffMap, uv1);
-    float4 overlay = lerp(overlay0, overlay1, timeFactor);
+    #ifdef DIFFMAP
+        // Sample diffuse overlay (foam, debree, leaves, etc.)
+        const float4 overlay0 = Sample2D(DiffMap, uv0);
+        const float4 overlay1 = Sample2D(DiffMap, uv1);
+        const float4 overlay = lerp(overlay0, overlay1, timeFactor);
+    #else
+    const float4 overlay = float4(0.0, 0.0, 0.0, 0.0);
+    #endif
 
     // Blend factor between water and diffuse overlay 
     #ifdef ALPHAMASK
-        float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a)*(1.0 - iColor.b);
+        const float overlayFactor = ((overlay.a < 0.5)?0.0:overlay.a) * iColor.b;
     #else
-        float overlayFactor = overlay.a*(1.0 - iColor.b);
+        const float overlayFactor = overlay.a * iColor.b;
     #endif
+
+    // Get normal
+    #if defined(NORMALMAP)
+        const float3 tangent = normalize(iTangent.xyz);
+        const float3 bitangent = normalize(float3(iTexCoord.zw, iTangent.w));
+        const float3x3 tbn = float3x3(tangent, bitangent, iNormal);
+    #endif
+
+    #ifdef NORMALMAP
+        //float normalScale = length(flowDir)*2.0;
+        const float3 nnA = DecodeNormal(Sample2D(NormalMap, uv0));
+        const float3 nnB = DecodeNormal(Sample2D(NormalMap, uv1));
+        const float3 nn = lerp(nnA, nnB, timeFactor);// * float3(normalScale, normalScale, 1.0);
+        //nn.rg *= 2.0;
+        const float3 normal = normalize(mul(nn, tbn));
+    #else
+        const float3 normal = normalize(iNormal);
+    #endif
+
+    const float fresnel = pow(1.0 - clamp(dot(normalize(vEyeVec.xyz), iNormal), 0.0, 1.0), cWaterFresnelPower);
 
     // Do the alpha blending of diffuse overlay
     float4 diffColor = lerp(cMatDiffColor, overlay, overlay.a);
     // Blue vertex color controls intencity of diffuse overlay over the water material
-    diffColor = lerp(cMatDiffColor, diffColor, (1.0 - iColor.z));
-    diffColor.a = max(cMatDiffColor.a, diffColor.a) * iColor.a;
+    diffColor = lerp(cMatDiffColor, diffColor, iColor.b);
+    diffColor.a = lerp(max(cMatDiffColor.a, diffColor.a), 1.0, fresnel) * iColor.a;
 
     // Get material specular albedo
     #ifdef METALLIC // METALNESS
@@ -262,24 +278,6 @@ void PS(
 
     float3 specColor = lerp(0.08 * cMatSpecColor.rgb, diffColor.rgb, metalness);
     diffColor.rgb = diffColor.rgb - diffColor.rgb * metalness; // Modulate down the diffuse
-
-    // Get normal
-    #if defined(NORMALMAP)
-        const float3 tangent = normalize(iTangent.xyz);
-        const float3 bitangent = normalize(float3(iTexCoord.zw, iTangent.w));
-        const float3x3 tbn = float3x3(tangent, bitangent, iNormal);
-    #endif
-
-    #ifdef NORMALMAP
-        //float normalScale = length(flowDir)*2.0;
-        const float3 nnA = DecodeNormal(Sample2D(NormalMap, uv0));
-        const float3 nnB = DecodeNormal(Sample2D(NormalMap, uv1));
-        const float3 nn = lerp(nnA, nnB, timeFactor);// * float3(normalScale, normalScale, 1.0);
-        //nn.rg *= 2.0;
-        const float3 normal = normalize(mul(nn, tbn));
-    #else
-        const float3 normal = normalize(iNormal);
-    #endif
 
     // Get fog factor
     #ifdef HEIGHTFOG
@@ -370,9 +368,6 @@ void PS(
             finalColor += iblColor * ambientOcclusion;
         #endif
 
-        #ifdef ENVCUBEMAP
-            finalColor += cMatEnvMapColor * SampleCube(EnvCubeMap, reflect(iReflectionVec, normal)).rgb;
-        #endif
         #ifdef LIGHTMAP
             finalColor += Sample2D(EmissiveMap, iTexCoord2).rgb * diffColor.rgb;
         #endif

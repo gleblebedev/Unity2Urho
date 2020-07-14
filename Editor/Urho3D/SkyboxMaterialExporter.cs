@@ -122,7 +122,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private SkyboxShaderArguments SetupSkybox(Material material)
+        public SkyboxShaderArguments SetupSkybox(Material material)
         {
             var setupProceduralSkybox = new SkyboxShaderArguments();
             var shader = material.shader;
