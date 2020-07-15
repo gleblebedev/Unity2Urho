@@ -65,9 +65,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     using (var sceneElement = Element.Start(writer, "scene"))
                     {
                         WriteAttribute(writer, "\t", "Name", scene.name);
-                        StartComponent(writer, "\t", "Octree");
+                        StartComponent(writer, "\t", "Octree", true);
                         EndElement(writer, "\t");
-                        StartComponent(writer, "\t", "DebugRenderer");
+                        StartComponent(writer, "\t", "DebugRenderer", true);
                         EndElement(writer, "\t");
 
                         var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
@@ -75,14 +75,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         var skyboxMaterial = skybox?.material ?? RenderSettings.skybox;
                         if (skybox == null)
                         {
-                            WriteSkyboxComponent(writer, "\t", RenderSettings.skybox, prefabContext);
+                            WriteSkyboxComponent(writer, "\t", RenderSettings.skybox, prefabContext, true);
                         }
                         if (skyboxMaterial != null)
                         {
                             var skyboxCubemap = _engine.TryGetSkyboxCubemap(skyboxMaterial);
                             if (!string.IsNullOrWhiteSpace(skyboxCubemap))
                             {
-                                ExportZone(writer, "\t", new Vector3(2000, 2000, 2000), skyboxCubemap, prefabContext);
+                                ExportZone(writer, "\t", new Vector3(2000, 2000, 2000), skyboxCubemap, prefabContext, true);
                             }
                         }
 

@@ -92,13 +92,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
-        protected void StartComponent(XmlWriter writer, string prefix, string type)
+        protected void StartComponent(XmlWriter writer, string prefix, string type, bool isEnabled)
         {
             writer.WriteWhitespace(prefix);
             writer.WriteStartElement("component");
             writer.WriteAttributeString("type", type);
             writer.WriteAttributeString("id", (++_id).ToString());
             writer.WriteWhitespace("\n");
+            WriteAttribute(writer, prefix + "\t", "Is Enabled", isEnabled);
         }
 
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, string vaue)
@@ -155,7 +156,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (camera != null)
                     {
-                        StartComponent(writer, subPrefix, "Camera");
+                        StartComponent(writer, subPrefix, "Camera", camera.enabled);
 
                         WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
                         WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
@@ -173,11 +174,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Terrain terrain)
                 {
-                    ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix, prefabContext);
+                    ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix, terrain.enabled, prefabContext);
                 }
                 else if (component is Rigidbody rigidbody)
                 {
-                    StartComponent(writer, subPrefix, "RigidBody");
+                    StartComponent(writer, subPrefix, "RigidBody", true);
                     var localToWorldMatrix = obj.transform.localToWorldMatrix;
                     var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                     WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
@@ -186,7 +187,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is MeshCollider meshCollider)
                 {
-                    StartComponent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape", meshCollider.enabled);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "TriangleMesh");
                     if (meshCollider.sharedMesh != null)
                     {
@@ -202,7 +203,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is BoxCollider boxCollider)
                 {
-                    StartComponent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape", boxCollider.enabled);
                     WriteAttribute(writer, subSubPrefix, "Size", boxCollider.size);
                     WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
                     //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
@@ -215,7 +216,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is SphereCollider sphereCollider)
                 {
-                    StartComponent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape", sphereCollider.enabled);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
                     EndElement(writer, subPrefix);
@@ -223,7 +224,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is CapsuleCollider capsuleCollider)
                 {
-                    StartComponent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape", capsuleCollider.enabled);
                     if (component.name == "Cylinder")
                         WriteAttribute(writer, subSubPrefix, "Shape Type", "Cylinder");
                     else
@@ -237,11 +238,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is Skybox skybox)
                 {
                     var skyboxMaterial = skybox.material;
-                    WriteSkyboxComponent(writer, subPrefix, skyboxMaterial, prefabContext);
+                    WriteSkyboxComponent(writer, subPrefix, skyboxMaterial, prefabContext, skybox.enabled);
                 }
                 else if (component is Collider collider)
                 {
-                    StartComponent(writer, subPrefix, "CollisionShape");
+                    StartComponent(writer, subPrefix, "CollisionShape", collider.enabled);
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
@@ -258,10 +259,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     switch (reflectionProbe.mode)
                     {
                         case ReflectionProbeMode.Baked:
-                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.bakedTexture as Cubemap, prefabContext);
+                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.bakedTexture as Cubemap, reflectionProbe.enabled, prefabContext);
                             break;
                         case ReflectionProbeMode.Custom:
-                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.customBakedTexture as Cubemap, prefabContext);
+                            ExportZone(writer, subPrefix, reflectionProbe.size, reflectionProbe.customBakedTexture as Cubemap, reflectionProbe.enabled, prefabContext);
                             break;
                     }
                 }
@@ -286,7 +287,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (!localExcludeList.Contains(meshRenderer))
                     if (meshFilter != null || proBuilderMesh != null)
                     {
-                        StartComponent(writer, subPrefix, "StaticModel");
+                        var enabled = true;
+                        if (meshFilter == null && proBuilderMesh != null)
+                            enabled = proBuilderMesh.enabled;
+                        StartComponent(writer, subPrefix, "StaticModel", enabled);
 
                         string meshPath;
                         if (proBuilderMesh != null)
@@ -327,7 +331,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (!localExcludeList.Contains(skinnedMeshRenderer))
                 {
-                    StartComponent(writer, subPrefix, "AnimatedModel");
+                    StartComponent(writer, subPrefix, "AnimatedModel", skinnedMeshRenderer.enabled);
 
 
                     var sharedMesh = skinnedMeshRenderer.sharedMesh;
@@ -365,10 +369,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
-        protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial, PrefabContext prefabContext)
+        protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial, PrefabContext prefabContext, bool enabled)
         {
             var subSubPrefix = subPrefix + "\t";
-            StartComponent(writer, subPrefix, "Skybox");
+            StartComponent(writer, subPrefix, "Skybox", enabled);
             if (skyboxMaterial.shader.name == "Skybox/Panoramic")
             {
                 // Export sphere
@@ -398,7 +402,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (animator == null)
                 return;
-            StartComponent(writer, prefix, "AnimationController");
+            StartComponent(writer, prefix, "AnimationController", animator.enabled);
             var subPrefix = prefix + "\t";
 
             WriteAnimationStates(writer, animator, subPrefix, "Node Animation States", prefabContext);
@@ -408,7 +412,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (animation == null)
                 return;
-            StartComponent(writer, prefix, "AnimationController");
+            StartComponent(writer, prefix, "AnimationController", animation.enabled);
             var subPrefix = prefix + "\t";
 
             WriteAnimationStates(writer, animation, subPrefix, "Node Animation States", prefabContext);
@@ -464,22 +468,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var subSubPrefix = subPrefix + "\t";
 
             WriteVariant(writer, subSubPrefix, animation.GetClipCount());
-            foreach (AnimationState animationState in animation)
+            if (animation.GetClipCount() > 0)
             {
-                var clip = animationState.clip;
-                WriteVariant(writer, subSubPrefix, "ResourceRef",
-                    "Animation;" + _engine.EvaluateAnimationName(clip, prefabContext));
-                _engine.ScheduleAssetExport(clip, prefabContext);
-                var startBone = "";
-                var isLooped = clip.wrapMode == WrapMode.Loop;
-                var weight = (animation.playAutomatically && clip == animation.clip) ? 1.0f : 0.0f;
-                var time = 0.0f;
-                var layer = animationState.layer;
-                WriteVariant(writer, subSubPrefix, startBone);
-                WriteVariant(writer, subSubPrefix, isLooped);
-                WriteVariant(writer, subSubPrefix, weight);
-                WriteVariant(writer, subSubPrefix, time);
-                WriteVariant(writer, subSubPrefix, layer);
+                foreach (AnimationState animationState in animation)
+                {
+                    var clip = animationState.clip;
+                    WriteVariant(writer, subSubPrefix, "ResourceRef",
+                        "Animation;" + _engine.EvaluateAnimationName(clip, prefabContext));
+                    _engine.ScheduleAssetExport(clip, prefabContext);
+                    var startBone = "";
+                    var isLooped = clip.wrapMode == WrapMode.Loop;
+                    var weight = (animation.playAutomatically && clip == animation.clip) ? 1.0f : 0.0f;
+                    var time = 0.0f;
+                    var layer = animationState.layer;
+                    WriteVariant(writer, subSubPrefix, startBone);
+                    WriteVariant(writer, subSubPrefix, isLooped);
+                    WriteVariant(writer, subSubPrefix, weight);
+                    WriteVariant(writer, subSubPrefix, time);
+                    WriteVariant(writer, subSubPrefix, layer);
+                }
             }
 
             writer.WriteWhitespace(subPrefix);
@@ -510,7 +517,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (light != null && light.type != LightType.Area)
             {
-                StartComponent(writer, subPrefix, "Light");
+                StartComponent(writer, subPrefix, "Light", light.enabled);
                 if (light.type == LightType.Directional)
                 {
                     WriteAttribute(writer, subSubPrefix, "Light Type", "Directional");
@@ -587,7 +594,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void ExportAudioSource(XmlWriter writer, AudioSource audioSource, string subPrefix, PrefabContext prefabContext)
         {
             var subSubPrefix = subPrefix + "\t";
-            StartComponent(writer, subPrefix, "SoundSource3D");
+            StartComponent(writer, subPrefix, "SoundSource3D", audioSource.enabled);
             if (audioSource.clip != null)
             {
                 var name = _engine.EvaluateAudioClipName(audioSource.clip);
@@ -605,7 +612,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (obj.GetComponent<Rigidbody>() == null)
             {
-                StartComponent(writer, subPrefix, "RigidBody");
+                StartComponent(writer, subPrefix, "RigidBody", true);
                 var localToWorldMatrix = obj.transform.localToWorldMatrix;
                 var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                 WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
@@ -630,9 +637,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         protected void ExportZone(XmlWriter writer, string subPrefix, Vector3 size, string cubemap,
-            PrefabContext prefabContext)
+            PrefabContext prefabContext, bool enabled)
         {
-            StartComponent(writer, subPrefix, "Zone");
+            StartComponent(writer, subPrefix, "Zone", enabled);
 
             var subSubPrefix = subPrefix + "\t";
             WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight.linear);
@@ -670,7 +677,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             EndElement(writer, subPrefix);
         }
 
-        protected void ExportZone(XmlWriter writer, string subPrefix, Vector3 size, Cubemap cubemap, PrefabContext prefabContext)
+        protected void ExportZone(XmlWriter writer, string subPrefix, Vector3 size, Cubemap cubemap, bool enabled, PrefabContext prefabContext)
         {
             if (cubemap == null) return;
 
@@ -681,7 +688,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine.ScheduleAssetExport(cubemap, prefabContext);
             var texName = _engine.EvaluateCubemapName(cubemap);
 
-            ExportZone(writer, subPrefix, size, texName, prefabContext);
+            ExportZone(writer, subPrefix, size, texName, prefabContext, enabled);
         }
 
         private void ExportCustomComponent(XmlWriter writer, string subPrefix, IUrho3DComponent customComponent)
@@ -689,7 +696,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (customComponent == null) return;
 
             var subSubPrefix = subPrefix + "\t";
-            StartComponent(writer, subPrefix, customComponent.GetUrho3DComponentName());
+            StartComponent(writer, subPrefix, customComponent.GetUrho3DComponentName(), customComponent.IsUrho3DComponentEnabled);
             foreach (var keyValuePair in customComponent.GetUrho3DComponentAttributes())
                 WriteAttribute(writer, subSubPrefix, keyValuePair.Name, keyValuePair.Value);
             EndElement(writer, subPrefix);
@@ -705,7 +712,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
         }
 
-        private void ExportTerrain(XmlWriter writer, TerrainData terrainData, TerrainCollider terrainCollider, string subPrefix, PrefabContext prefabContext)
+        private void ExportTerrain(XmlWriter writer, TerrainData terrainData, TerrainCollider terrainCollider, string subPrefix, bool enabled, PrefabContext prefabContext)
         {
             if (terrainData == null) return;
 
@@ -723,7 +730,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var offset = new Vector3(terrainSize.x * 0.5f, terrainSize.y * min, terrainSize.z * 0.5f);
             WriteAttribute(writer, subPrefix, "Position", offset);
-            StartComponent(writer, subPrefix, "Terrain");
+            StartComponent(writer, subPrefix, "Terrain", enabled);
 
             WriteAttribute(writer, subSubPrefix, "Height Map",
                 "Image;" + _engine.EvaluateTerrainHeightMap(terrainData));
@@ -737,10 +744,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             EndElement(writer, subPrefix);
             if (terrainCollider != null)
             {
-                StartComponent(writer, subPrefix, "CollisionShape");
+                StartComponent(writer, subPrefix, "CollisionShape", enabled);
                 WriteAttribute(writer, subPrefix, "Shape Type", "Terrain");
                 EndElement(writer, subPrefix);
-                StartComponent(writer, subPrefix, "RigidBody");
+                StartComponent(writer, subPrefix, "RigidBody", enabled);
                 var localToWorldMatrix = terrainCollider.transform.localToWorldMatrix;
                 var pos = localToWorldMatrix.MultiplyPoint(offset);
                 WriteAttribute(writer, subPrefix, "Physics Position", pos);

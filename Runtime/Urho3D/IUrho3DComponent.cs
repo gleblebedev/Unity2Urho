@@ -7,5 +7,6 @@ namespace UnityToCustomEngineExporter.Urho3D
         string GetUrho3DComponentName();
 
         IEnumerable<Urho3DAttribute> GetUrho3DComponentAttributes();
+        bool IsUrho3DComponentEnabled { get; }
     }
 }
