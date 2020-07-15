@@ -245,6 +245,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
+                else if (component is Animation animation)
+                {
+                    WriteAnimationController(writer, subPrefix, animation, prefabContext);
+                }
+                else if (component is Animator animator)
+                {
+                    WriteAnimationController(writer, subPrefix, animator, prefabContext);
+                }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
                     switch (reflectionProbe.mode)
@@ -259,7 +267,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
             var meshFilter = obj.GetComponent<MeshFilter>();
-            var animator = obj.GetComponent<Animator>();
+
             var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
@@ -347,8 +355,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            if (animator != null) WriteAnimationController(writer, subPrefix, animator, prefabContext);
-
             foreach (Transform childTransform in obj.transform)
                 if (childTransform.parent.gameObject == obj)
                     WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, isEnabled, prefabContext);
@@ -398,7 +404,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteAnimationStates(writer, animator, subPrefix, "Node Animation States", prefabContext);
             EndElement(writer, prefix);
         }
+        private void WriteAnimationController(XmlWriter writer, string prefix, Animation animation, PrefabContext prefabContext)
+        {
+            if (animation == null)
+                return;
+            StartComponent(writer, prefix, "AnimationController");
+            var subPrefix = prefix + "\t";
 
+            WriteAnimationStates(writer, animation, subPrefix, "Node Animation States", prefabContext);
+            EndElement(writer, prefix);
+        }
         private void WriteAnimationStates(XmlWriter writer, Animator animator, string subPrefix, string statesAttr, PrefabContext prefabContext)
         {
             if (animator == null)
@@ -438,7 +453,39 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
         }
+        private void WriteAnimationStates(XmlWriter writer, Animation animation, string subPrefix, string statesAttr, PrefabContext prefabContext)
+        {
+            if (animation == null)
+                return;
+            writer.WriteWhitespace(subPrefix);
+            writer.WriteStartElement("attribute");
+            writer.WriteAttributeString("name", statesAttr);
+            writer.WriteWhitespace(Environment.NewLine);
+            var subSubPrefix = subPrefix + "\t";
 
+            WriteVariant(writer, subSubPrefix, animation.GetClipCount());
+            foreach (AnimationState animationState in animation)
+            {
+                var clip = animationState.clip;
+                WriteVariant(writer, subSubPrefix, "ResourceRef",
+                    "Animation;" + _engine.EvaluateAnimationName(clip, prefabContext));
+                _engine.ScheduleAssetExport(clip, prefabContext);
+                var startBone = "";
+                var isLooped = clip.wrapMode == WrapMode.Loop;
+                var weight = (animation.playAutomatically && clip == animation.clip) ? 1.0f : 0.0f;
+                var time = 0.0f;
+                var layer = animationState.layer;
+                WriteVariant(writer, subSubPrefix, startBone);
+                WriteVariant(writer, subSubPrefix, isLooped);
+                WriteVariant(writer, subSubPrefix, weight);
+                WriteVariant(writer, subSubPrefix, time);
+                WriteVariant(writer, subSubPrefix, layer);
+            }
+
+            writer.WriteWhitespace(subPrefix);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
         private void WriteVariant(XmlWriter writer, string subSubPrefix, int value)
         {
             WriteVariant(writer, subSubPrefix, "Int", value.ToString(CultureInfo.InvariantCulture));
