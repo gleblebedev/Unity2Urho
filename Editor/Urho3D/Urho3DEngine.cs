@@ -6,6 +6,7 @@ using System.Threading;
 using System.Xml;
 using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.ProBuilder;
@@ -22,6 +23,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly TextureExporter _textureExporter;
         private readonly CubemapExporter _cubemapExporter;
         private readonly MeshExporter _meshExporter;
+        private readonly AnimationExporter _animationExporter;
+        private readonly AnimationControllerExporter _animationControllerExporter;
         private readonly MaterialExporter _materialExporter;
         private readonly AudioExporter _audioExporter;
         private readonly SceneExporter _sceneExporter;
@@ -49,6 +52,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _sceneExporter = new SceneExporter(this, exportSceneAsPrefab, skipDisabled);
             _prefabExporter = new PrefabExporter(this, skipDisabled);
             _terrainExporter = new TerrainExporter(this);
+            _animationExporter = new AnimationExporter(this);
+            _animationControllerExporter = new AnimationControllerExporter(this);
             CopyFolder(Subfolder, "bcc1b6196266be34e88c40110ba206ce");
             CopyFolder("", "a20749a09ce562043815b33e8eec4077");
             _createdFiles.Clear();
@@ -290,7 +295,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (clip == null)
                 return null;
-            return _meshExporter.EvaluateAnimationName(clip, prefabContext);
+            return _animationExporter.EvaluateAnimationName(clip, prefabContext);
         }
 
         public void ExportScene(Scene scene)
@@ -391,7 +396,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (asset is AnimationClip animationClip)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(
-                        () => _meshExporter.ExportAnimation(animationClip, prefabContext), animationClip.name + " from " + assetPath);
+                        () => _animationExporter.ExportAnimation(animationClip, prefabContext), animationClip.name + " from " + assetPath);
+                }
+                else if (asset is AnimatorController animationController)
+                {
+                    EditorTaskScheduler.Default.ScheduleForegroundTask(
+                        () => _animationControllerExporter.ExportAnimationController(animationController, prefabContext), animationController.name + " from " + assetPath);
                 }
         }
 

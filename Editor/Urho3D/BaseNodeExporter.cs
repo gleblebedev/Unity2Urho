@@ -99,7 +99,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteAttributeString("type", type);
             writer.WriteAttributeString("id", (++_id).ToString());
             writer.WriteWhitespace("\n");
-            WriteAttribute(writer, prefix + "\t", "Is Enabled", isEnabled);
+            if (!isEnabled)
+            {
+                WriteAttribute(writer, prefix + "\t", "Is Enabled", isEnabled);
+            }
         }
 
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, string vaue)
