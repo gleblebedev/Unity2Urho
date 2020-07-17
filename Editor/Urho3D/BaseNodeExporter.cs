@@ -122,11 +122,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (_skipDisabled && !isEnabled) return;
 
             var localExcludeList = new HashSet<Renderer>(excludeList);
-            if (!string.IsNullOrEmpty(prefix))
-                writer.WriteWhitespace(prefix);
-            writer.WriteStartElement("node");
-            writer.WriteAttributeString("id", (++_id).ToString(CultureInfo.InvariantCulture));
-            writer.WriteWhitespace(Environment.NewLine);
+            StartNode(writer, prefix);
 
             var subPrefix = prefix + "\t";
             var subSubPrefix = subPrefix + "\t";
@@ -722,10 +718,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var subSubPrefix = subPrefix + "\t";
 
             var terrainSize = terrainData.size;
-            writer.WriteWhitespace(subPrefix);
-            writer.WriteStartElement("node");
-            writer.WriteAttributeString("id", (++_id).ToString());
-            writer.WriteWhitespace("\n");
+            StartNode(writer, subPrefix);
 
             _engine.ScheduleAssetExport(terrainData, prefabContext);
 
@@ -757,7 +750,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 EndElement(writer, subPrefix);
             }
 
+            if (terrainData.detailPrototypes.Length > 0)
+            {
+                StartNode(writer, subPrefix);
+                var detailOffset = subPrefix + "\t";
+                StartComponent(writer, detailOffset, "StaticModel", enabled);
+                EndElement(writer, detailOffset);
+                EndElement(writer, subPrefix);
+            }
+
             EndElement(writer, subPrefix);
+        }
+
+        protected void StartNode(XmlWriter writer, string prefix)
+        {
+            if (!string.IsNullOrEmpty(prefix))
+                writer.WriteWhitespace(prefix);
+            writer.WriteStartElement("node");
+            writer.WriteAttributeString("id", (++_id).ToString(CultureInfo.InvariantCulture));
+            writer.WriteWhitespace(Environment.NewLine);
         }
 
         public class Element : IDisposable

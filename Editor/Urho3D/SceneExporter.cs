@@ -46,9 +46,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     if (rootGameObjects.Length > 1)
                     {
-                        writer.WriteStartElement("node");
-                        writer.WriteAttributeString("id", (++_id).ToString());
-                        writer.WriteWhitespace("\n");
+                        StartNode(writer, "");
                         foreach (var gameObject in rootGameObjects)
                             WriteObject(writer, "\t", gameObject, exlusion, true, prefabContext);
                         writer.WriteEndElement();

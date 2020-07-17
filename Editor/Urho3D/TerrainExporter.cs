@@ -54,10 +54,37 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteTerrainMaterial(terrainData);
             WriteHeightMap(terrainData);
             WriteTerrainWeightsTexture(terrainData);
+            ExportDetails(terrainData);
 
             //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
             //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
             //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
+        }
+
+        private void ExportDetails(TerrainData terrainData)
+        {
+            return;
+
+            for (var detailIndex = 0; detailIndex < terrainData.detailPrototypes.Length; detailIndex++)
+            {
+                var detailPrototype = terrainData.detailPrototypes[detailIndex];
+                //detailPrototype.renderMode == DetailRenderMode.GrassBillboard
+
+                //The Terrain system uses detail layer density maps. Each map is essentially a grayscale image where each pixel value denotes the number
+                //of detail objects that will be procedurally placed terrain area. That corresponds to the pixel. Since several different detail types
+                //may be used, the map is arranged into "layers" - the array indices of the layers are determined by the order of the detail types
+                //defined in the Terrain inspector (ie, when the Paint Details tool is selected).
+                var map = terrainData.GetDetailLayer(0, 0, terrainData.detailWidth, terrainData.detailHeight, detailIndex);
+                for (var y = 0; y < terrainData.detailHeight; y++)
+                {
+                    for (var x = 0; x < terrainData.detailWidth; x++)
+                    {
+                        //The return value of each element [z,x] element is an int from 0-16, which // represent the number of details placed at that location. detailLayer[z,x]
+                        //So, if you want to set the number of flowers at this location to 8, just set it to 8. It would be the same as painting flowers there with the strength setting set to .5 (8 = 1/2 of 16). 
+                        var value = map[x, y];
+                    }
+                }
+            }
         }
 
         private void WriteTerrainMaterial(TerrainData terrain)
@@ -87,9 +114,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteEndElement();
                     writer.WriteWhitespace(Environment.NewLine);
                 }
+                Vector2 detailTiling = new Vector2(1,1);
                 for (var layerIndex = 0; layerIndex < layers.Length; ++layerIndex)
                 {
                     var layer = layers[layerIndex];
+                    detailTiling = new Vector2(terrain.size.x/layer.tileSize.x, terrain.size.z / layer.tileSize.y);
 
                     writer.WriteStartElement("texture");
                     writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
@@ -106,7 +135,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 writer.WriteParameter("MatSpecColor", "0.0 0.0 0.0 16");
-                writer.WriteParameter("DetailTiling", "32 32");
+                writer.WriteParameter("DetailTiling", detailTiling);
                 writer.WriteParameter("Roughness", "1");
                 writer.WriteParameter("Metallic", "0");
                 writer.WriteEndElement();
