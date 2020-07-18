@@ -33,19 +33,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateHeightMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, terrainData),
                 ".Heightmap.tga");
         }
 
         public string EvaluateWeightsMap(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, terrainData),
                 ".Weights.tga");
         }
 
         public string EvaluateMaterial(TerrainData terrainData)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, terrainData),
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, terrainData),
                 ".Material.xml");
         }
 

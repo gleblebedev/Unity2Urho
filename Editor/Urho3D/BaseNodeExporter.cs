@@ -19,12 +19,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected Urho3DEngine _engine;
         protected int _id;
         protected EditorTaskScheduler BackgroundEditorTasks = new EditorTaskScheduler();
-        private readonly bool _skipDisabled;
 
-        public BaseNodeExporter(Urho3DEngine engine, bool skipDisabled)
+        public BaseNodeExporter(Urho3DEngine engine)
         {
             _engine = engine;
-            _skipDisabled = skipDisabled;
         }
 
         public static string Format(Color pos)
@@ -119,7 +117,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             bool parentEnabled, PrefabContext prefabContext)
         {
             var isEnabled = obj.activeSelf && parentEnabled;
-            if (_skipDisabled && !isEnabled) return;
+            if (_engine.Options.SkipDisabled && !isEnabled) return;
 
             var localExcludeList = new HashSet<Renderer>(excludeList);
             StartNode(writer, prefix);
@@ -153,15 +151,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Camera camera)
                 {
-                    if (camera != null)
-                    {
-                        StartComponent(writer, subPrefix, "Camera", camera.enabled);
-
-                        WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
-                        WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
-
-                        EndElement(writer, subPrefix);
-                    }
+                    ExportCamera(writer, camera, subPrefix, subSubPrefix);
                 }
                 else if (component is Light light)
                 {
@@ -368,6 +358,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private void ExportCamera(XmlWriter writer, Camera camera, string subPrefix, string subSubPrefix)
+        {
+            if (!_engine.Options.ExportCameras)
+                return;
+
+            if (camera == null) return;
+
+            StartComponent(writer, subPrefix, "Camera", camera.enabled);
+
+            WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
+            WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
+
+            EndElement(writer, subPrefix);
+        }
+
         protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial, PrefabContext prefabContext, bool enabled)
         {
             var subSubPrefix = subPrefix + "\t";
@@ -514,6 +519,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void ExportLight(XmlWriter writer, Light light, string subPrefix, string subSubPrefix)
         {
+            if (!_engine.Options.ExportLights)
+                return;
             if (light != null && light.type != LightType.Area)
             {
                 StartComponent(writer, subPrefix, "Light", light.enabled);
@@ -566,7 +573,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 WriteAttribute(writer, subSubPrefix, "Color", light.color.linear);
-                if (_engine.UsePhysicalValues)
+                if (_engine.Options.UsePhysicalValues)
                 {
                     WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);
                     WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");

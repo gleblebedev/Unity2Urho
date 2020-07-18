@@ -343,7 +343,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (clip == null)
                 return null;
-            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip);
+            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, clip);
             if (Path.GetExtension(relPath).ToLowerInvariant() == ".anim")
                 return ExportUtils.ReplaceExtension(relPath, ".ani");
             var folder = ExportUtils.ReplaceExtension(relPath, "");

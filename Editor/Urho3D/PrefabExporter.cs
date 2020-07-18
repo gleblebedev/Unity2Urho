@@ -5,7 +5,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class PrefabExporter : BaseNodeExporter
     {
-        public PrefabExporter(Urho3DEngine engine, bool skipDisabled) : base(engine, skipDisabled)
+        public PrefabExporter(Urho3DEngine engine) : base(engine)
         {
         }
 
@@ -27,7 +27,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluatePrefabName(string assetPath)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath),
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath),
                 ".xml");
         }
     }

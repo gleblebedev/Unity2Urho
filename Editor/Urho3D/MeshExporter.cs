@@ -94,7 +94,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (mesh == null)
                 return null;
-            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh), "");
+            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh), "");
             if (string.IsNullOrWhiteSpace(folder))
             {
                 folder = prefabContext.TempFolder;
@@ -109,7 +109,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (_dynamicMeshNames.TryGetValue(mesh, out var name))
                 return name;
 
-            var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, mesh);
+            var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
                 name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +".mdl");

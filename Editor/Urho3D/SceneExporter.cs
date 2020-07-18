@@ -10,15 +10,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     {
         private readonly bool _asPrefab;
 
-        public SceneExporter(Urho3DEngine engine, bool asPrefab, bool skipDisabled) : base(engine, skipDisabled)
+        public SceneExporter(Urho3DEngine engine) : base(engine)
         {
-            _asPrefab = asPrefab;
         }
 
         public string ResolveAssetPath(Scene asset)
         {
             var sceneAssetName =
-                ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, asset), ".xml");
+                ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, asset), ".xml");
             var scenesPrefix = "Scenes/";
             if (sceneAssetName.StartsWith(scenesPrefix, StringComparison.InvariantCultureIgnoreCase))
                 //Fix scene path

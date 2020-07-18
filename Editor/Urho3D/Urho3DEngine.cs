@@ -32,36 +32,34 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly TerrainExporter _terrainExporter;
         private Dictionary<Object, string> _assetPaths = new Dictionary<Object, string>();
         private string _tempFolder;
+        private Urho3DExportOptions _options;
 
-        public Urho3DEngine(string dataFolder, string subfolder, CancellationToken cancellationToken,
-            bool exportUpdatedOnly,
-            bool exportSceneAsPrefab, bool skipDisabled, bool usePhysicalValues)
+        public Urho3DEngine(string dataFolder, CancellationToken cancellationToken,
+            Urho3DExportOptions options)
             : base(cancellationToken)
         {
             _dataFolder = dataFolder;
-            Subfolder = (subfolder ?? "").FixAssetSeparator().Trim('/');
-            if (!string.IsNullOrWhiteSpace(Subfolder)) Subfolder += "/";
 
-            _exportUpdatedOnly = exportUpdatedOnly;
-            UsePhysicalValues = usePhysicalValues;
+            _options = options;
+
+
             _audioExporter = new AudioExporter(this);
             _textureExporter = new TextureExporter(this);
             _cubemapExporter = new CubemapExporter(this);
             _meshExporter = new MeshExporter(this);
             _materialExporter = new MaterialExporter(this);
-            _sceneExporter = new SceneExporter(this, exportSceneAsPrefab, skipDisabled);
-            _prefabExporter = new PrefabExporter(this, skipDisabled);
+            _sceneExporter = new SceneExporter(this);
+            _prefabExporter = new PrefabExporter(this);
             _terrainExporter = new TerrainExporter(this);
             _animationExporter = new AnimationExporter(this);
             _animationControllerExporter = new AnimationControllerExporter(this);
-            CopyFolder(Subfolder, "bcc1b6196266be34e88c40110ba206ce");
+            CopyFolder(options.Subfolder, "bcc1b6196266be34e88c40110ba206ce");
             CopyFolder("", "a20749a09ce562043815b33e8eec4077");
             _createdFiles.Clear();
         }
 
-        public string Subfolder { get; }
+        public Urho3DExportOptions Options => _options;
 
-        public bool UsePhysicalValues { get; }
 
         public void CopyFolder(string subfolder, string guid)
         {

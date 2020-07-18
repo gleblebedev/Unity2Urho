@@ -21,7 +21,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (clip == null)
                 return null;
-            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, clip);
+            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, clip);
             return ExportUtils.ReplaceExtension(relPath,".json");
         }
 

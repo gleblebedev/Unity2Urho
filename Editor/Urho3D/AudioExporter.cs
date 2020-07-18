@@ -14,7 +14,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportClip(AudioClip audioClip)
         {
-            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, audioClip);
+            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, audioClip);
             var newName = EvaluateAudioClipName(audioClip);
             _engine.TryCopyFile(AssetDatabase.GetAssetPath(audioClip), newName);
         }
@@ -26,7 +26,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetPath = AssetDatabase.GetAssetPath(audioClip);
             if (string.IsNullOrWhiteSpace(assetPath))
                 return null;
-            return ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath);
+            return ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath);
         }
     }
 }

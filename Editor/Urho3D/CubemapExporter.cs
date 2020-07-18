@@ -66,7 +66,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluateCubemapName(Cubemap cubemap)
         {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Subfolder, cubemap), ".xml");
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, cubemap), ".xml");
         }
     }
 }

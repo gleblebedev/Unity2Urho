@@ -56,7 +56,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return specularTexture;
         }
 
-        public void WriteOptions(AssetKey assetGuid, string urhoTextureName, DateTime lastWriteTimeUtc,
+        protected void WriteOptions(AssetKey assetGuid, string urhoTextureName, DateTime lastWriteTimeUtc,
             TextureOptions options)
         {
             if (options == null)
@@ -108,6 +108,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportTexture(Texture texture, TextureReference textureReference)
         {
+            if (!_engine.Options.ExportTextures) return;
             CopyTexture(texture);
         }
 
@@ -136,12 +137,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         break;
                 }
 
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Subfolder, assetPath),
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath),
                 newExt);
         }
 
         public void ExportPBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
+            if (!_engine.Options.ExportTextures) return;
+
             if (!string.IsNullOrWhiteSpace(urhoMaterial.MetallicRoughnessTexture))
                 TransformMetallicGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
             if (!string.IsNullOrWhiteSpace(urhoMaterial.AOTexture))
@@ -152,6 +155,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportPBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
+            if (!_engine.Options.ExportTextures) return;
+
             if (!string.IsNullOrWhiteSpace(urhoMaterial.MetallicRoughnessTexture))
                 TransformSpecularGlossiness(arguments, urhoMaterial.MetallicRoughnessTexture);
             if (!string.IsNullOrWhiteSpace(urhoMaterial.BaseColorTexture))
@@ -164,7 +169,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void CopyTexture(Texture texture)
         {
-            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Subfolder, texture);
+            var relPath = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, texture);
             var newName = EvaluateTextureName(texture);
             if (relPath != newName)
             {
