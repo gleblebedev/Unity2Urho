@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;

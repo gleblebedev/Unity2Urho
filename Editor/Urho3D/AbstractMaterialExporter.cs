@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.Xml;
-using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -78,7 +77,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);
         }
 
-        protected void WriteTechnique(XmlWriter writer, string name)
+        protected static void WriteTechnique(XmlWriter writer, string name)
         {
             writer.WriteWhitespace("\t");
             writer.WriteStartElement("technique");
@@ -94,7 +93,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return WriteTexture(urhoAssetName, writer, name, prefabContext);
         }
 
-        protected bool WriteTexture(string urhoAssetName, XmlWriter writer, string name, PrefabContext prefabContext)
+        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, string name, PrefabContext prefabContext)
         {
             if (string.IsNullOrWhiteSpace(urhoAssetName))
                 return false;
@@ -109,7 +108,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        protected void WriteMaterial(XmlWriter writer, string shaderName, UrhoPBRMaterial urhoMaterial, PrefabContext prefabContext)
+        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, int unit, PrefabContext prefabContext)
+        {
+            return WriteTexture(urhoAssetName, writer, unit.ToString(CultureInfo.InvariantCulture), prefabContext);
+        }
+
+        public static void WriteMaterial(XmlWriter writer, UrhoPBRMaterial urhoMaterial, PrefabContext prefabContext)
         {
             writer.WriteStartElement("material");
             writer.WriteWhitespace(Environment.NewLine);
@@ -123,6 +127,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 WriteTexture(urhoMaterial.EmissiveTexture, writer, "emissive", prefabContext);
             else
                 WriteTexture(urhoMaterial.AOTexture, writer, "emissive", prefabContext);
+
+            for (var index = 0; index < urhoMaterial.TextureUnits.Count; index++)
+            {
+                if (!string.IsNullOrWhiteSpace(urhoMaterial.TextureUnits[index]))
+                    WriteTexture(urhoMaterial.TextureUnits[index], writer, index, prefabContext);
+            }
 
             writer.WriteParameter("MatEmissiveColor", urhoMaterial.EmissiveColor);
             writer.WriteParameter("MatDiffColor", urhoMaterial.BaseColor);

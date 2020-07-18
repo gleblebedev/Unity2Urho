@@ -283,6 +283,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportAnimation(AnimationClip clipAnimation, PrefabContext prefabContext)
         {
+            if (!_engine.Options.ExportAnimations)
+                return;
+
             var name = GetSafeFileName(clipAnimation.name);
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);

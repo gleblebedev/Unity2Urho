@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -54,7 +54,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _animationExporter = new AnimationExporter(this);
             _animationControllerExporter = new AnimationControllerExporter(this);
             CopyFolder(options.Subfolder, "bcc1b6196266be34e88c40110ba206ce");
-            CopyFolder("", "a20749a09ce562043815b33e8eec4077");
+            if (_options.ExportShadersAndTechniques)
+                CopyFolder("", "a20749a09ce562043815b33e8eec4077");
             _createdFiles.Clear();
         }
 
@@ -378,7 +379,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (asset is TerrainData terrainData)
                 {
                     EditorTaskScheduler.Default.ScheduleForegroundTask(
-                        () => _terrainExporter.ExportTerrain(terrainData), terrainData.name + " from " + assetPath);
+                        () => _terrainExporter.ExportTerrain(terrainData, prefabContext), terrainData.name + " from " + assetPath);
                 }
                 else if (asset is Texture2D texture2d)
                 {

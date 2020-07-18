@@ -1,4 +1,4 @@
-﻿using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
+﻿using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D

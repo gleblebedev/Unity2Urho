@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Text;
-using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 
@@ -144,8 +144,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var arguments = SetupSpecularGlossinessPBR(material);
                 var urhoMaterial = FromSpecularGlossiness(arguments);
-                var shaderName = arguments.Shader;
-                WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
+                WriteMaterial(writer, urhoMaterial, prefabContext);
 
                 //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
 

@@ -1,18 +1,21 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D
+namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
-    public enum Urho3DCulling
-    {
-        ccw,
-        cw,
-        none,
-    }
     public class UrhoPBRMaterial
     {
+        private IList<string> _textureUnits = new List<string>();
+
         public string Technique { get; set; }
+
+        public IList<string> TextureUnits
+        {
+            get => _textureUnits;
+            set => _textureUnits = value ?? new List<string>();
+        }
 
         public string BaseColorTexture { get; set; }
 

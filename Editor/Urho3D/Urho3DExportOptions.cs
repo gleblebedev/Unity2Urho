@@ -26,5 +26,8 @@
         public bool ExportCameras { get; set; } = true;
         public bool ExportLights { get; set; } = true;
         public bool ExportTextures { get; set; } = true;
+        public bool ExportShadersAndTechniques { get; set; } = true;
+        public bool ExportAnimations { get; set; } = true;
+        public bool ExportMeshes { get; set; } = true;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +10,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class ExportOptions : EditorWindow
     {
+
         private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";
         private static readonly string _subfolderKey = "UnityToCustomEngineExporter.Subfolder";
         private static readonly string _exportUpdatedOnlyKey = "UnityToCustomEngineExporter.UpdatedOnly";
@@ -18,6 +20,13 @@ namespace UnityToCustomEngineExporter.Editor
         private static readonly string _exportCamerasKey = "UnityToCustomEngineExporter.ExportCameras";
         private static readonly string _exportLightsKey = "UnityToCustomEngineExporter.ExportLights";
         private static readonly string _exportTexturesKey = "UnityToCustomEngineExporter.ExportTextures";
+        private BoolEditorProperty _exportShadersAndTechniques = new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques", "Export Shaders and Techniques", true);
+        private BoolEditorProperty _exportCameras = new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
+        private BoolEditorProperty _exportLights = new BoolEditorProperty("UnityToCustomEngineExporter.ExportLights", "Export Lights", true);
+        private BoolEditorProperty _exportTextures = new BoolEditorProperty("UnityToCustomEngineExporter.ExportTextures", "Export Textures", true);
+        private BoolEditorProperty _exportAnimations = new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
+        private BoolEditorProperty _exportMeshes = new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
+        private IList<BoolEditorProperty> _extraFlags;
         private string _exportFolder = "";
         private string _subfolder = "";
         private bool _exportUpdatedOnly;
@@ -29,9 +38,19 @@ namespace UnityToCustomEngineExporter.Editor
         private CancellationTokenSource _cancellationTokenSource;
         private GUIStyle _myCustomStyle;
         private bool _showExtraOptions;
-        private bool _exportCameras = true;
-        private bool _exportLights = true;
-        private bool _exportTextures = true;
+
+        public ExportOptions()
+        {
+            _extraFlags = new[]
+            {
+                _exportShadersAndTechniques,
+                _exportCameras,
+                _exportLights,
+                _exportTextures,
+                _exportAnimations,
+                _exportMeshes,
+            };
+        }
 
         [MenuItem("Assets/Export/Export Assets and Scene")]
         public static void Init()
@@ -76,12 +95,10 @@ namespace UnityToCustomEngineExporter.Editor
             if (_showExtraOptions)
             {
                 _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
-
-                _exportCameras = EditorGUILayout.Toggle("Export cameras", _exportCameras);
-
-                _exportLights = EditorGUILayout.Toggle("Export lights", _exportLights);
-
-                _exportTextures = EditorGUILayout.Toggle("Export textures", _exportTextures);
+                foreach (var flag in _extraFlags)
+                {
+                    flag.Toggle();
+                }
             }
 
             //GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
@@ -154,9 +171,12 @@ namespace UnityToCustomEngineExporter.Editor
             _cancellationTokenSource = new CancellationTokenSource();
             var options = new Urho3DExportOptions(_subfolder, _exportUpdatedOnly,
                 _exportSceneAsPrefab, _skipDisabled, _usePhysicalValues);
-            options.ExportCameras = _exportCameras;
-            options.ExportLights = _exportLights;
-            options.ExportTextures = _exportTextures;
+            options.ExportShadersAndTechniques = _exportShadersAndTechniques.Value;
+            options.ExportCameras = _exportCameras.Value;
+            options.ExportLights = _exportLights.Value;
+            options.ExportTextures = _exportTextures.Value;
+            options.ExportAnimations = _exportAnimations.Value;
+            options.ExportMeshes = _exportMeshes.Value;
             return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, options);
         }
 
@@ -205,12 +225,10 @@ namespace UnityToCustomEngineExporter.Editor
             if (EditorPrefs.HasKey(_usePhysicalValuesKey))
                 _usePhysicalValues = EditorPrefs.GetBool(_usePhysicalValuesKey);
 
-            if (EditorPrefs.HasKey(_exportCamerasKey))
-                _exportCameras = EditorPrefs.GetBool(_exportCamerasKey);
-            if (EditorPrefs.HasKey(_exportLightsKey))
-                _exportLights = EditorPrefs.GetBool(_exportLightsKey);
-            if (EditorPrefs.HasKey(_exportTexturesKey))
-                _exportTextures = EditorPrefs.GetBool(_exportTexturesKey);
+            foreach (var flag in _extraFlags)
+            {
+                flag.Load();
+            }
         }
 
         private void OnLostFocus()
@@ -226,9 +244,10 @@ namespace UnityToCustomEngineExporter.Editor
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
             EditorPrefs.SetBool(_usePhysicalValuesKey, _usePhysicalValues);
-            EditorPrefs.SetBool(_exportCamerasKey, _exportCameras);
-            EditorPrefs.SetBool(_exportLightsKey, _exportLights);
-            EditorPrefs.SetBool(_exportTexturesKey, _exportTextures);
+            foreach (var flag in _extraFlags)
+            {
+                flag.Save();
+            }
         }
 
         private void OnDestroy()

@@ -26,16 +26,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             _engine = engine;
         }
-
-
        
         public void ExportMesh(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
+            if (!_engine.Options.ExportMeshes)
+                return;
             ExportProBuilderMeshModel(proBuilderMesh, prefabContext);
         }
 
         public void ExportMesh(Mesh mesh, PrefabContext prefabContext)
         {
+            if (!_engine.Options.ExportMeshes)
+                return;
             var meshSource = new MeshSource(mesh);
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             var assetKey = mesh.GetKey();
@@ -46,13 +48,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public string ExportMesh(NavMeshTriangulation mesh, PrefabContext prefabContext)
         {
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
-            ExportMeshModel(new NavMeshSource(mesh), mdlFilePath,
-                SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
+            if (_engine.Options.ExportMeshes)
+            {
+                ExportMeshModel(new NavMeshSource(mesh), mdlFilePath,
+                    SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
+            }
+
             return mdlFilePath;
         }
 
         public void ExportMesh(GameObject go, PrefabContext prefabContext)
         {
+            if (!_engine.Options.ExportMeshes)
+                return;
             var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
             var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
             var meshFilter = go.GetComponent<MeshFilter>();
@@ -80,6 +88,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportMeshModel(IMeshSource mesh, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
         {
+            if (!_engine.Options.ExportMeshes)
+                return;
             using (var file = _engine.TryCreate(key, mdlFilePath, lastWriteDateTimeUtc))
             {
                 if (file != null)

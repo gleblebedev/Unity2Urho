@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Text;
-using Assets.Scripts.UnityToCustomEngineExporter.Editor.Urho3D;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 
@@ -67,8 +67,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 var urhoMaterial = FromMetallicGlossiness(material, arguments);
-                var shaderName = arguments.Shader;
-                WriteMaterial(writer, shaderName, urhoMaterial, prefabContext);
+                WriteMaterial(writer, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.BaseColor, new TextureReference(TextureSemantic.PBRBaseColor));
                 //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));

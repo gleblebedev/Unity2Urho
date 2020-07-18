@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -49,19 +50,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ".Material.xml");
         }
 
-        public void ExportTerrain(TerrainData terrainData)
+        public void ExportTerrain(TerrainData terrainData, PrefabContext prefabContext)
         {
-            WriteTerrainMaterial(terrainData);
-            WriteHeightMap(terrainData);
-            WriteTerrainWeightsTexture(terrainData);
-            ExportDetails(terrainData);
+            WriteTerrainMaterial(terrainData, prefabContext);
+            WriteHeightMap(terrainData, prefabContext);
+            WriteTerrainWeightsTexture(terrainData, prefabContext);
+            ExportDetails(terrainData, prefabContext);
 
             //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
             //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
             //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
         }
 
-        private void ExportDetails(TerrainData terrainData)
+        private void ExportDetails(TerrainData terrainData, PrefabContext prefabContext)
         {
             return;
 
@@ -87,7 +88,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void WriteTerrainMaterial(TerrainData terrain)
+        private void WriteTerrainMaterial(TerrainData terrain, PrefabContext prefabContext)
         {
             using (var writer =
                 _engine.TryCreateXml(terrain.GetKey(), EvaluateMaterial(terrain),
@@ -97,52 +98,37 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     return;
 
                 var layers = terrain.terrainLayers;
-                if (layers.Length > 3) layers = layers.Take(3).ToArray();
+                var layerIndices = GetTerrainLayersByPopularity(terrain).Take(3).ToArray();
 
-                writer.WriteStartElement("material");
-                writer.WriteWhitespace(Environment.NewLine);
-                {
-                    writer.WriteStartElement("technique");
-                    writer.WriteAttributeString("name", "Techniques/PBR/PBRTerrainBlend.xml");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
-                {
-                    writer.WriteStartElement("texture");
-                    writer.WriteAttributeString("unit", "0");
-                    writer.WriteAttributeString("name", EvaluateWeightsMap(terrain));
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                }
+                var material = new UrhoPBRMaterial();
+                material.Technique = "Techniques/PBR/PBRTerrainBlend.xml";
+                material.TextureUnits.Add(EvaluateWeightsMap(terrain));
                 Vector2 detailTiling = new Vector2(1,1);
-                for (var layerIndex = 0; layerIndex < layers.Length; ++layerIndex)
+                for (var layerIndex = 0; layerIndex < layerIndices.Length; ++layerIndex)
                 {
-                    var layer = layers[layerIndex];
+                    var layer = layers[layerIndices[layerIndex]];
                     detailTiling = new Vector2(terrain.size.x/layer.tileSize.x, terrain.size.z / layer.tileSize.y);
-
-                    writer.WriteStartElement("texture");
-                    writer.WriteAttributeString("unit", (layerIndex + 1).ToString(CultureInfo.InvariantCulture));
                     if (layer.diffuseTexture != null)
                     {
                         _engine.ScheduleTexture(layer.diffuseTexture);
                         var urhoAssetName = _engine.EvaluateTextrueName(layer.diffuseTexture);
-                        if (!string.IsNullOrWhiteSpace(urhoAssetName))
-                            writer.WriteAttributeString("name", urhoAssetName);
+                        material.TextureUnits.Add(urhoAssetName);
                     }
-
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
+                    else
+                    {
+                        material.TextureUnits.Add(null);
+                    }
                 }
+                material.MatSpecColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
+                material.Roughness = 1;
+                material.Metallic = 0;
+                material.ExtraParameters.Add("DetailTiling", detailTiling);
 
-                writer.WriteParameter("MatSpecColor", "0.0 0.0 0.0 16");
-                writer.WriteParameter("DetailTiling", detailTiling);
-                writer.WriteParameter("Roughness", "1");
-                writer.WriteParameter("Metallic", "0");
-                writer.WriteEndElement();
+                StandardMaterialExporter.WriteMaterial(writer, material, prefabContext);
             }
         }
 
-        private void WriteHeightMap(TerrainData terrain)
+        private void WriteHeightMap(TerrainData terrain, PrefabContext prefabContext)
         {
             var w = terrain.heightmapResolution;
             var h = terrain.heightmapResolution;
@@ -186,13 +172,40 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void WriteTerrainWeightsTexture(TerrainData terrain)
+        public int[] GetTerrainLayersByPopularity(TerrainData terrainData)
+        {
+            return GetTerrainLayersByPopularity(
+                terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight),
+                terrainData.terrainLayers.Length);
+        }
+
+        public int[] GetTerrainLayersByPopularity(float[,,] alphamaps, int layers)
+        {
+            var height = alphamaps.GetLength(0);
+            var width = alphamaps.GetLength(1);
+            layers = Math.Min(layers, alphamaps.GetLength(2));
+            double[] weights = new double[layers];
+            for (var y = height - 1; y >= 0; --y)
+            for (var x = 0; x < width; ++x)
+            {
+                for (var i = 0; i < layers; ++i)
+                {
+                    weights[i] += alphamaps[y, x, i];
+                }
+            }
+
+            return weights.Select((w, i) => Tuple.Create(i, w)).OrderByDescending(_ => _.Item2).Select(_ => _.Item1).ToArray();
+        }
+
+        private void WriteTerrainWeightsTexture(TerrainData terrain, PrefabContext prefabContext)
         {
             var layers = terrain.terrainLayers;
             var w = terrain.alphamapWidth;
             var h = terrain.alphamapHeight;
             var alphamaps = terrain.GetAlphamaps(0, 0, w, h);
             var numAlphamaps = alphamaps.GetLength(2);
+
+            var layerIndices = GetTerrainLayersByPopularity(alphamaps, layers.Length);
 
             //Urho3D doesn't support more than 3 textures
             if (numAlphamaps > 3) numAlphamaps = 3;
@@ -201,30 +214,36 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (imageFile == null)
                     return;
+                var allZeros = new Color32(0, 0, 0, 255);
                 using (var binaryWriter = new BinaryWriter(imageFile))
                 {
-                    var weights = new byte[4];
-                    weights[3] = 255;
-                    WriteTgaHeader(binaryWriter, weights.Length * 8, w, h);
+                    Color32 weights = allZeros;
+                    var bytesPerPixell = 4;
+                    WriteTgaHeader(binaryWriter,  bytesPerPixell * 8, w, h);
                     for (var y = h - 1; y >= 0; --y)
                     for (var x = 0; x < w; ++x)
                     {
                         var sum = 0;
-                        for (var i = 0; i < weights.Length; ++i)
-                            if (numAlphamaps > i && layers.Length > i)
+                        for (var i = 0; i < bytesPerPixell && i <layerIndices.Length; ++i)
+                        {
+                            var layer = layerIndices[i];
+                            var weight = (byte) (alphamaps[h - y - 1, x, layer] * 255.0f);
+                            sum += weight;
+                            switch (i)
                             {
-                                var weight = (byte) (alphamaps[h - y - 1, x, i] * 255.0f);
-                                sum += weight;
-                                weights[i] = weight;
+                                case 0: weights.r = weight; break;
+                                case 1: weights.g = weight; break;
+                                case 2: weights.b = weight; break;
                             }
+                        }
 
-                        if (sum == 0)
-                            weights[0] = 255;
+                        if (weights.r == 0 && weights.g == 0 && weights.b == 0)
+                            weights = new Color32(255,255,255,255);
 
-                        binaryWriter.Write(weights[2]); //B
-                        binaryWriter.Write(weights[1]); //G
-                        binaryWriter.Write(weights[0]); //R
-                        binaryWriter.Write(weights[3]); //A
+                        binaryWriter.Write(weights.b); //B
+                        binaryWriter.Write(weights.g); //G
+                        binaryWriter.Write(weights.r); //R
+                        binaryWriter.Write(weights.a); //A
                     }
                 }
             }
