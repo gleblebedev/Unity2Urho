@@ -8,8 +8,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class SceneExporter : BaseNodeExporter
     {
-        private readonly bool _asPrefab;
-
         public SceneExporter(Urho3DEngine engine) : base(engine)
         {
         }
@@ -41,7 +39,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null) return;
                 var rootGameObjects = scene.GetRootGameObjects();
-                if (_asPrefab)
+                if (_engine.Options.ExportSceneAsPrefab)
                 {
                     if (rootGameObjects.Length > 1)
                     {
