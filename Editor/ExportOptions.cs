@@ -144,7 +144,7 @@ namespace UnityToCustomEngineExporter.Editor
 
 
             EditorGUILayout.Separator();
-            EditorGUILayout.LabelField("Before exporting the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
+            EditorGUILayout.LabelField("Before exporting content with the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
 
         }
 

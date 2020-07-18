@@ -47,6 +47,12 @@ uniform sampler2D sWeightMap0;
 uniform sampler2D sDetailMap1;
 uniform sampler2D sDetailMap2;
 uniform sampler2D sDetailMap3;
+#if defined(TERRAINLAYERS5) || defined(TERRAINLAYERS4)
+    uniform sampler2D sDetailMap4;
+    #ifdef TERRAINLAYERS5
+        uniform sampler2D sDetailMap5;
+    #endif
+#endif
 
 #ifndef GL_ES
 uniform vec2 cDetailTiling;
@@ -110,14 +116,42 @@ void VS()
 void PS()
 {
     // Get material diffuse albedo
-    vec3 weights = texture2D(sWeightMap0, vTexCoord).rgb;
-    float sumWeights = weights.r + weights.g + weights.b;
-    weights /= sumWeights;
-    vec4 diffColor = cMatDiffColor * (
-        weights.r * texture2D(sDetailMap1, vDetailTexCoord) +
-        weights.g * texture2D(sDetailMap2, vDetailTexCoord) + 
-        weights.b * texture2D(sDetailMap3, vDetailTexCoord)
-    );
+    #ifdef TERRAINLAYERS1
+        vec4 terrainSample = texture2D(sDetailMap1, vDetailTexCoord);
+    #elif defined(TERRAINLAYERS2)
+        vec2 weightSample = texture2D(sWeightMap0, vTexCoord).rg;
+        float sumWeights = weights.r + weights.g;
+        weightSample /= sumWeights;
+        vec4 terrainSample =
+            weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
+            weightSample.g * texture2D(sDetailMap2, vDetailTexCoord);
+    #elif defined(TERRAINLAYERS4)
+        vec4 weightSample = texture2D(sWeightMap0, vTexCoord);
+        float sumWeights = weights.r + weights.g + weights.b + weights.a;
+        weightSample /= sumWeights;
+        vec4 terrainSample = 
+            weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
+            weightSample.g * texture2D(sDetailMap2, vDetailTexCoord) + 
+            weightSample.b * texture2D(sDetailMap3, vDetailTexCoord) + 
+            weightSample.a * texture2D(sDetailMap4, vDetailTexCoord);
+    #elif defined(TERRAINLAYERS5)
+        vec4 weightSample = texture2D(sWeightMap0, vTexCoord);
+        vec4 terrainSample = 
+            weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
+            weightSample.g * texture2D(sDetailMap2, vDetailTexCoord) + 
+            weightSample.b * texture2D(sDetailMap3, vDetailTexCoord) + 
+            weightSample.a * texture2D(sDetailMap4, vDetailTexCoord) + 
+            (1.0-dot(weightSample, vec4(1.0, 1.0, 1.0, 1.0))) * texture2D(sDetailMap5, vDetailTexCoord);
+    #else
+        vec3 weightSample = texture2D(sWeightMap0, vTexCoord).rgb;
+        float sumWeights = weights.r + weights.g + weights.b;
+        weightSample /= sumWeights;
+        vec4 terrainSample = 
+            weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
+            weightSample.g * texture2D(sDetailMap2, vDetailTexCoord) + 
+            weightSample.b * texture2D(sDetailMap3, vDetailTexCoord);
+    #endif
+    vec4 diffColor = cMatDiffColor * terrainSample;
 
     #ifdef METALLIC
         vec4 roughMetalSrc = texture2D(sSpecMap, vTexCoord.xy);
