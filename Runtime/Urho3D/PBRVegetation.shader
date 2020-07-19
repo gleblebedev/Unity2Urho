@@ -16,12 +16,13 @@
         _WindPeriod("WindPeriod", Range(0,1)) = 1.0
         _WindWorldSpacingX("WindWorldSpacing X", Range(0,1)) = 1.0
         _WindWorldSpacingY("WindWorldSpacing Y", Range(0,1)) = 1.0
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull", Float) = 0
     }
     SubShader
     {
         Tags { "Queue" = "AlphaTest+0" "RenderType"="TransparentCutout" }
         LOD 200
-        Cull Off
+        Cull [_Cull]
 
         CGPROGRAM
         // Physically based Standard lighting model, and enable shadows on all light types

@@ -1,5 +1,6 @@
 ﻿using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -34,8 +35,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.ExtraParameters.Add("WindStemAxis", windStemAxis);
             material.ExtraParameters.Add("WindPeriod", _WindPeriod);
             material.ExtraParameters.Add("WindWorldSpacingX", new Vector2(_WindWorldSpacingX, _WindWorldSpacingY));
-            material.Cull = Urho3DCulling.none;
-            material.ShadowCull = Urho3DCulling.none;
+
+            CullMode cull = (CullMode)mat.GetFloat("_Cull");
+            switch (cull)
+            {
+                case CullMode.Off:
+                    material.Cull = Urho3DCulling.none;
+                    material.ShadowCull = Urho3DCulling.none;
+                    break;
+                case CullMode.Front:
+                    material.Cull = Urho3DCulling.cw;
+                    material.ShadowCull = Urho3DCulling.cw;
+                    break;
+                default:
+                    material.Cull = Urho3DCulling.ccw;
+                    material.ShadowCull = Urho3DCulling.ccw;
+                    break;
+            }
+
             if (windStemAxis != Vector3.up)
             {
                 material.VertexShaderDefines.Add("WINDSTEMAXIS");

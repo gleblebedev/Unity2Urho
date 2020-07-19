@@ -17,9 +17,6 @@ namespace UnityToCustomEngineExporter.Editor
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private static readonly string _usePhysicalValuesKey = "UnityToCustomEngineExporter.UsePhysicalValues";
-        private static readonly string _exportCamerasKey = "UnityToCustomEngineExporter.ExportCameras";
-        private static readonly string _exportLightsKey = "UnityToCustomEngineExporter.ExportLights";
-        private static readonly string _exportTexturesKey = "UnityToCustomEngineExporter.ExportTextures";
         private BoolEditorProperty _exportShadersAndTechniques = new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques", "Export Shaders and Techniques", true);
         private BoolEditorProperty _exportCameras = new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
         private BoolEditorProperty _exportLights = new BoolEditorProperty("UnityToCustomEngineExporter.ExportLights", "Export Lights", true);
