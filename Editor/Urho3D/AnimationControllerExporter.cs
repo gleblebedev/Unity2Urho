@@ -170,7 +170,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             [SerializeField] public  bool isExit;
             [SerializeField] public  bool mute;
             [SerializeField] public  bool solo;
-            private ConditionJson[] conditions;
+            [SerializeField] public ConditionJson[] conditions;
 
             public TransitionJson(AnimatorStateTransition transition, Urho3DEngine engine, PrefabContext prefabContext)
             {
