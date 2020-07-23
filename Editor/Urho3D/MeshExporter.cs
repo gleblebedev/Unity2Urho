@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -44,6 +45,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
             ExportMeshModel(meshSource, mdlFilePath, assetKey, lastWriteDateTimeUtc);
         }
+
+        public void ExportLODGroup(LODGroup mesh, PrefabContext prefabContext)
+        {
+            if (!_engine.Options.ExportMeshes)
+                return;
+
+            //TODO: Export lods.
+            return;
+            //var meshSource = new LODGroupSource(mesh);
+            //var mdlFilePath = EvaluateLODGroupName(mesh, prefabContext);
+            //var assetKey = mesh.GetKey();
+            //var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
+            //ExportMeshModel(meshSource, mdlFilePath, assetKey, lastWriteDateTimeUtc);
+        }
+        
 
         public string ExportMesh(NavMeshTriangulation mesh, PrefabContext prefabContext)
         {
@@ -110,6 +126,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 folder = prefabContext.TempFolder;
             }
             return ExportUtils.Combine(folder, ExportUtils.SafeFileName(mesh.name) + ".mdl");
+        }
+
+        public string EvaluateLODGroupName(LODGroup lodGroup, PrefabContext prefabContext)
+        {
+            if (lodGroup == null)
+                return null;
+            var lods = lodGroup.GetLODs();
+            if (lods.Length == 0)
+                return null;
+            var firstMesh = lods[0].renderers.FirstOrDefault();
+            if (firstMesh == null)
+                return null;
+            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, firstMesh), "");
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = prefabContext.TempFolder;
+            }
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(firstMesh.name) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
         }
 
         public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)

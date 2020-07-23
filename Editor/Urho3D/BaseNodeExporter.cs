@@ -265,6 +265,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (lodGroup != null)
             {
+                //TODO: Generate lod mesh
+                var name = _engine.ScheduleLODGroup(lodGroup, prefabContext);
+
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
                 foreach (var renderer in lod.renderers)
