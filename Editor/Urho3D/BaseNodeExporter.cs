@@ -235,10 +235,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
-                // else if (component is Animation animation)
-                // {
-                //     WriteAnimationController(writer, subPrefix, animation, prefabContext);
-                // }
+                else if (component is Animation animation)
+                {
+                    WriteAnimationController(writer, subPrefix, animation, prefabContext);
+                }
                 // else if (component is Animator animator)
                 // {
                 //     WriteAnimationController(writer, subPrefix, animator, prefabContext);
