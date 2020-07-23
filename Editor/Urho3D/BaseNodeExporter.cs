@@ -239,10 +239,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     WriteAnimationController(writer, subPrefix, animation, prefabContext);
                 }
-                else if (component is Animator animator)
-                {
-                    WriteAnimationController(writer, subPrefix, animator, prefabContext);
-                }
+                // else if (component is Animator animator)
+                // {
+                //     WriteAnimationController(writer, subPrefix, animator, prefabContext);
+                // }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
                     switch (reflectionProbe.mode)
