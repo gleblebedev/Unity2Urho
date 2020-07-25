@@ -192,9 +192,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public class StateMachineJson
         {
             [SerializeField] public StateJson[] states;
+            [SerializeField] public TransitionJson[] anyStateTransitions;
+            [SerializeField] public string defaultState;
 
             public StateMachineJson(AnimatorStateMachine stateMachine, Urho3DEngine engine, PrefabContext prefabContext)
             {
+                this.defaultState = stateMachine.defaultState?.name;
+                this.anyStateTransitions = stateMachine.anyStateTransitions.Select(_=>new TransitionJson(_, engine, prefabContext)).ToArray();
                 states = stateMachine.states.Select(_ => new StateJson(_.state, engine, prefabContext)).ToArray();
             }
         }

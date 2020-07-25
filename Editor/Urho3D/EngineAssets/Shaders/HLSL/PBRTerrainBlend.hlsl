@@ -18,6 +18,12 @@ sampler2D sWeightMap0 : register(s0);
 sampler2D sDetailMap1 : register(s1);
 sampler2D sDetailMap2 : register(s2);
 sampler2D sDetailMap3 : register(s3);
+#if defined(TERRAINLAYERS5) || defined(TERRAINLAYERS4)
+    sampler2D sDetailMap4 : register(s4);
+    #ifdef TERRAINLAYERS5
+        sampler2D sDetailMap5 : register(s5);
+    #endif
+#endif
 #endif
 
 #else
@@ -37,6 +43,14 @@ SamplerState sWeightMap0 : register(s0);
 SamplerState sDetailMap1 : register(s1);
 SamplerState sDetailMap2 : register(s2);
 SamplerState sDetailMap3 : register(s3);
+#if defined(TERRAINLAYERS5) || defined(TERRAINLAYERS4)
+    Texture2D tDetailMap4 : register(t4);
+    SamplerState sDetailMap4 : register(s4);
+    #ifdef TERRAINLAYERS5
+        Texture2D tDetailMap5 : register(t5);
+        SamplerState sDetailMap5 : register(s5);
+    #endif
+#endif
 #endif
 
 #endif
@@ -161,14 +175,42 @@ void PS(
     out float4 oColor : OUTCOLOR0)
 {
     // Get material diffuse albedo
-    float3 weights = Sample2D(WeightMap0, iTexCoord).rgb;
-    float sumWeights = weights.r + weights.g + weights.b;
-    weights /= sumWeights;
-    float4 diffColor = cMatDiffColor * (
-        weights.r * Sample2D(DetailMap1, iDetailTexCoord) +
-        weights.g * Sample2D(DetailMap2, iDetailTexCoord) +
-        weights.b * Sample2D(DetailMap3, iDetailTexCoord)
-    );
+    #ifdef TERRAINLAYERS1
+        float4 terrainSample = Sample2D(DetailMap1, iDetailTexCoord);
+    #elif defined(TERRAINLAYERS2)
+        float2 weightSample = Sample2D(WeightMap0, iTexCoord).rg;
+        float sumWeights = weights.r + weights.g;
+        weightSample /= sumWeights;
+        float4 terrainSample =
+            weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
+            weightSample.g * Sample2D(DetailMap2, iDetailTexCoord);
+    #elif defined(TERRAINLAYERS4)
+        float4 weightSample = Sample2D(WeightMap0, iTexCoord);
+        float sumWeights = weights.r + weights.g + weights.b + weights.a;
+        weightSample /= sumWeights;
+        float4 terrainSample = 
+            weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
+            weightSample.g * Sample2D(DetailMap2, iDetailTexCoord) + 
+            weightSample.b * Sample2D(DetailMap3, iDetailTexCoord) + 
+            weightSample.a * Sample2D(DetailMap4, iDetailTexCoord);
+    #elif defined(TERRAINLAYERS5)
+        float4 weightSample = Sample2D(WeightMap0, iTexCoord);
+        float4 terrainSample = 
+            weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
+            weightSample.g * Sample2D(DetailMap2, iDetailTexCoord) + 
+            weightSample.b * Sample2D(DetailMap3, iDetailTexCoord) + 
+            weightSample.a * Sample2D(DetailMap4, iDetailTexCoord) + 
+            (1.0-dot(weightSample, float4(1.0, 1.0, 1.0, 1.0))) * Sample2D(DetailMap5, iDetailTexCoord);
+    #else
+        float3 weightSample = Sample2D(WeightMap0, iTexCoord).rgb;
+        float sumWeights = weights.r + weights.g + weights.b;
+        weightSample /= sumWeights;
+        float4 terrainSample = 
+            weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
+            weightSample.g * Sample2D(DetailMap2, iDetailTexCoord) + 
+            weightSample.b * Sample2D(DetailMap3, iDetailTexCoord);
+    #endif
+    float4 diffColor = cMatDiffColor * terrainSample;
 
     // Get material specular albedo
     #ifdef METALLIC // METALNESS

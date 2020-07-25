@@ -416,6 +416,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _meshExporter.ExportMesh(mesh, prefabContext);
                 yield break;
             }
+            if (asset is LODGroup lodGroup)
+            {
+                _meshExporter.ExportLODGroup(lodGroup, prefabContext);
+                yield break;
+            }
         }
 
         private bool CheckForFileUniqueness(string targetPath, AssetKey assetGuid)
@@ -440,6 +445,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public string TryGetSkyboxCubemap(Material skyboxMaterial)
         {
             return _materialExporter.TryGetSkyboxCubemap(skyboxMaterial);
+        }
+
+        public string ScheduleLODGroup(LODGroup lodGroup, PrefabContext prefabContext)
+        {
+            if (lodGroup == null)
+                return null;
+            var name = _meshExporter.EvaluateLODGroupName(lodGroup, prefabContext);
+            _meshExporter.ExportLODGroup(lodGroup, prefabContext);
+            return name;
         }
     }
 }

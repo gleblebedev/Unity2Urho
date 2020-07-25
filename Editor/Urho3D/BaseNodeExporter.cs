@@ -239,10 +239,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     WriteAnimationController(writer, subPrefix, animation, prefabContext);
                 }
-                else if (component is Animator animator)
-                {
-                    WriteAnimationController(writer, subPrefix, animator, prefabContext);
-                }
+                // else if (component is Animator animator)
+                // {
+                //     WriteAnimationController(writer, subPrefix, animator, prefabContext);
+                // }
                 else if (component is ReflectionProbe reflectionProbe)
                 {
                     switch (reflectionProbe.mode)
@@ -265,6 +265,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (lodGroup != null)
             {
+                //TODO: Generate lod mesh
+                var name = _engine.ScheduleLODGroup(lodGroup, prefabContext);
+
                 var lods = lodGroup.GetLODs();
                 foreach (var lod in lods.Skip(1))
                 foreach (var renderer in lod.renderers)
@@ -369,6 +372,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             WriteAttribute(writer, subSubPrefix, "Near Clip", camera.nearClipPlane);
             WriteAttribute(writer, subSubPrefix, "Far Clip", camera.farClipPlane);
+            WriteAttribute(writer, subSubPrefix, "FOV", camera.fieldOfView);
+            WriteAttribute(writer, subSubPrefix, "Aspect Ratio", camera.aspect);
+            WriteAttribute(writer, subSubPrefix, "Orthographic", camera.orthographic);
+            WriteAttribute(writer, subSubPrefix, "Orthographic Size", camera.orthographicSize);
+            //WriteAttribute(writer, subSubPrefix, "Auto Aspect Ratio", true);
+            //WriteAttribute(writer, subSubPrefix, "View Mask", camera.cullingMask);
+
+
+            //WriteAttribute(writer, subSubPrefix, "Fill Mode", camera.?); - Wireframe, ...
+            //WriteAttribute(writer, subSubPrefix, "Zoom", camera.zoom);
+            //WriteAttribute(writer, subSubPrefix, "LOD Bias", camera.lodBias);
+            //WriteAttribute(writer, subSubPrefix, "View Override Flags", camera.??);
+            //WriteAttribute(writer, subSubPrefix, "Projection Offset", camera. ???);
+            //WriteAttribute(writer, subSubPrefix, "Reflection Plane", camera. ???);
+            //WriteAttribute(writer, subSubPrefix, "Clip Plane", camera. ???);
+            //WriteAttribute(writer, subSubPrefix, "Use Reflection", camera. ???);
+            //WriteAttribute(writer, subSubPrefix, "Use Clipping", camera. ???);
 
             EndElement(writer, subPrefix);
         }
@@ -474,22 +494,29 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteVariant(writer, subSubPrefix, animation.GetClipCount());
             if (animation.GetClipCount() > 0)
             {
-                foreach (AnimationState animationState in animation)
+                foreach (object animationItem in animation)
                 {
-                    var clip = animationState.clip;
-                    WriteVariant(writer, subSubPrefix, "ResourceRef",
-                        "Animation;" + _engine.EvaluateAnimationName(clip, prefabContext));
-                    _engine.ScheduleAssetExport(clip, prefabContext);
-                    var startBone = "";
-                    var isLooped = clip.wrapMode == WrapMode.Loop;
-                    var weight = (animation.playAutomatically && clip == animation.clip) ? 1.0f : 0.0f;
-                    var time = 0.0f;
-                    var layer = animationState.layer;
-                    WriteVariant(writer, subSubPrefix, startBone);
-                    WriteVariant(writer, subSubPrefix, isLooped);
-                    WriteVariant(writer, subSubPrefix, weight);
-                    WriteVariant(writer, subSubPrefix, time);
-                    WriteVariant(writer, subSubPrefix, layer);
+                    if (animationItem is AnimationState animationState)
+                    {
+                        var clip = animationState.clip;
+                        WriteVariant(writer, subSubPrefix, "ResourceRef",
+                            "Animation;" + _engine.EvaluateAnimationName(clip, prefabContext));
+                        _engine.ScheduleAssetExport(clip, prefabContext);
+                        var startBone = "";
+                        var isLooped = clip.wrapMode == WrapMode.Loop;
+                        var weight = (animation.playAutomatically && clip == animation.clip) ? 1.0f : 0.0f;
+                        var time = 0.0f;
+                        var layer = animationState.layer;
+                        WriteVariant(writer, subSubPrefix, startBone);
+                        WriteVariant(writer, subSubPrefix, isLooped);
+                        WriteVariant(writer, subSubPrefix, weight);
+                        WriteVariant(writer, subSubPrefix, time);
+                        WriteVariant(writer, subSubPrefix, layer);
+                    }
+                    else
+                    {
+                        Debug.LogWarning(animationItem.GetType().FullName);
+                    }
                 }
             }
 

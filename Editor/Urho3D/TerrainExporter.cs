@@ -2,14 +2,16 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEngine;
+using UnityEngine.Video;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class TerrainExporter
     {
         private readonly Urho3DEngine _engine;
+
+        private const int _maxLayers = 5;
 
         public TerrainExporter(Urho3DEngine engine)
         {
@@ -98,7 +100,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     return;
 
                 var layers = terrain.terrainLayers;
-                var layerIndices = GetTerrainLayersByPopularity(terrain).Take(3).ToArray();
+                var layerIndices = GetTerrainLayersByPopularity(terrain).Take(_maxLayers).ToArray();
 
                 var material = new UrhoPBRMaterial();
                 material.Technique = "Techniques/PBR/PBRTerrainBlend.xml";
@@ -123,6 +125,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 material.Roughness = 1;
                 material.Metallic = 0;
                 material.ExtraParameters.Add("DetailTiling", detailTiling);
+                material.PixelShaderDefines.Add("TERRAINLAYERS" + layerIndices.Length.ToString(CultureInfo.InvariantCulture));
 
                 StandardMaterialExporter.WriteMaterial(writer, material, prefabContext);
             }
@@ -208,44 +211,85 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var layerIndices = GetTerrainLayersByPopularity(alphamaps, layers.Length);
 
             //Urho3D doesn't support more than 3 textures
-            if (numAlphamaps > 3) numAlphamaps = 3;
-
+            if (numAlphamaps > _maxLayers) numAlphamaps = _maxLayers;
+            float[] weights = new float[numAlphamaps];
+            byte[] encodedWeights = new byte[numAlphamaps];
             using (var imageFile = _engine.TryCreate(terrain.GetKey(), EvaluateWeightsMap(terrain), DateTime.MaxValue))
             {
                 if (imageFile == null)
                     return;
-                var allZeros = new Color32(0, 0, 0, 255);
+                
                 using (var binaryWriter = new BinaryWriter(imageFile))
                 {
-                    Color32 weights = allZeros;
                     var bytesPerPixell = 4;
                     WriteTgaHeader(binaryWriter,  bytesPerPixell * 8, w, h);
                     for (var y = h - 1; y >= 0; --y)
                     for (var x = 0; x < w; ++x)
                     {
-                        var sum = 0;
                         for (var i = 0; i < bytesPerPixell && i <layerIndices.Length; ++i)
                         {
                             var layer = layerIndices[i];
                             var weight = (byte) (alphamaps[h - y - 1, x, layer] * 255.0f);
-                            sum += weight;
-                            switch (i)
-                            {
-                                case 0: weights.r = weight; break;
-                                case 1: weights.g = weight; break;
-                                case 2: weights.b = weight; break;
-                            }
+                            weights[i] = weight;
                         }
 
-                        if (weights.r == 0 && weights.g == 0 && weights.b == 0)
-                            weights = new Color32(255,255,255,255);
+                        EncodeWeights(weights, encodedWeights);
 
-                        binaryWriter.Write(weights.b); //B
-                        binaryWriter.Write(weights.g); //G
-                        binaryWriter.Write(weights.r); //R
-                        binaryWriter.Write(weights.a); //A
+                        var color = EncodeWeightsToColor(encodedWeights);
+                        
+                        binaryWriter.Write(color.b); //B
+                        binaryWriter.Write(color.g); //G
+                        binaryWriter.Write(color.r); //R
+                        binaryWriter.Write(color.a); //A
                     }
                 }
+            }
+        }
+
+        private static Color32 EncodeWeightsToColor(byte[] weights)
+        {
+            Color32 color = new Color32(0, 0, 0, 255);
+            if (weights.Length > 0)
+            {
+                color.r = weights[0];
+                if (weights.Length > 1)
+                {
+                    color.g = weights[1];
+                    if (weights.Length > 2)
+                    {
+                        color.b = weights[2];
+                        if (weights.Length > 3)
+                        {
+                            color.a = weights[3];
+                        }
+                    }
+                }
+            }
+            return color;
+        }
+
+        private static void EncodeWeights(float[] weights, byte[] encodedWeights)
+        {
+            if (weights.Length == 0)
+                return;
+            var sum = weights.Sum();
+            if (sum == 0)
+            {
+                weights[0] = 1;
+                sum = 1;
+            }
+
+            sum /= 255.0f;
+
+            int byteSum = 0;
+            for (var index = 0; index < weights.Length; index++)
+            {
+                byteSum += (encodedWeights[index] = (byte)(weights[index] / sum));
+            }
+
+            if (byteSum == 0)
+            {
+                encodedWeights[0] = 255;
             }
         }
     }

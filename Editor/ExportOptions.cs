@@ -17,9 +17,6 @@ namespace UnityToCustomEngineExporter.Editor
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private static readonly string _usePhysicalValuesKey = "UnityToCustomEngineExporter.UsePhysicalValues";
-        private static readonly string _exportCamerasKey = "UnityToCustomEngineExporter.ExportCameras";
-        private static readonly string _exportLightsKey = "UnityToCustomEngineExporter.ExportLights";
-        private static readonly string _exportTexturesKey = "UnityToCustomEngineExporter.ExportTextures";
         private BoolEditorProperty _exportShadersAndTechniques = new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques", "Export Shaders and Techniques", true);
         private BoolEditorProperty _exportCameras = new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
         private BoolEditorProperty _exportLights = new BoolEditorProperty("UnityToCustomEngineExporter.ExportLights", "Export Lights", true);
@@ -144,7 +141,7 @@ namespace UnityToCustomEngineExporter.Editor
 
 
             EditorGUILayout.Separator();
-            EditorGUILayout.LabelField("Before exporting the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
+            EditorGUILayout.LabelField("Before exporting content with the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
 
         }
 
