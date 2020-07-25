@@ -27,18 +27,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportAnimationController(AnimatorController animationController, PrefabContext prefabContext)
         {
-            using (var fileStream = _engine.TryCreate(animationController.GetKey(),
-                EvaluateAnimationControllerName(animationController, prefabContext), ExportUtils.GetLastWriteTimeUtc(animationController)))
+            var animationControllerName = EvaluateAnimationControllerName(animationController, prefabContext);
+            var controllerJson = new ControllerJson(animationController, animationControllerName, _engine, prefabContext);
+            var assetGuid = animationController.GetKey();
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(animationController);
+
+            SaveJson(animationControllerName, controllerJson, assetGuid, sourceFileTimestampUtc);
+            for (var index = 0; index < controllerJson.layers.Length; index++)
+            {
+                SaveJson(controllerJson.layers[index], controllerJson.layerJsons[index], assetGuid, sourceFileTimestampUtc);
+            }
+        }
+
+        private void SaveJson(string animationControllerName, object json, AssetKey assetGuid, DateTime sourceFileTimestampUtc)
+        {
+            using (var fileStream = _engine.TryCreate(assetGuid, animationControllerName, sourceFileTimestampUtc))
             {
                 if (fileStream == null)
                     return;
                 using (var streamWriter = new StreamWriter(fileStream, new UTF8Encoding(false)))
                 {
-                    var conrollerData = new ControllerJson(animationController, _engine, prefabContext);
-                    streamWriter.Write(EditorJsonUtility.ToJson(conrollerData, true));
+                    streamWriter.Write(EditorJsonUtility.ToJson(json, true));
                 }
             }
         }
+
         [Serializable]
         public class LayerJson
         {
@@ -205,14 +218,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         [Serializable]
         public class ControllerJson
         {
-            public ControllerJson(AnimatorController animationController, Urho3DEngine engine, PrefabContext prefabContext)
+            public ControllerJson(AnimatorController animationController, string assetName,  Urho3DEngine engine, PrefabContext prefabContext)
             {
                 this.name = animationController.name;
-                layers = animationController.layers.Select(_ => new LayerJson(_, engine, prefabContext)).ToArray();
+                layers = animationController.layers.Select((l, i) => ExportUtils.ReplaceExtension(assetName, $".{i}.json")).ToArray();
+                layerJsons = animationController.layers.Select(_ => new LayerJson(_, engine, prefabContext)).ToArray();
             }
 
             [SerializeField] public string name;
-            [SerializeField] public LayerJson[] layers;
+            [SerializeField] public string[] layers;
+            public LayerJson[] layerJsons;
         }
     }
 }
