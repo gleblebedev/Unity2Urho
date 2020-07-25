@@ -117,43 +117,43 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             public StateJson(AnimatorState state, Urho3DEngine engine, PrefabContext prefabContext)
             {
                 this.name = state.name;
-                this.speed = state.speed;
-                this.cycleOffset = state.cycleOffset;
+                // this.speed = state.speed;
+                // this.cycleOffset = state.cycleOffset;
                 var motion = state.motion;
                 if (motion is AnimationClip animationClip)
                 {
-                    this.animationClip = engine.EvaluateAnimationName(animationClip, prefabContext);
+                    // this.animationClip = engine.EvaluateAnimationName(animationClip, prefabContext);
                     engine.ScheduleAssetExport(animationClip, prefabContext);
                 }
                 else if (motion is BlendTree blendTree)
                 {
-                    this.hasBlendTree = true;
-                    this.blendTree = new BlendTreeJson(blendTree, engine, prefabContext);
+                    // this.hasBlendTree = true;
+                    // this.blendTree = new BlendTreeJson(blendTree, engine, prefabContext);
                 }
 
                 transitions = state.transitions.Select(_ => new TransitionJson(_, engine, prefabContext)).ToArray();
             }
 
             [SerializeField] public string name;
-            [SerializeField] public float speed;
-            [SerializeField] public string animationClip;
-            [SerializeField] public bool hasBlendTree;
-            [SerializeField] public BlendTreeJson blendTree;
+            // [SerializeField] public float speed;
+            // [SerializeField] public string animationClip;
+            // [SerializeField] public bool hasBlendTree;
+            // [SerializeField] public BlendTreeJson blendTree;
             [SerializeField] public TransitionJson[] transitions;
-            [SerializeField] public float cycleOffset;
+            // [SerializeField] public float cycleOffset;
         }
         [Serializable]
         public class ConditionJson
         {
             [SerializeField] public AnimatorConditionMode mode;
             [SerializeField] public string parameter;
-            [SerializeField] public float threshold;
+            // [SerializeField] public float threshold;
 
             public ConditionJson(AnimatorCondition animatorCondition, Urho3DEngine engine, PrefabContext prefabContext)
             {
                 this.mode = animatorCondition.mode;
                 this.parameter = animatorCondition.parameter;
-                this.threshold = animatorCondition.threshold;
+                // this.threshold = animatorCondition.threshold;
             }
         }
         [Serializable]
@@ -161,31 +161,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             [SerializeField] public string destinationState;
             [SerializeField] public float duration;
-            [SerializeField] public  bool hasFixedDuration;
-            [SerializeField] public  bool canTransitionToSelf;
-            [SerializeField] public  float exitTime;
-            [SerializeField] public  bool hasExitTime;
-            [SerializeField] public  float offset;
-            [SerializeField] public  bool orderedInterruption;
-            [SerializeField] public  bool isExit;
-            [SerializeField] public  bool mute;
-            [SerializeField] public  bool solo;
+            // [SerializeField] public  bool hasFixedDuration;
+            // [SerializeField] public  bool canTransitionToSelf;
+            // [SerializeField] public  float exitTime;
+            // [SerializeField] public  bool hasExitTime;
+            // [SerializeField] public  float offset;
+            // [SerializeField] public  bool orderedInterruption;
+            // [SerializeField] public  bool isExit;
+            // [SerializeField] public  bool mute;
+            // [SerializeField] public  bool solo;
             [SerializeField] public ConditionJson[] conditions;
 
             public TransitionJson(AnimatorStateTransition transition, Urho3DEngine engine, PrefabContext prefabContext)
             {
                 this.destinationState = transition.destinationState.name;
                 this.duration = transition.duration;
-                this.hasFixedDuration = transition.hasFixedDuration;
-                this.canTransitionToSelf = transition.canTransitionToSelf;
-                this.exitTime = transition.exitTime;
-                this.hasExitTime = transition.hasExitTime;
-                this.offset = transition.offset;
-                this.orderedInterruption = transition.orderedInterruption;
+                // this.hasFixedDuration = transition.hasFixedDuration;
+                // this.canTransitionToSelf = transition.canTransitionToSelf;
+                // this.exitTime = transition.exitTime;
+                // this.hasExitTime = transition.hasExitTime;
+                // this.offset = transition.offset;
+                // this.orderedInterruption = transition.orderedInterruption;
                 this.conditions = transition.conditions.Select(_=>new ConditionJson(_, engine, prefabContext)).ToArray();
-                this.isExit = transition.isExit;
-                this.mute = transition.mute;
-                this.solo = transition.solo;
+                // this.isExit = transition.isExit;
+                // this.mute = transition.mute;
+                // this.solo = transition.solo;
             }
         }
         [Serializable]
