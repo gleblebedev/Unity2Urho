@@ -35,7 +35,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             SaveJson(animationControllerName, controllerJson, assetGuid, sourceFileTimestampUtc);
             for (var index = 0; index < controllerJson.layers.Length; index++)
             {
-                SaveJson(controllerJson.layers[index], controllerJson.layerJsons[index], assetGuid, sourceFileTimestampUtc);
+                var layer = animationController.layers[index];
+                
+                SaveJson(controllerJson.layers[index].stateMachine, new StateMachineJson(layer.stateMachine, _engine, prefabContext), assetGuid, sourceFileTimestampUtc);
             }
         }
 
@@ -55,12 +57,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         [Serializable]
         public class LayerJson
         {
-            public LayerJson(AnimatorControllerLayer layer, Urho3DEngine engine, PrefabContext prefabContext)
+            public LayerJson(AnimatorControllerLayer layer, string name, int index, Urho3DEngine engine, PrefabContext prefabContext)
             {
-                stateMachine = new StateMachineJson(layer.stateMachine, engine, prefabContext);
+                stateMachine = ExportUtils.ReplaceExtension(name, $".SM{index}.json");
             }
-
-            [SerializeField] public StateMachineJson stateMachine;
+            [SerializeField] public string stateMachine;
         }
         [Serializable]
         public class ChildMotionJson
@@ -221,13 +222,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             public ControllerJson(AnimatorController animationController, string assetName,  Urho3DEngine engine, PrefabContext prefabContext)
             {
                 this.name = animationController.name;
-                layers = animationController.layers.Select((l, i) => ExportUtils.ReplaceExtension(assetName, $".{i}.json")).ToArray();
-                layerJsons = animationController.layers.Select(_ => new LayerJson(_, engine, prefabContext)).ToArray();
+                layers = animationController.layers.Select((_, index) => new LayerJson(_, assetName, index, engine, prefabContext)).ToArray();
             }
 
             [SerializeField] public string name;
-            [SerializeField] public string[] layers;
-            public LayerJson[] layerJsons;
+            [SerializeField] public LayerJson[] layers;
         }
     }
 }
