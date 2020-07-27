@@ -108,7 +108,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             public BlendTreeJson(BlendTree blendTree, Urho3DEngine engine, PrefabContext prefabContext)
             {
-                this.name = blendTree.name;
+                this.name = engine.DecorateName(blendTree.name);
                 this.blendParameter = blendTree.blendParameter;
                 this.blendParameterY = blendTree.blendParameterY;
                 this.blendType = blendTree.blendType;
@@ -130,7 +130,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             public StateJson(AnimatorState state, Urho3DEngine engine, PrefabContext prefabContext)
             {
-                this.name = state.name;
+                this.name = engine.DecorateName(state.name);
                 // this.speed = state.speed;
                 // this.cycleOffset = state.cycleOffset;
                 var motion = state.motion;
@@ -188,7 +188,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             public TransitionJson(AnimatorStateTransition transition, Urho3DEngine engine, PrefabContext prefabContext)
             {
-                this.destinationState = transition.destinationState.name;
+                this.destinationState = engine.DecorateName(transition.destinationState.name);
                 this.duration = transition.duration;
                 // this.hasFixedDuration = transition.hasFixedDuration;
                 // this.canTransitionToSelf = transition.canTransitionToSelf;
@@ -211,7 +211,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             public StateMachineJson(AnimatorStateMachine stateMachine, Urho3DEngine engine, PrefabContext prefabContext)
             {
-                this.defaultState = stateMachine.defaultState?.name;
+                this.defaultState = engine.DecorateName(stateMachine.defaultState?.name);
                 this.anyStateTransitions = stateMachine.anyStateTransitions.Select(_=>new TransitionJson(_, engine, prefabContext)).ToArray();
                 states = stateMachine.states.Select(_ => new StateJson(_.state, engine, prefabContext)).ToArray();
             }
@@ -221,7 +221,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             public ControllerJson(AnimatorController animationController, string assetName,  Urho3DEngine engine, PrefabContext prefabContext)
             {
-                this.name = animationController.name;
+                this.name = engine.DecorateName(animationController.name);
                 layers = animationController.layers.Select((_, index) => new LayerJson(_, assetName, index, engine, prefabContext)).ToArray();
             }
 

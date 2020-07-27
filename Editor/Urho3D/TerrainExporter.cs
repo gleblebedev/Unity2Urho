@@ -58,10 +58,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteHeightMap(terrainData, prefabContext);
             WriteTerrainWeightsTexture(terrainData, prefabContext);
             ExportDetails(terrainData, prefabContext);
-
-            //var folderAndName = tempFolder + "/" + Path.GetInvalidFileNameChars().Aggregate(obj.name, (_1, _2) => _1.Replace(_2, '_'));
-            //var heightmapFileName = "Textures/Terrains/" + folderAndName + ".tga";
-            //var materialFileName = "Materials/Terrains/" + folderAndName + ".xml";
         }
 
         private void ExportDetails(TerrainData terrainData, PrefabContext prefabContext)

@@ -23,6 +23,7 @@ namespace UnityToCustomEngineExporter.Editor
         private BoolEditorProperty _exportTextures = new BoolEditorProperty("UnityToCustomEngineExporter.ExportTextures", "Export Textures", true);
         private BoolEditorProperty _exportAnimations = new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
         private BoolEditorProperty _exportMeshes = new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
+        private BoolEditorProperty _exportAscii = new BoolEditorProperty("UnityToCustomEngineExporter.ExportAscii", "Replace non-ASCII chars", false);
         private IList<BoolEditorProperty> _extraFlags;
         private string _exportFolder = "";
         private string _subfolder = "";
@@ -46,6 +47,7 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportTextures,
                 _exportAnimations,
                 _exportMeshes,
+                _exportAscii,
             };
         }
 
@@ -174,6 +176,7 @@ namespace UnityToCustomEngineExporter.Editor
             options.ExportTextures = _exportTextures.Value;
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
+            options.ASCIIOnly = _exportAscii.Value;
             return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, options);
         }
 

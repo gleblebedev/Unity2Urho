@@ -42,7 +42,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
                 return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                     ".xml");
-            var newExt = "/" + ExportUtils.SafeFileName(material.name) + ".xml";
+            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(material.name)) + ".xml";
             return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                 newExt);
         }

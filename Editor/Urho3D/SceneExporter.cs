@@ -59,7 +59,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     using (var sceneElement = Element.Start(writer, "scene"))
                     {
-                        WriteAttribute(writer, "\t", "Name", scene.name);
+                        WriteAttribute(writer, "\t", "Name", _engine.DecorateName(scene.name));
                         StartComponent(writer, "\t", "Octree", true);
                         EndElement(writer, "\t");
                         StartComponent(writer, "\t", "DebugRenderer", true);

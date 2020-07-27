@@ -455,5 +455,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _meshExporter.ExportLODGroup(lodGroup, prefabContext);
             return name;
         }
+
+        public string DecorateName(string materialName)
+        {
+            if (string.IsNullOrEmpty(materialName))
+                return materialName;
+            if (!Options.ASCIIOnly)
+                return materialName;
+
+            return Uri.EscapeDataString(materialName);
+        }
     }
 }

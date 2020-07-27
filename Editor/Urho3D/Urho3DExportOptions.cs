@@ -29,5 +29,10 @@
         public bool ExportShadersAndTechniques { get; set; } = true;
         public bool ExportAnimations { get; set; } = true;
         public bool ExportMeshes { get; set; } = true;
+
+        /// <summary>
+        /// Replace all non-ASCII characters in file and node names.
+        /// </summary>
+        public bool ASCIIOnly { get; set; } = false;
     }
 }

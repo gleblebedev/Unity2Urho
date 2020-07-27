@@ -58,7 +58,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.Write(trackBones.Count);
             foreach (var bone in trackBones)
             {
-                WriteStringSZ(writer, bone.gameObject.name);
+                WriteStringSZ(writer, _engine.DecorateName(bone.gameObject.name));
                 writer.Write((byte)7);
                 writer.Write(bone.translation.Count);
                 for (var frame = 0; frame < bone.translation.Count; ++frame)
@@ -202,10 +202,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 _root = root;
                 _animationClip = animationClip;
-                //_animation = _root.AddComponent<Animation>();
-                //_animation.clip = animationClip;
-                //_animation.AddClip(animationClip, animationClip.name);
-                //_animation.Play(animationClip.name);
             }
 
             public void Dispose()
@@ -274,7 +270,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var slash = path.IndexOf('/');
             if (slash < 0)
                 return path;
-            return path.Substring(0, slash);
+            return _engine.DecorateName(path.Substring(0, slash));
         }
         internal interface ISampler : IDisposable
         {
@@ -286,7 +282,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!_engine.Options.ExportAnimations)
                 return;
 
-            var name = GetSafeFileName(clipAnimation.name);
+            var name = GetSafeFileName(_engine.DecorateName(clipAnimation.name));
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
@@ -299,7 +295,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 using (var writer = new BinaryWriter(file))
                 {
                     writer.Write(new byte[] { 0x55, 0x41, 0x4e, 0x49 });
-                    WriteStringSZ(writer, clipAnimation.name);
+                    WriteStringSZ(writer, _engine.DecorateName(clipAnimation.name));
                     writer.Write(clipAnimation.length);
 
                     if (clipAnimation.legacy)
@@ -322,8 +318,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         {
                             var rootBoneName = rootBones.First();
                             var rootGOs = _skeletons
-                                .Select(_ =>
-                                    _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
+                                .Select(_ => _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
                                 .Where(_ => _ != null).ToList();
                             if (rootGOs.Count == 1)
                             {
@@ -354,7 +349,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(clip.name) + ".ani");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(clip.name)) + ".ani");
         }
         private IEnumerable<GameObject> CloneTree(GameObject go)
         {

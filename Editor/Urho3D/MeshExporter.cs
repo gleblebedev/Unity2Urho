@@ -81,8 +81,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
             var meshFilter = go.GetComponent<MeshFilter>();
 
-            //Debug.Log("Game object: "+go.name+", components: "+string.Join(", ", go.GetComponents<Component>().Select(_=>_.GetType().Name).ToArray()));
-
             if (proBuilderMesh != null)
             {
                 ExportProBuilderMeshModel(proBuilderMesh, prefabContext);
@@ -125,7 +123,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(mesh.name) + ".mdl");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(mesh.name)) + ".mdl");
         }
 
         public string EvaluateLODGroupName(LODGroup lodGroup, PrefabContext prefabContext)
@@ -143,7 +141,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(firstMesh.name) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(firstMesh.name)) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
         }
 
         public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)
@@ -156,13 +154,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(mesh.name) + "." + _dynamicMeshNames.Count +".mdl");
+                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(_engine.DecorateName(mesh.name)) + "." + _dynamicMeshNames.Count +".mdl");
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
 
             return ExportUtils.ReplaceExtension(assetUrhoAssetName, "") + "/" +
-                   ExportUtils.SafeFileName(mesh.name) + ".mdl";
+                   ExportUtils.SafeFileName(_engine.DecorateName(mesh.name)) + ".mdl";
         }
 
         public string EvaluateMeshName(NavMeshTriangulation mesh, PrefabContext prefabContext)
@@ -325,7 +323,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var boneIndex = 0;
                 foreach (var bone in bones)
                 {
-                    WriteStringSZ(writer, bone.name);
+                    WriteStringSZ(writer, _engine.DecorateName(bone.name));
                     writer.Write(bone.parent); //Parent
                     Write(writer, bone.actualPos);
                     Write(writer, bone.actualRot);

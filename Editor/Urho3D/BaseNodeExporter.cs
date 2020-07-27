@@ -126,7 +126,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var subSubPrefix = subPrefix + "\t";
 
             WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
-            WriteAttribute(writer, subPrefix, "Name", obj.name);
+            WriteAttribute(writer, subPrefix, "Name", _engine.DecorateName(obj.name));
             if (!string.IsNullOrWhiteSpace(obj.tag))
             {
                 writer.WriteWhitespace(subPrefix);
