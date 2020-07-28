@@ -160,11 +160,8 @@ namespace UnityToCustomEngineExporter.Editor
                     continue;
                 }
 
-                if (path.Length > 0)
-                {
-                    path.Append(separator);
-                    separator = "/";
-                }
+                path.Append(separator);
+                separator = "/";
 
                 path.Append(segment);
 
