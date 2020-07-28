@@ -265,8 +265,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetGuid = (arguments.MetallicGloss ?? arguments.Smoothness).GetKey();
             if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
 
-            var tmpMaterial =
-                new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness"));
+            var shader = Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/ConvertToMetallicRoughness");
+            var tmpMaterial = new Material(shader);
 
             Texture mainTexture = null;
             Texture smoothnessTexture = null;
@@ -278,7 +278,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     EnsureTexture(new TextureOrColor(arguments.Smoothness, new Color(0, 0, 0, arguments.Glossiness)));
                 var (width, height) = MaxTexutreSize(mainTexture, smoothnessTexture);
                 tmpMaterial.SetTexture("_MainTex", mainTexture);
-                tmpMaterial.SetFloat("_SmoothnessScale", arguments.GlossinessTextureScale);
+                tmpMaterial.SetFloat("_MetallicScale", arguments.MetallicScale);
+                tmpMaterial.SetFloat("_SmoothnessRemapMin", arguments.SmoothnessRemapMin);
+                tmpMaterial.SetFloat("_SmoothnessRemapMax", arguments.SmoothnessRemapMax);
                 tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
                 new TextureProcessor().ProcessAndSaveTexture(mainTexture, width, height, tmpMaterial,
                     _engine.GetTargetFilePath(baseColorName));

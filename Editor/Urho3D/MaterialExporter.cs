@@ -24,7 +24,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 new StandardSpecularMaterialExporter(_engine),
                 new WaterMaterialExporter(_engine),
                 _skyboxMaterialExporter,
-                new VegetationMaterialExporter(_engine)
+                new VegetationMaterialExporter(_engine),
+                new HDRPMaterialExporter(_engine)
             }.OrderByDescending(_ => _.ExporterPriority).ToList();
         }
 

@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Text;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 
@@ -116,11 +115,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     texNameBuilder.Append(Path.GetFileNameWithoutExtension(smoothnessTexture));
                 }
 
-                if (arguments.GlossinessTextureScale < 0.999f)
+                if (arguments.SmoothnessRemapMax < 0.999f)
                 {
                     texNameBuilder.Append('.');
                     texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}",
-                        arguments.GlossinessTextureScale);
+                        arguments.SmoothnessRemapMax);
                 }
 
                 texNameBuilder.Append(".MetallicRoughness.png");
@@ -143,37 +142,38 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected virtual void ParseTexture(string propertyName, Texture texture,
             MetallicGlossinessShaderArguments arguments)
         {
-            if (texture != null)
-                switch (propertyName)
-                {
-                    case "_BumpMap":
-                        arguments.Bump = texture;
-                        break;
-                    case "_DetailAlbedoMap":
-                        arguments.DetailBaseColor = texture;
-                        break;
-                    case "_DetailMask":
-                        arguments.Detail = texture;
-                        break;
-                    case "_DetailNormalMap":
-                        arguments.DetailNormal = texture;
-                        break;
-                    case "_EmissionMap":
-                        arguments.Emission = texture;
-                        break;
-                    case "_MainTex":
-                        arguments.BaseColor = texture;
-                        break;
-                    case "_MetallicGlossMap":
-                        arguments.MetallicGloss = texture;
-                        break;
-                    case "_OcclusionMap":
-                        arguments.Occlusion = texture;
-                        break;
-                    case "_ParallaxMap":
-                        arguments.Parallax = texture;
-                        break;
-                }
+            if (texture == null)
+                return;
+            switch (propertyName)
+            {
+                case "_BumpMap":
+                    arguments.Bump = texture;
+                    break;
+                case "_DetailAlbedoMap":
+                    arguments.DetailBaseColor = texture;
+                    break;
+                case "_DetailMask":
+                    arguments.Detail = texture;
+                    break;
+                case "_DetailNormalMap":
+                    arguments.DetailNormal = texture;
+                    break;
+                case "_EmissionMap":
+                    arguments.Emission = texture;
+                    break;
+                case "_MainTex":
+                    arguments.BaseColor = texture;
+                    break;
+                case "_MetallicGlossMap":
+                    arguments.MetallicGloss = texture;
+                    break;
+                case "_OcclusionMap":
+                    arguments.Occlusion = texture;
+                    break;
+                case "_ParallaxMap":
+                    arguments.Parallax = texture;
+                    break;
+            }
         }
 
         protected virtual void ParseFloatOrRange(string propertyName, float value,
@@ -199,7 +199,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     arguments.Cutoff = value;
                     break;
                 case "_GlossMapScale":
-                    arguments.GlossinessTextureScale = value;
+                    arguments.SmoothnessRemapMax = value;
                     break;
                 case "_Glossiness":
                     arguments.Glossiness = value;
