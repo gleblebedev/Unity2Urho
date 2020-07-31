@@ -179,14 +179,14 @@ void PS(
         float4 terrainSample = Sample2D(DetailMap1, iDetailTexCoord);
     #elif defined(TERRAINLAYERS2)
         float2 weightSample = Sample2D(WeightMap0, iTexCoord).rg;
-        float sumWeights = weights.r + weights.g;
+        float sumWeights = weightSample.r + weightSample.g;
         weightSample /= sumWeights;
         float4 terrainSample =
             weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
             weightSample.g * Sample2D(DetailMap2, iDetailTexCoord);
     #elif defined(TERRAINLAYERS4)
         float4 weightSample = Sample2D(WeightMap0, iTexCoord);
-        float sumWeights = weights.r + weights.g + weights.b + weights.a;
+        float sumWeights = weightSample.r + weightSample.g + weightSample.b + weightSample.a;
         weightSample /= sumWeights;
         float4 terrainSample = 
             weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +
@@ -203,7 +203,7 @@ void PS(
             (1.0-dot(weightSample, float4(1.0, 1.0, 1.0, 1.0))) * Sample2D(DetailMap5, iDetailTexCoord);
     #else
         float3 weightSample = Sample2D(WeightMap0, iTexCoord).rgb;
-        float sumWeights = weights.r + weights.g + weights.b;
+        float sumWeights = weightSample.r + weightSample.g + weightSample.b;
         weightSample /= sumWeights;
         float4 terrainSample = 
             weightSample.r * Sample2D(DetailMap1, iDetailTexCoord) +

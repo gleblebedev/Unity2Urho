@@ -120,14 +120,14 @@ void PS()
         vec4 terrainSample = texture2D(sDetailMap1, vDetailTexCoord);
     #elif defined(TERRAINLAYERS2)
         vec2 weightSample = texture2D(sWeightMap0, vTexCoord).rg;
-        float sumWeights = weights.r + weights.g;
+        float sumWeights = weightSample.r + weightSample.g;
         weightSample /= sumWeights;
         vec4 terrainSample =
             weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
             weightSample.g * texture2D(sDetailMap2, vDetailTexCoord);
     #elif defined(TERRAINLAYERS4)
         vec4 weightSample = texture2D(sWeightMap0, vTexCoord);
-        float sumWeights = weights.r + weights.g + weights.b + weights.a;
+        float sumWeights = weightSample.r + weightSample.g + weightSample.b + weightSample.a;
         weightSample /= sumWeights;
         vec4 terrainSample = 
             weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
@@ -144,7 +144,7 @@ void PS()
             (1.0-dot(weightSample, vec4(1.0, 1.0, 1.0, 1.0))) * texture2D(sDetailMap5, vDetailTexCoord);
     #else
         vec3 weightSample = texture2D(sWeightMap0, vTexCoord).rgb;
-        float sumWeights = weights.r + weights.g + weights.b;
+        float sumWeights = weightSample.r + weightSample.g + weightSample.b;
         weightSample /= sumWeights;
         vec4 terrainSample = 
             weightSample.r * texture2D(sDetailMap1, vDetailTexCoord) +
