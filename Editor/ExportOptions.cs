@@ -102,8 +102,6 @@ namespace UnityToCustomEngineExporter.Editor
 
             //GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
 
-            EditorTaskScheduler.Default.DisplayProgressBar();
-
             {
                 GUI.enabled = _engine == null && ValidateExportPath(_exportFolder);
                 if (Selection.assetGUIDs.Length > 0)
@@ -156,6 +154,11 @@ namespace UnityToCustomEngineExporter.Editor
                 EditorTaskScheduler.Default.ScheduleForegroundTask(() => { _engine.ExportScene(activeScene); },
                     activeScene.path);
             }
+        }
+
+        protected void Update()
+        {
+            EditorTaskScheduler.Default.DisplayProgressBar();
         }
 
         private void StartExportAssets(string[] assetGuiDs, PrefabContext prefabContext)

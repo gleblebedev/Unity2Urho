@@ -31,6 +31,8 @@ namespace UnityToCustomEngineExporter.Editor
 
         public event EventHandler EditorUpdate;
 
+        public event EventHandler ForegroundQueueComplete;
+
         public ProgressBarReport CurrentReport { get; private set; }
 
         public bool IsRunning
@@ -115,20 +117,20 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        public void DisplayProgressBar()
+        public bool DisplayProgressBar()
         {
             lock (_gate)
             {
                 if (_foregroundTasks.Count == 0 && _enumeration == null)
                 {
                     EditorUtility.ClearProgressBar();
+                    return false;
                 }
-                else
-                {
-                    var counter = (float) _completeForegroundTasksCounter;
-                    EditorUtility.DisplayProgressBar("Hold on...", CurrentReport.Message,
-                        counter / (counter + _foregroundTasks.Count + 1));
-                }
+
+                var counter = (float) _completeForegroundTasksCounter;
+                EditorUtility.DisplayProgressBar("Hold on...", CurrentReport.Message,
+                    counter / (counter + _foregroundTasks.Count + 1));
+                return true;
             }
         }
 
@@ -150,8 +152,6 @@ namespace UnityToCustomEngineExporter.Editor
 
         private void ProcessForegroundQueue()
         {
-            EditorUpdate?.Invoke(this, EventArgs.Empty);
-
             _foregroundStepStopwatch.Restart();
             for (; _foregroundStepStopwatch.Elapsed.TotalMilliseconds < 16;)
                 if (_enumeration != null)
@@ -188,6 +188,7 @@ namespace UnityToCustomEngineExporter.Editor
                             EditorApplication.update =
                                 Delegate.Remove(EditorApplication.update, _processForegroundQueue) as
                                     EditorApplication.CallbackFunction;
+                            ForegroundQueueComplete?.Invoke(this, EventArgs.Empty);
                             return;
                         }
 
@@ -206,6 +207,8 @@ namespace UnityToCustomEngineExporter.Editor
                         Debug.LogError(exception);
                     }
                 }
+
+            EditorUpdate?.Invoke(this, EventArgs.Empty);
         }
     }
 }
