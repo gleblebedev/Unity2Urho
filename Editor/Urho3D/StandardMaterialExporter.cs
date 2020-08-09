@@ -68,13 +68,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var urhoMaterial = FromMetallicGlossiness(material, arguments);
                 WriteMaterial(writer, urhoMaterial, prefabContext);
 
-                Engine.ScheduleTexture(arguments.BaseColor, new TextureReference(TextureSemantic.PBRBaseColor));
+                Engine.ScheduleTexture(arguments.BaseColor);
                 //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));
-                Engine.ScheduleTexture(arguments.DetailBaseColor, new TextureReference(TextureSemantic.Detail));
+                Engine.ScheduleTexture(arguments.DetailBaseColor);
 
                 Engine.SchedulePBRTextures(arguments, urhoMaterial);
 
-                Engine.ScheduleTexture(arguments.Emission, new TextureReference(TextureSemantic.Emission));
+                Engine.ScheduleTexture(arguments.Emission);
                 //Engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
             }
         }
@@ -122,7 +122,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         arguments.SmoothnessRemapMax);
                 }
 
-                texNameBuilder.Append(".MetallicRoughness.png");
+                texNameBuilder.Append(".MetallicRoughness.dds");
                 material.MetallicRoughnessTexture = texNameBuilder.ToString();
             }
 

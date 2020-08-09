@@ -65,7 +65,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var normalTexture = Engine.EvaluateTextrueName(bump);
             if (bumpScale < 0.999f)
             {
-                normalTexture = ExportUtils.ReplaceExtension(normalTexture, string.Format(CultureInfo.InvariantCulture, "{0:0.000}.png", bumpScale));
+                normalTexture = ExportUtils.ReplaceExtension(normalTexture, string.Format(CultureInfo.InvariantCulture, "{0:0.000}.dds", bumpScale));
             }
 
             return normalTexture;
@@ -195,9 +195,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return null;
             var baseName = Engine.EvaluateTextrueName(occlusion);
             if (occlusionStrength >= 0.999f)
-                return ExportUtils.ReplaceExtension(baseName, ".AO.png");
+                return ExportUtils.ReplaceExtension(baseName, ".AO.dds");
             return ExportUtils.ReplaceExtension(baseName,
-                string.Format(CultureInfo.InvariantCulture, ".AO.{0:0.000}.png", occlusionStrength));
+                string.Format(CultureInfo.InvariantCulture, ".AO.{0:0.000}.dds", occlusionStrength));
         }
     }
 }

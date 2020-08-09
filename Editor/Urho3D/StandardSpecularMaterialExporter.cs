@@ -64,7 +64,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     else
                         baseColorTextureNameBuilder.Append(FormatRGB(arguments.PBRSpecular.Color.linear));
 
-                    baseColorTextureNameBuilder.Append(".BaseColor.png");
+                    baseColorTextureNameBuilder.Append(".BaseColor.dds");
                     material.BaseColorTexture = baseColorTextureNameBuilder.ToString();
                 }
                 {
@@ -105,7 +105,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         }
                     }
 
-                    metallicTextureNameBuilder.Append(".MetallicRoughness.png");
+                    metallicTextureNameBuilder.Append(".MetallicRoughness.dds");
                     material.MetallicRoughnessTexture = metallicTextureNameBuilder.ToString();
                 }
 
@@ -150,7 +150,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 Engine.SchedulePBRTextures(arguments, urhoMaterial);
 
-                Engine.ScheduleTexture(arguments.Emission, new TextureReference(TextureSemantic.Emission));
+                Engine.ScheduleTexture(arguments.Emission);
                 //Engine.ScheduleTexture(arguments.Occlusion, new TextureReference(TextureSemantic.Occlusion));
             }
         }

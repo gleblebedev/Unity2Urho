@@ -68,7 +68,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                                 cubemapWriter.WriteStartElement("face");
                                 cubemapWriter.WriteAttributeString("name", Engine.EvaluateTextrueName(tex ?? anyFace));
                                 cubemapWriter.WriteEndElement();
-                                Engine.ScheduleTexture(tex, new TextureReference(TextureSemantic.Other));
+                                Engine.ScheduleTexture(tex);
                             }
 
                             cubemapWriter.WriteWhitespace(Environment.NewLine);

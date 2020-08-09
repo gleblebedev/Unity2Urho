@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -14,20 +13,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public TextureExporter(Urho3DEngine engine)
         {
             _engine = engine;
-        }
-
-        private static string GetTextureOutputName(string baseAssetName, TextureReference reference)
-        {
-            switch (reference.Semantic)
-            {
-                case TextureSemantic.PBRMetallicGlossiness:
-                    return ExportUtils.ReplaceExtension(baseAssetName, ".MetallicRoughness.png");
-                case TextureSemantic.PBRSpecularGlossiness:
-                    return ExportUtils.ReplaceExtension(baseAssetName, ".MetallicRoughness.png");
-                case TextureSemantic.PBRDiffuse:
-                    return ExportUtils.ReplaceExtension(baseAssetName, ".BaseColor.png");
-                default: return baseAssetName;
-            }
         }
 
         private static void DestroyTmpTexture(TextureOrColor reference, Texture specularTexture)
@@ -106,16 +91,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        public void ExportTexture(Texture texture, TextureReference textureReference)
+        public void ExportTexture(Texture texture)
         {
             if (!_engine.Options.ExportTextures) return;
             CopyTexture(texture);
-        }
-
-        public string EvaluateTextureName(Texture texture, TextureReference reference)
-        {
-            var baseName = EvaluateTextureName(texture);
-            return GetTextureOutputName(baseName, reference);
         }
 
         public string EvaluateTextureName(Texture texture)
@@ -130,15 +109,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (texture is Cubemap)
                 newExt = ".xml";
             else
+            {
                 switch (newExt.ToLower())
                 {
-                    case ".tif":
-                        newExt = ".png";
+                    case ".exr":
+                        newExt = ".exr";
+                        break;
+                    default:
+                        newExt = ".dds";
                         break;
                 }
+            }
 
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath),
-                newExt);
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath), newExt);
         }
 
         public void ExportPBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
@@ -173,7 +156,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var newName = EvaluateTextureName(texture);
             if (relPath != newName)
             {
-                CopyTextureAsPng(texture);
+                CopyTextureAndSaveAs(texture);
             }
             else
             {
@@ -183,7 +166,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void CopyTextureAsPng(Texture texture)
+        private void CopyTextureAndSaveAs(Texture texture)
         {
             var outputAssetName = EvaluateTextureName(texture);
             var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(texture);
@@ -192,15 +175,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
             var texType = tImporter?.textureType ?? TextureImporterType.Default;
+            var textureOptions = ExportUtils.GetTextureOptions(texture);
             switch (texType)
             {
                 case TextureImporterType.NormalMap:
-                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap", _engine.GetTargetFilePath(outputAssetName));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap", _engine.GetTargetFilePath(outputAssetName), true);
                     break;
                 default:
-                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName));
-                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc,
-                        ExportUtils.GetTextureOptions(texture).WithSRGB(true));
+                    new TextureProcessor().ProcessAndSaveTexture(texture, "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName), textureOptions.textureImporterFormat != TextureImporterFormat.DXT1);
+                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc, textureOptions.WithSRGB(true));
                     break;
             }
         }

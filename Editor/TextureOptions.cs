@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -8,6 +9,7 @@ namespace UnityToCustomEngineExporter.Editor
         public FilterMode filterMode;
         public TextureWrapMode wrapMode;
         public bool mipmapEnabled;
+        public TextureImporterFormat? textureImporterFormat;
 
         public TextureOptions WithSRGB(bool srgb)
         {

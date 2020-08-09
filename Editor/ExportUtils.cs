@@ -133,6 +133,7 @@ namespace UnityToCustomEngineExporter.Editor
                 options.filterMode = tImporter.filterMode;
                 options.wrapMode = tImporter.wrapMode;
                 options.mipmapEnabled = tImporter.mipmapEnabled;
+                options.textureImporterFormat = tImporter.GetAutomaticFormat("Standalone");
                 return options;
             }
 
