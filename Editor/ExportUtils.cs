@@ -137,7 +137,15 @@ namespace UnityToCustomEngineExporter.Editor
                 return options;
             }
 
-            return null;
+            // Default texture options.
+            return new TextureOptions()
+            {
+                filterMode = FilterMode.Trilinear,
+                mipmapEnabled = true,
+                sRGBTexture = true,
+                textureImporterFormat = null,
+                wrapMode = TextureWrapMode.Repeat
+            };
         }
 
         private static DateTime GetLastWriteTimeUtcFromRelPath(string relPath)
