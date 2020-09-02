@@ -33,7 +33,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var trackBones = CloneTree(root).Select(_ => new BoneTrack(_)).ToList();
             var cloneRoot = trackBones[0].gameObject;
             ISampler sampler;
-            if (clipAnimation.legacy)
+            if (!clipAnimation.isHumanMotion)
                 sampler = new LegacySampler(cloneRoot, clipAnimation);
             else
                 sampler = new AnimatorSampler(cloneRoot, clipAnimation);
@@ -239,14 +239,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (_length < 1e-6f) _length = 1e-6f;
                 _animator = _root.AddComponent<Animator>();
 
-                _controllerPath = Path.Combine(Path.Combine("Assets", "UnityToCustomEngineExporter"),
-                    "TempController.controller");
+                _controllerPath = Path.Combine("Assets", "UnityToCustomEngineExporter.TempController.controller");
                 _controller =
                     AnimatorController.CreateAnimatorControllerAtPathWithClip(_controllerPath, _animationClip);
                 var layers = _controller.layers;
                 layers[0].iKPass = true;
                 //layers[0].stateMachine.
                 _controller.layers = layers;
+                _animator.avatar = GetAvatar(animationClip);
+                _animator.applyRootMotion = true;
                 _animator.runtimeAnimatorController = _controller;
             }
 
@@ -277,64 +278,105 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             void Sample(float time);
         }
 
-        public void ExportAnimation(AnimationClip clipAnimation, PrefabContext prefabContext)
+        public void ExportAnimation(AnimationClip clip, PrefabContext prefabContext)
         {
             if (!_engine.Options.ExportAnimations)
                 return;
 
-            var name = GetSafeFileName(_engine.DecorateName(clipAnimation.name));
+            var name = GetSafeFileName(_engine.DecorateName(clip.name));
 
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
-            var aniFilePath = EvaluateAnimationName(clipAnimation, prefabContext);
-            using (var file = _engine.TryCreate(clipAnimation.GetKey(), aniFilePath,
-                ExportUtils.GetLastWriteTimeUtc(clipAnimation)))
+            var aniFilePath = EvaluateAnimationName(clip, prefabContext);
+            using (var file = _engine.TryCreate(clip.GetKey(), aniFilePath,
+                ExportUtils.GetLastWriteTimeUtc(clip)))
             {
                 if (file == null)
                     return;
                 using (var writer = new BinaryWriter(file))
                 {
                     writer.Write(new byte[] { 0x55, 0x41, 0x4e, 0x49 });
-                    WriteStringSZ(writer, _engine.DecorateName(clipAnimation.name));
-                    writer.Write(clipAnimation.length);
+                    WriteStringSZ(writer, _engine.DecorateName(clip.name));
+                    writer.Write(clip.length);
 
-                    if (clipAnimation.legacy)
+                    // Legacy animation
+                    if (clip.legacy)
                     {
-                        WriteTracksAsIs(clipAnimation, writer);
+                        WriteTracksAsIs(clip, writer);
+                    }
+                    else if (clip.isHumanMotion)
+                    {
+                        WriteHumanoidAnimation(clip, writer);
                     }
                     else
                     {
-                        var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
-                        var rootBones =
-                            new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
-                        if (rootBones.Count != 1)
-                        {
-                            Debug.LogWarning(aniFilePath + ": Multiple root bones found (" +
-                                             string.Join(", ", rootBones.ToArray()) +
-                                             "), falling back to curve export");
-                            WriteTracksAsIs(clipAnimation, writer);
-                        }
-                        else
-                        {
-                            var rootBoneName = rootBones.First();
-                            var rootGOs = _skeletons
-                                .Select(_ => _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
-                                .Where(_ => _ != null).ToList();
-                            if (rootGOs.Count == 1)
-                            {
-                                WriteSkelAnimation(clipAnimation, rootGOs.First().gameObject, writer);
-                            }
-                            else
-                            {
-                                Debug.LogWarning(aniFilePath +
-                                                 ": Multiple game objects found that match root bone name, falling back to curve export");
-                                WriteTracksAsIs(clipAnimation, writer);
-                            }
-                        }
+                        WriteGenericAnimation(clip, writer);
                     }
                 }
             }
 
+        }
+
+        private void WriteHumanoidAnimation(AnimationClip clip, BinaryWriter writer)
+        {
+            Avatar avatar = GetAvatar(clip);
+            if (avatar != null)
+            {
+                if (WriteHumanoidAnimation(clip, avatar, writer))
+                    return;
+            }
+            Debug.Log("Failed to export "+clip.name+". Try to change it to Generic or Legacy setup.");
+            var numTracks = (uint)0;
+            writer.Write(numTracks);
+         }
+
+        private bool WriteHumanoidAnimation(AnimationClip clip, Avatar avatar, BinaryWriter writer)
+        {
+            var avatarPath = AssetDatabase.GetAssetPath(avatar);
+            var prefabRoot = AssetDatabase.LoadAssetAtPath(avatarPath, typeof(GameObject)) as GameObject;
+            if (prefabRoot == null)
+                return false;
+
+            WriteSkelAnimation(clip, prefabRoot, writer);
+            return true;
+        }
+
+        private static Avatar GetAvatar(AnimationClip clip)
+        {
+            var clipPath = AssetDatabase.GetAssetPath(clip);
+            var importer = AssetImporter.GetAtPath(clipPath) as ModelImporter;
+            return importer?.sourceAvatar;
+        }
+
+        private void WriteGenericAnimation(AnimationClip clip, BinaryWriter writer)
+        {
+            var allBindings = AnimationUtility.GetCurveBindings(clip);
+            var rootBones =
+                new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+            if (rootBones.Count != 1)
+            {
+                Debug.LogWarning(clip.name + ": Multiple root bones found (" +
+                                 string.Join(", ", rootBones.ToArray()) +
+                                 "), falling back to curve export");
+                WriteTracksAsIs(clip, writer);
+            }
+            else
+            {
+                var rootBoneName = rootBones.First();
+                var rootGOs = _skeletons
+                    .Select(_ => _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
+                    .Where(_ => _ != null).ToList();
+                if (rootGOs.Count == 1)
+                {
+                    WriteSkelAnimation(clip, rootGOs.First().gameObject, writer);
+                }
+                else
+                {
+                    Debug.LogWarning(clip.name +
+                                     ": Multiple game objects found that match root bone name, falling back to curve export");
+                    WriteTracksAsIs(clip, writer);
+                }
+            }
         }
 
         public string EvaluateAnimationName(AnimationClip clip, PrefabContext prefabContext)
