@@ -7,7 +7,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class DDS
     {
-        public static void SaveAsRgbaDds(Texture2D texture, string fileName, bool hasAlpha = true)
+        public static void SaveAsRgbaDds(Texture2D texture, string fileName, bool hasAlpha = true, bool dither = false)
         {
             using (var fileStream = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
@@ -22,7 +22,7 @@ namespace UnityToCustomEngineExporter.Editor
                         int height = texture.height;
                         for (var mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
                         {
-                            WriteCompressed(binaryWriter, texture.GetPixels32(mipIndex), width, height, hasAlpha);
+                            WriteCompressed(binaryWriter, texture.GetPixels32(mipIndex), width, height, hasAlpha, dither);
                             width = Math.Max(1, width / 2);
                             height = Math.Max(1, height / 2);
                         }
@@ -38,16 +38,19 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private static void WriteCompressed(BinaryWriter binaryWriter, Color32[] getPixels32, int width, int height, bool hasAlpha)
+        private static void WriteCompressed(BinaryWriter binaryWriter, Color32[] getPixels32, int width, int height, bool hasAlpha, bool dither = false)
         {
             //var data = StbSharpDxt.StbDxt.stb_compress_dxt(image, hasAlpha);
-            var data = Compress(width, height, getPixels32, hasAlpha);
+            var data = Compress(width, height, getPixels32, hasAlpha, dither);
             binaryWriter.Write(data);
         }
 
-        public static byte[] Compress(int width, int height, Color32[] pixels, bool hasAlpha)
+        public static byte[] Compress(int width, int height, Color32[] pixels, bool hasAlpha, bool dithered = false)
         {
-            return StbSharpDxt.StbDxt.CompressDxt(width, height, pixels, hasAlpha, CompressionMode.HighQuality);
+            var mode = CompressionMode.HighQuality;
+            if (dithered)
+                mode |= CompressionMode.Dithered;
+            return StbSharpDxt.StbDxt.CompressDxt(width, height, pixels, hasAlpha, mode);
         }
 
         public static void SaveAsRgbaDds(Cubemap texture, string fileName, bool convertToSRGB = false)

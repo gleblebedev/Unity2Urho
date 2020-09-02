@@ -80,7 +80,17 @@ namespace UnityToCustomEngineExporter.Editor
             // }
 
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
-            if (GUILayout.Button("Pick")) PickFolder();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("Pick"))
+                {
+                    PickFolder();
+                }
+                if (GUILayout.Button("Open"))
+                {
+                    EditorUtility.RevealInFinder(_exportFolder);
+                }
+            }
 
             _subfolder = EditorGUILayout.TextField("Subfolder", _subfolder);
 

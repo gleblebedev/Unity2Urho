@@ -108,12 +108,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             stb__Lerp13RGB(color + 12, color + 4, color + 0);
         }
 
-        public static uint stb__MatchColorsBlock(byte* block, byte* color, int dither)
+        public static uint stb__MatchColorsBlock(Color32* block, Color32* color, int dither)
         {
             var mask = (uint)0;
-            var dirr = color[0 * 4 + 0] - color[1 * 4 + 0];
-            var dirg = color[0 * 4 + 1] - color[1 * 4 + 1];
-            var dirb = color[0 * 4 + 2] - color[1 * 4 + 2];
+            var dirr = color[0].r - color[1].r;
+            var dirg = color[0].g - color[1].g;
+            var dirb = color[0].b - color[1].b;
             var dots = stackalloc int[16];
             var stops = stackalloc int[4];
             var i = 0;
@@ -121,9 +121,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             var halfPoint = 0;
             var c3Point = 0;
             for (i = 0; i < 16; i++)
-                dots[i] = block[i * 4 + 0] * dirr + block[i * 4 + 1] * dirg + block[i * 4 + 2] * dirb;
+                dots[i] = block[i].r * dirr + block[i].g * dirg + block[i].b * dirb;
             for (i = 0; i < 4; i++)
-                stops[i] = color[i * 4 + 0] * dirr + color[i * 4 + 1] * dirg + color[i * 4 + 2] * dirb;
+                stops[i] = color[i].r * dirr + color[i].g * dirg + color[i].b * dirb;
             c0Point = stops[1] + stops[3];
             halfPoint = stops[3] + stops[2];
             c3Point = stops[2] + stops[0];
@@ -390,7 +390,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             return oldMin != min16 || oldMax != max16 ? 1 : 0;
         }
 
-        public static void stb__CompressColorBlock(byte* dest, byte* block, int mode)
+        public static void stb__CompressColorBlock(byte* dest, Color32* block, int mode)
         {
             uint mask = 0;
             var i = 0;
@@ -398,7 +398,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             var refinecount = 0;
             ushort max16 = 0;
             ushort min16 = 0;
-            var dblock = stackalloc byte[16 * 4];
+            var dblock = stackalloc Color32[16];
             var color = stackalloc byte[4 * 4];
             dither = mode & 1;
             refinecount = (mode & 2) != 0 ? 2 : 1;
@@ -407,9 +407,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                     break;
             if (i == 16)
             {
-                var r = (int)block[0];
-                var g = (int)block[1];
-                var b = (int)block[2];
+                var r = block[0].r;
+                var g = block[0].g;
+                var b = block[0].b;
                 mask = 0xaaaaaaaa;
                 max16 = (ushort)((stb__OMatch5[r * 2 + 0] << 11) | (stb__OMatch6[g * 2 + 0] << 5) |
                                   stb__OMatch5[b * 2 + 0]);
@@ -418,12 +418,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             }
             else
             {
-                if (dither != 0) stb__DitherBlock(dblock, block);
-                stb__OptimizeColorsBlock(dither != 0 ? dblock : block, &max16, &min16);
+                if (dither != 0) stb__DitherBlock((byte*)dblock, (byte*)block);
+                stb__OptimizeColorsBlock(dither != 0 ? (byte*)dblock : (byte*)block, &max16, &min16);
                 if (max16 != min16)
                 {
                     stb__EvalColors(color, max16, min16);
-                    mask = stb__MatchColorsBlock(block, color, dither);
+                    mask = stb__MatchColorsBlock(block, (Color32*)color, dither);
                 }
                 else
                 {
@@ -433,12 +433,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 for (i = 0; i < refinecount; i++)
                 {
                     var lastmask = mask;
-                    if (stb__RefineBlock(dither != 0 ? dblock : block, &max16, &min16, mask) != 0)
+                    if (stb__RefineBlock(dither != 0 ? (byte*)dblock : (byte*)block, &max16, &min16, mask) != 0)
                     {
                         if (max16 != min16)
                         {
                             stb__EvalColors(color, max16, min16);
-                            mask = stb__MatchColorsBlock(block, color, dither);
+                            mask = stb__MatchColorsBlock(block, (Color32*)color, dither);
                         }
                         else
                         {
@@ -556,7 +556,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 src = data;
             }
 
-            stb__CompressColorBlock(dest, (byte*)src, mode);
+            stb__CompressColorBlock(dest, src, mode);
         }
 
         public static void stb__DitherBlock(byte* dest, byte* block)
@@ -618,11 +618,11 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
                     for (var row = 0; row < height; row += 4)
                     {
+                        var numRows = Math.Min(4, height - row);
                         for (var col = 0; col < width; col += 4)
                         {
                             var y = 0;
                             Color32* blockRow = block;
-                            var numRows = Math.Min(4, height - row);
                             for (; y < numRows; ++y)
                             {
                                 CopyRow(blockRow, colors + ((height - row - y - 1) * width + col), width - col);
