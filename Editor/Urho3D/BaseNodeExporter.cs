@@ -177,6 +177,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is MeshCollider meshCollider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", meshCollider.enabled);
+                    WriteCommonCollisionAttributes(writer, subSubPrefix, meshCollider);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "TriangleMesh");
                     if (meshCollider.sharedMesh != null)
                     {
@@ -193,6 +194,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is BoxCollider boxCollider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", boxCollider.enabled);
+                    WriteCommonCollisionAttributes(writer, subSubPrefix, boxCollider);
                     WriteAttribute(writer, subSubPrefix, "Size", boxCollider.size);
                     WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
                     //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
@@ -206,6 +208,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is SphereCollider sphereCollider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", sphereCollider.enabled);
+                    WriteCommonCollisionAttributes(writer, subSubPrefix, sphereCollider);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
                     EndElement(writer, subPrefix);
@@ -214,6 +217,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is CapsuleCollider capsuleCollider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", capsuleCollider.enabled);
+                    WriteCommonCollisionAttributes(writer, subSubPrefix, capsuleCollider);
                     if (component.name == "Cylinder")
                         WriteAttribute(writer, subSubPrefix, "Shape Type", "Cylinder");
                     else
@@ -232,6 +236,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (component is Collider collider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", collider.enabled);
+                    WriteCommonCollisionAttributes(writer, subSubPrefix, collider);
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix);
                 }
@@ -359,6 +364,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private void WriteCommonCollisionAttributes(XmlWriter writer, string subSubPrefix, Collider collider)
+        {
+            WriteAttribute(writer, subSubPrefix, "Collision Margin", collider.contactOffset);
         }
 
         private void ExportCamera(XmlWriter writer, Camera camera, string subPrefix, string subSubPrefix)
@@ -775,7 +785,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (terrainCollider != null)
             {
                 StartComponent(writer, subPrefix, "CollisionShape", enabled);
-                WriteAttribute(writer, subPrefix, "Shape Type", "Terrain");
+                WriteCommonCollisionAttributes(writer, subSubPrefix, terrainCollider);
+                WriteAttribute(writer, subSubPrefix, "Shape Type", "Terrain");
                 EndElement(writer, subPrefix);
                 StartComponent(writer, subPrefix, "RigidBody", enabled);
                 var localToWorldMatrix = terrainCollider.transform.localToWorldMatrix;
