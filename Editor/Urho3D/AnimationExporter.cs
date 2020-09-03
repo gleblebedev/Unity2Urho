@@ -58,15 +58,42 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.Write(trackBones.Count);
             foreach (var bone in trackBones)
             {
+                bone.Optimize();
+            }
+            foreach (var bone in trackBones)
+            {
+                var mask = 0;
+                bool hasTranslation = false;
+                bool hasRotation = false;
+                bool hasScale = false;
+                if (bone.translation != null && bone.translation.Count > 0)
+                {
+                    mask |= 1;
+                    hasTranslation = true;
+                }
+
+                if (bone.rotation != null && bone.rotation.Count > 0)
+                {
+                    mask |= 2;
+                    hasRotation = true;
+                }
+
+                if (bone.scale != null && bone.scale.Count > 0)
+                {
+                    mask |= 4;
+                    hasScale = true;
+                }
+                if (mask == 0)
+                    continue;
                 WriteStringSZ(writer, _engine.DecorateName(bone.gameObject.name));
-                writer.Write((byte)7);
-                writer.Write(bone.translation.Count);
-                for (var frame = 0; frame < bone.translation.Count; ++frame)
+                writer.Write((byte)mask);
+                writer.Write(bone.keys.Count);
+                for (var frame = 0; frame < bone.keys.Count; ++frame)
                 {
                     writer.Write(bone.keys[frame]);
-                    Write(writer, bone.translation[frame]);
-                    Write(writer, bone.rotation[frame]);
-                    Write(writer, bone.scale[frame]);
+                    if (hasTranslation) Write(writer, bone.translation[frame]);
+                    if (hasRotation) Write(writer, bone.rotation[frame]);
+                    if (hasScale) Write(writer, bone.scale[frame]);
                 }
             }
 
@@ -81,9 +108,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             public readonly GameObject gameObject;
             public readonly List<float> keys = new List<float>();
-            public readonly List<Vector3> translation = new List<Vector3>();
-            public readonly List<Quaternion> rotation = new List<Quaternion>();
-            public readonly List<Vector3> scale = new List<Vector3>();
+            public List<Vector3> translation = new List<Vector3>();
+            public List<Quaternion> rotation = new List<Quaternion>();
+            public List<Vector3> scale = new List<Vector3>();
 
             public readonly Vector3 originalTranslation;
             public readonly Quaternion originalRotation;
@@ -116,6 +143,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 translation.Add(gameObject.transform.localPosition);
                 rotation.Add(gameObject.transform.localRotation);
                 scale.Add(gameObject.transform.localScale);
+            }
+
+            public void Optimize()
+            {
+                if (scale != null)
+                    if (scale.All(_ => _ == Vector3.one))
+                        scale = null;
+                if (rotation != null)
+                    if (rotation.All(_ => _ == Quaternion.identity))
+                        rotation = null;
+                if (translation != null)
+                    if (translation.All(_ => _ == Vector3.zero))
+                        translation = null;
             }
         }
 

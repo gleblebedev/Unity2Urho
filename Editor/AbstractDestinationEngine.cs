@@ -76,7 +76,7 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             yield return "Loading " + assetPath;
-            var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            var assets = ExportUtils.LoadAllAssetsAtPath(assetPath);
             yield return "Exporting " + assetPath;
             ExportAssetBlock(assetPath, AssetDatabase.GetMainAssetTypeAtPath(assetPath), assets, prefabContext);
         }
