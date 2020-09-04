@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -325,6 +326,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var name = GetSafeFileName(_engine.DecorateName(clip.name));
 
+            ExportMetadata(ExportUtils.ReplaceExtension(name,".xml"), clip, prefabContext);
+
             //_assetCollection.AddAnimationPath(clipAnimation, fileName);
 
             var aniFilePath = EvaluateAnimationName(clip, prefabContext);
@@ -355,6 +358,30 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
+        }
+
+        private void ExportMetadata(string metadataFileName, AnimationClip clip, PrefabContext prefabContext)
+        {
+            using (var file = _engine.TryCreateXml(clip.GetKey(), metadataFileName, ExportUtils.GetLastWriteTimeUtc(clip)))
+            {
+                if (file == null)
+                    return;
+
+                file.WriteStartElement("animation");
+                file.WriteWhitespace(Environment.NewLine);
+                foreach (var clipEvent in clip.events)
+                {
+                    file.WriteWhitespace("\t");
+                    file.WriteStartElement("trigger");
+                    file.WriteAttributeString("time", BaseNodeExporter.Format(clipEvent.time));
+                    file.WriteAttributeString("type", "String");
+                    file.WriteAttributeString("value", clipEvent.functionName);
+                    file.WriteEndElement();
+                    file.WriteWhitespace(Environment.NewLine);
+                }
+                file.WriteEndElement();
+                file.WriteWhitespace(Environment.NewLine);
+            }
         }
 
         private void WriteHumanoidAnimation(AnimationClip clip, BinaryWriter writer)
