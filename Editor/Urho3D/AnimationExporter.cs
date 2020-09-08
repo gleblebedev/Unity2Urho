@@ -324,13 +324,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!_engine.Options.ExportAnimations)
                 return;
 
-            var name = GetSafeFileName(_engine.DecorateName(clip.name));
-
-            ExportMetadata(ExportUtils.ReplaceExtension(name,".xml"), clip, prefabContext);
-
-            //_assetCollection.AddAnimationPath(clipAnimation, fileName);
-
             var aniFilePath = EvaluateAnimationName(clip, prefabContext);
+
+            ExportMetadata(ExportUtils.ReplaceExtension(aniFilePath, ".xml"), clip, prefabContext);
+
             using (var file = _engine.TryCreate(clip.GetKey(), aniFilePath,
                 ExportUtils.GetLastWriteTimeUtc(clip)))
             {

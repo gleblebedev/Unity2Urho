@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -233,6 +234,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     var skyboxMaterial = skybox.material;
                     WriteSkyboxComponent(writer, subPrefix, skyboxMaterial, prefabContext, skybox.enabled);
                 }
+                else if (component is CharacterController characterController)
+                {
+                    WriteCharacterController(writer, subPrefix, characterController, prefabContext);
+                }
                 else if (component is Collider collider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", collider.enabled);
@@ -364,6 +369,34 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private void WriteCharacterController(XmlWriter writer, string prefix, CharacterController characterController, PrefabContext prefabContext)
+        {
+            var subPrefix = prefix + "\t";
+
+            StartComponent(writer, prefix, "CollisionShape", characterController.enabled);
+            WriteCommonCollisionAttributes(writer, subPrefix, characterController);
+            WriteAttribute(writer, subPrefix, "Shape Type", "Capsule");
+            var d = characterController.radius * 2.0f;
+            WriteAttribute(writer, subPrefix, "Size", new Vector3(d, characterController.height, d));
+            WriteAttribute(writer, subPrefix, "Offset Position", characterController.center);
+            EndElement(writer, prefix);
+
+            StartComponent(writer, prefix, "RigidBody", characterController.enabled);
+            var localToWorldMatrix = characterController.gameObject.transform.localToWorldMatrix;
+            var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+            WriteAttribute(writer, subPrefix, "Physics Position", pos);
+            WriteAttribute(writer, subPrefix, "Angular Factor", Vector3.zero);
+            WriteAttribute(writer, subPrefix, "Collision Event Mode", "Always");
+            WriteAttribute(writer, subPrefix, "Is Kinematic", "true");
+            WriteAttribute(writer, subPrefix, "Is Trigger", "true");
+            EndElement(writer, prefix);
+
+            StartComponent(writer, prefix, "KinematicCharacterController", characterController.enabled);
+            WriteAttribute(writer, subPrefix, "Max Slope", characterController.slopeLimit);
+            WriteAttribute(writer, subPrefix, "Step Height", characterController.stepOffset);
+            EndElement(writer, prefix);
         }
 
         private void WriteCommonCollisionAttributes(XmlWriter writer, string subSubPrefix, Collider collider)
