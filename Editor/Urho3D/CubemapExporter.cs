@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Xml;
 using UnityEditor;
 using UnityEngine;
 
@@ -38,30 +39,39 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void Cubemap(Cubemap texture)
         {
+            var resourceName = EvaluateCubemapName(texture);
+            var assetGuid = texture.GetKey();
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(texture);
+            if (_engine.IsUpToDate(assetGuid, resourceName, sourceFileTimestampUtc)) return;
+
             if (!EnsureReadableTexture(texture))
                 return;
 
-            var resourceName = EvaluateCubemapName(texture);
             using (var writer =
-                _engine.TryCreateXml(texture.GetKey(), resourceName, ExportUtils.GetLastWriteTimeUtc(texture)))
+                _engine.TryCreateXml(assetGuid, resourceName, sourceFileTimestampUtc))
             {
                 if (writer != null)
                 {
-                    var ddsName = resourceName.Replace(".xml", ".dds");
-                    var srgb = true;
-                    DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), srgb);
-                    writer.WriteStartElement("cubemap");
-                    writer.WriteWhitespace(Environment.NewLine);
-                    writer.WriteStartElement("srgb");
-                    writer.WriteAttributeString("enable", srgb ? "true" : "false");
-                    writer.WriteEndElement();
-                    writer.WriteStartElement("image");
-                    writer.WriteAttributeString("name", Path.GetFileName(ddsName));
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                    writer.WriteEndElement();
+                    WriteCubemap(texture, resourceName, writer);
                 }
             }
+        }
+
+        private void WriteCubemap(Cubemap texture, string resourceName, XmlWriter writer)
+        {
+            var ddsName = resourceName.Replace(".xml", ".dds");
+            var srgb = true;
+            DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), srgb);
+            writer.WriteStartElement("cubemap");
+            writer.WriteWhitespace(Environment.NewLine);
+            writer.WriteStartElement("srgb");
+            writer.WriteAttributeString("enable", srgb ? "true" : "false");
+            writer.WriteEndElement();
+            writer.WriteStartElement("image");
+            writer.WriteAttributeString("name", Path.GetFileName(ddsName));
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+            writer.WriteEndElement();
         }
 
         public string EvaluateCubemapName(Cubemap cubemap)

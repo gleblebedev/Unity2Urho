@@ -336,7 +336,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 using (var writer = new BinaryWriter(file))
                 {
                     writer.Write(new byte[] { 0x55, 0x41, 0x4e, 0x49 });
-                    WriteStringSZ(writer, _engine.DecorateName(clip.name));
+                    WriteStringSZ(writer, _engine.DecorateName(ExportUtils.GetName(clip)));
                     writer.Write(clip.length);
 
                     // Legacy animation
@@ -455,7 +455,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(clip.name)) + ".ani");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(clip))) + ".ani");
         }
         private IEnumerable<GameObject> CloneTree(GameObject go)
         {

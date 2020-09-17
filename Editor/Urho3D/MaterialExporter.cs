@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Xml;
 using UnityEngine;
+using UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -23,6 +24,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 new StandardMaterialExporter(_engine),
                 new StandardSpecularMaterialExporter(_engine),
                 new WaterMaterialExporter(_engine),
+                new NatureManufactureWaterMaterialExporter(engine), 
                 _skyboxMaterialExporter,
                 new VegetationMaterialExporter(_engine),
                 new HDRPMaterialExporter(_engine)
@@ -45,7 +47,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (material == null)
                 return;
-
+            
             foreach (var materialExporter in _exporters)
                 if (materialExporter.CanExportMaterial(material))
                 {

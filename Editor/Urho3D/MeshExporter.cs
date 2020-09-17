@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.ProBuilder;
@@ -123,7 +124,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(mesh.name)) + ".mdl");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + ".mdl");
         }
 
         public string EvaluateLODGroupName(LODGroup lodGroup, PrefabContext prefabContext)
@@ -141,7 +142,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 folder = prefabContext.TempFolder;
             }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(firstMesh.name)) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
+            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(firstMesh))) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
         }
 
         public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)
@@ -154,7 +155,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(_engine.DecorateName(mesh.name)) + "." + _dynamicMeshNames.Count +".mdl");
+                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + "." + _dynamicMeshNames.Count +".mdl");
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
@@ -258,9 +259,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (uvs2.Count > 0)
                     elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
                 if (uvs3.Count > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 2));
+                    elements.Add(new MeshUVStream(uvs3, VertexElementSemantic.SEM_TEXCOORD, 2));
                 if (uvs4.Count > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 3));
+                    elements.Add(new MeshUVStream(uvs4, VertexElementSemantic.SEM_TEXCOORD, 3));
                 writer.Write(elements.Count);
                 for (var i = 0; i < elements.Count; ++i)
                     writer.Write(elements[i].Element);

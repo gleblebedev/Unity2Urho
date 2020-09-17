@@ -18,6 +18,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public override bool CanExportMaterial(Material material)
         {
             return material.shader.name == "Standard"
+                   || material.shader.name == "NatureManufacture Shaders/Standard Shaders/Standard Metalic Snow"
+                   || material.shader.name == "NatureManufacture Shaders/Trees/Tree_Leaves_Specular"
+                   || material.shader.name == "NatureManufacture Shaders/Trees/Tree Bark Metalic"
                    || material.shader.name == "ProBuilder/Standard Vertex Color"
                    || material.shader.name == "UnityChan/Skin"
                    || material.shader.name.StartsWith("Urho3D/");
@@ -83,7 +86,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             var material = new UrhoPBRMaterial();
 
-            material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale, material);
+            material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
             material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             material.BaseColorTexture = Engine.EvaluateTextrueName(arguments.BaseColor);

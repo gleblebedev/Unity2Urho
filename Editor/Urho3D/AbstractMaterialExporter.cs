@@ -42,9 +42,29 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
                 return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                     ".xml");
-            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(material.name)) + ".xml";
+            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(ExportUtils.GetName(material))) + ".xml";
             return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                 newExt);
+        }
+
+        protected Texture GetTexture(Material material, string propertyName)
+        {
+            if (!material.HasProperty(propertyName))
+            {
+                return null;
+            }
+
+            return material.GetTexture(propertyName);
+        }
+
+        protected float GetFloat(Material material, string propertyName, float defaultValue)
+        {
+            if (!material.HasProperty(propertyName))
+            {
+                return defaultValue;
+            }
+
+            return material.GetFloat(propertyName);
         }
 
         protected virtual void SetupFlags(Material material, ShaderArguments arguments)
@@ -60,7 +80,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        protected string GetScaledNormalTextureName(Texture bump, float bumpScale, UrhoPBRMaterial material)
+        protected string GetScaledNormalTextureName(Texture bump, float bumpScale)
         {
             var normalTexture = Engine.EvaluateTextrueName(bump);
             if (bumpScale < 0.999f)

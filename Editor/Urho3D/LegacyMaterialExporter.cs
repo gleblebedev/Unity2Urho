@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -102,8 +103,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override int ExporterPriority => int.MinValue;
 
+        HashSet<string> _shaders = new HashSet<string>();
+
         public override bool CanExportMaterial(Material material)
         {
+            if (_shaders.Add(material.shader.name))
+            {
+                Debug.Log("Unknown shader: "+material.shader.name);
+            }
             return true;
         }
 

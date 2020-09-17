@@ -1,8 +1,9 @@
 ﻿using UnityToCustomEngineExporter.Editor.Urho3D;
 using UnityEngine;
 
-namespace UnityToCustomEngineExporter.Editor.Urho3D
+namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
 {
+
     [CustomUrho3DExporter(typeof(Material))]
     public class WaterMaterialExporter : StandardMaterialExporter, IUrho3DMaterialExporter
     {

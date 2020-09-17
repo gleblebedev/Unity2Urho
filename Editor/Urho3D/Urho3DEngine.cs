@@ -17,7 +17,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     public class Urho3DEngine : AbstractDestinationEngine, IDestinationEngine
     {
         private readonly string _dataFolder;
-        private readonly bool _exportUpdatedOnly;
         private readonly Dictionary<string, AssetKey> _createdFiles = new Dictionary<string, AssetKey>();
         private readonly TextureExporter _textureExporter;
         private readonly CubemapExporter _cubemapExporter;
@@ -80,7 +79,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     if (File.Exists(sourceFilePath))
                     {
                         var targetPath = GetTargetFilePath(target);
-                        if (_exportUpdatedOnly)
+                        if (Options.ExportUpdatedOnly)
                             if (File.Exists(targetPath))
                             {
                                 var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
@@ -114,7 +113,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!CheckForFileUniqueness(targetPath, assetGuid)) return;
 
             //Skip file if it is already up to date
-            if (_exportUpdatedOnly)
+            if (Options.ExportUpdatedOnly)
                 if (File.Exists(targetPath))
                 {
                     var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
@@ -142,7 +141,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!CheckForFileUniqueness(targetPath, new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0))) return;
 
             //Skip file if it is already up to date
-            if (_exportUpdatedOnly)
+            if (Options.ExportUpdatedOnly)
                 if (File.Exists(targetPath))
                 {
                     var sourceLastWriteTimeUtc = File.GetLastWriteTimeUtc(sourceFilePath);
@@ -177,7 +176,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             //Skip file if it is already up to date
-            if (_exportUpdatedOnly)
+            if (Options.ExportUpdatedOnly)
                 if (File.Exists(targetPath))
                 {
                     var lastWriteTimeUtc = File.GetLastWriteTimeUtc(targetPath);
@@ -448,14 +447,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return name;
         }
 
-        public string DecorateName(string materialName)
+        public string DecorateName(string name)
         {
-            if (string.IsNullOrEmpty(materialName))
-                return materialName;
+            if (string.IsNullOrEmpty(name))
+                return name;
             if (!Options.ASCIIOnly)
-                return materialName;
+                return name;
 
-            return Uri.EscapeDataString(materialName);
+            return Uri.EscapeDataString(name);
         }
     }
 }
