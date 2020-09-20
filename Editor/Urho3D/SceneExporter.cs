@@ -68,9 +68,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
                             .Where(_ => _ != null).FirstOrDefault();
                         var skyboxMaterial = skybox?.material ?? RenderSettings.skybox;
-                        if (skybox == null)
+                        if (skybox == null && skyboxMaterial != null)
                         {
-                            WriteSkyboxComponent(writer, "\t", RenderSettings.skybox, prefabContext, true);
+                            WriteSkyboxComponent(writer, "\t", skyboxMaterial, prefabContext, true);
                         }
                         if (skyboxMaterial != null)
                         {

@@ -134,7 +134,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.Cull = Urho3DCulling.ccw;
             material.ShadowCull = Urho3DCulling.ccw;
             if (arguments.AlphaTest) material.PixelShaderDefines.Add("ALPHAMASK");
-            material.EmissiveColor = arguments.EmissiveColor.linear;
+            if (arguments.HasEmission)
+            {
+                material.EmissiveColor = arguments.EmissiveColor.linear;
+            }
             material.MatSpecColor = new Color(1, 1, 1, 0);
             material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
             material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
