@@ -20,14 +20,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             _engine = engine;
         }
-        private string GetSafeFileName(string name)
-        {
-            if (name == null)
-                return "";
-            foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
-
-            return name;
-        }
 
         private void WriteSkelAnimation(AnimationClip clipAnimation, GameObject root, BinaryWriter writer)
         {

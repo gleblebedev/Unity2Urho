@@ -11,6 +11,14 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public static class ExportUtils
     {
+        private static readonly char[] InvalidFileNameChars = new char[]
+        {
+            '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\x09', '\x0A',
+            '\x0B', '\x0C', '\x0D', '\x0E', '\x0F', '\x10', '\x11', '\x12', '\x13', '\x14', '\x15',
+            '\x16', '\x17', '\x18', '\x19', '\x1A', '\x1B', '\x1C', '\x1D', '\x1E', '\x1F', '\x22',
+            '\x3C', '\x3E', '\x7C', ':', '*', '?', '\\', '/'
+        };
+
         public static string GetGUID(this Object asset)
         {
             if (asset == null)
@@ -92,7 +100,7 @@ namespace UnityToCustomEngineExporter.Editor
         public static string SafeFileName(string name)
         {
             if (string.IsNullOrEmpty(name)) return name;
-            foreach (var invalidFileNameChar in Path.GetInvalidFileNameChars())
+            foreach (var invalidFileNameChar in InvalidFileNameChars)
                 name = name.Replace(invalidFileNameChar, '_');
 
             return name;
