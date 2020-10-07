@@ -19,120 +19,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public abstract int ExporterPriority { get; }
         public Urho3DEngine Engine { get; }
 
-        private static void WriteAlphaTest(XmlWriter writer)
-        {
-            writer.WriteWhitespace("\t");
-            writer.WriteStartElement("shader");
-            writer.WriteAttributeString("psdefines", "ALPHAMASK");
-            writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
-        }
-
-        public abstract bool CanExportMaterial(Material material);
-
-        public abstract void ExportMaterial(Material material, PrefabContext prefabContext);
-
-        public virtual string EvaluateMaterialName(Material material)
-        {
-            if (material == null)
-                return null;
-            var assetPath = AssetDatabase.GetAssetPath(material);
-            if (string.IsNullOrWhiteSpace(assetPath))
-                return null;
-            if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
-                return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
-                    ".xml");
-            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(ExportUtils.GetName(material))) + ".xml";
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
-                newExt);
-        }
-
-        protected Texture GetTexture(Material material, string propertyName)
-        {
-            if (!material.HasProperty(propertyName))
-            {
-                return null;
-            }
-
-            return material.GetTexture(propertyName);
-        }
-
-        protected float GetFloat(Material material, string propertyName, float defaultValue)
-        {
-            if (!material.HasProperty(propertyName))
-            {
-                return defaultValue;
-            }
-
-            return material.GetFloat(propertyName);
-        }
-
-        protected virtual void SetupFlags(Material material, ShaderArguments arguments)
-        {
-            arguments.Shader = material.shader.name;
-            arguments.Transparent = material.renderQueue == (int) RenderQueue.Transparent;
-            arguments.AlphaTest = material.renderQueue == (int) RenderQueue.AlphaTest;
-            arguments.HasEmission = material.IsKeywordEnabled("_EMISSION");
-            if (material.HasProperty("_MainTex"))
-            {
-                arguments.MainTextureOffset = material.mainTextureOffset;
-                arguments.MainTextureScale = material.mainTextureScale;
-            }
-        }
-
-        protected string GetScaledNormalTextureName(Texture bump, float bumpScale)
-        {
-            var normalTexture = Engine.EvaluateTextrueName(bump);
-            if (bumpScale < 0.999f)
-            {
-                normalTexture = ExportUtils.ReplaceExtension(normalTexture, string.Format(CultureInfo.InvariantCulture, "{0:0.000}.dds", bumpScale));
-            }
-
-            return normalTexture;
-        }
-
-
-        protected string FormatRGB(Color32 color)
-        {
-            return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);
-        }
-
-        protected static void WriteTechnique(XmlWriter writer, string name)
-        {
-            writer.WriteWhitespace("\t");
-            writer.WriteStartElement("technique");
-            writer.WriteAttributeString("name", name);
-            writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
-        }
-
-        protected bool WriteTexture(Texture texture, XmlWriter writer, string name, PrefabContext prefabContext)
-        {
-            Engine.ScheduleAssetExport(texture, prefabContext);
-            var urhoAssetName = Engine.EvaluateTextrueName(texture);
-            return WriteTexture(urhoAssetName, writer, name, prefabContext);
-        }
-
-        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, string name, PrefabContext prefabContext)
-        {
-            if (string.IsNullOrWhiteSpace(urhoAssetName))
-                return false;
-            {
-                writer.WriteWhitespace("\t");
-                writer.WriteStartElement("texture");
-                writer.WriteAttributeString("unit", name);
-                writer.WriteAttributeString("name", urhoAssetName);
-                writer.WriteEndElement();
-                writer.WriteWhitespace(Environment.NewLine);
-            }
-            return true;
-        }
-
-        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, int unit, PrefabContext prefabContext)
-        {
-            return WriteTexture(urhoAssetName, writer, unit.ToString(CultureInfo.InvariantCulture), prefabContext);
-        }
-
         public static void WriteMaterial(XmlWriter writer, UrhoPBRMaterial urhoMaterial, PrefabContext prefabContext)
         {
             writer.WriteStartElement("material");
@@ -149,10 +35,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 WriteTexture(urhoMaterial.AOTexture, writer, "emissive", prefabContext);
 
             for (var index = 0; index < urhoMaterial.TextureUnits.Count; index++)
-            {
                 if (!string.IsNullOrWhiteSpace(urhoMaterial.TextureUnits[index]))
                     WriteTexture(urhoMaterial.TextureUnits[index], writer, index, prefabContext);
-            }
 
             writer.WriteParameter("MatEmissiveColor", urhoMaterial.EmissiveColor);
             writer.WriteParameter("MatDiffColor", urhoMaterial.BaseColor);
@@ -196,6 +80,117 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             writer.WriteEndElement();
+        }
+
+        protected static void WriteTechnique(XmlWriter writer, string name)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("technique");
+            writer.WriteAttributeString("name", name);
+            writer.WriteEndElement();
+            writer.WriteWhitespace("\n");
+        }
+
+        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, string name,
+            PrefabContext prefabContext)
+        {
+            if (string.IsNullOrWhiteSpace(urhoAssetName))
+                return false;
+            {
+                writer.WriteWhitespace("\t");
+                writer.WriteStartElement("texture");
+                writer.WriteAttributeString("unit", name);
+                writer.WriteAttributeString("name", urhoAssetName);
+                writer.WriteEndElement();
+                writer.WriteWhitespace(Environment.NewLine);
+            }
+            return true;
+        }
+
+        protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, int unit,
+            PrefabContext prefabContext)
+        {
+            return WriteTexture(urhoAssetName, writer, unit.ToString(CultureInfo.InvariantCulture), prefabContext);
+        }
+
+        private static void WriteAlphaTest(XmlWriter writer)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("shader");
+            writer.WriteAttributeString("psdefines", "ALPHAMASK");
+            writer.WriteEndElement();
+            writer.WriteWhitespace("\n");
+        }
+
+        public abstract bool CanExportMaterial(Material material);
+
+        public abstract void ExportMaterial(Material material, PrefabContext prefabContext);
+
+        public virtual string EvaluateMaterialName(Material material)
+        {
+            if (material == null)
+                return null;
+            var assetPath = AssetDatabase.GetAssetPath(material);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
+            if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
+                return ExportUtils.ReplaceExtension(
+                    ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
+                    ".xml");
+            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(ExportUtils.GetName(material))) + ".xml";
+            return ExportUtils.ReplaceExtension(
+                ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
+                newExt);
+        }
+
+        protected virtual void SetupFlags(Material material, ShaderArguments arguments)
+        {
+            arguments.Shader = material.shader.name;
+            arguments.Transparent = material.renderQueue == (int) RenderQueue.Transparent;
+            arguments.AlphaTest = material.renderQueue == (int) RenderQueue.AlphaTest;
+            arguments.HasEmission = material.IsKeywordEnabled("_EMISSION");
+            if (material.HasProperty("_MainTex"))
+            {
+                arguments.MainTextureOffset = material.mainTextureOffset;
+                arguments.MainTextureScale = material.mainTextureScale;
+            }
+        }
+
+        protected Texture GetTexture(Material material, string propertyName)
+        {
+            if (!material.HasProperty(propertyName)) return null;
+
+            return material.GetTexture(propertyName);
+        }
+
+        protected float GetFloat(Material material, string propertyName, float defaultValue)
+        {
+            if (!material.HasProperty(propertyName)) return defaultValue;
+
+            return material.GetFloat(propertyName);
+        }
+
+        protected string GetScaledNormalTextureName(Texture bump, float bumpScale)
+        {
+            var normalTexture = Engine.EvaluateTextrueName(bump);
+            if (bumpScale < 0.999f)
+                normalTexture = ExportUtils.ReplaceExtension(normalTexture,
+                    string.Format(CultureInfo.InvariantCulture, "{0:0.000}.dds", bumpScale));
+
+            return normalTexture;
+        }
+
+
+        protected string FormatRGB(Color32 color)
+        {
+            return string.Format("{0:x2}{1:x2}{2:x2}", color.r, color.g, color.b);
+        }
+
+        protected bool WriteTexture(Texture texture, XmlWriter writer, string name, PrefabContext prefabContext)
+        {
+            Engine.ScheduleAssetExport(texture, prefabContext);
+            var urhoAssetName = Engine.EvaluateTextrueName(texture);
+            return WriteTexture(urhoAssetName, writer, name, prefabContext);
         }
 
         protected void WriteCommonParameters(XmlWriter writer, ShaderArguments arguments)

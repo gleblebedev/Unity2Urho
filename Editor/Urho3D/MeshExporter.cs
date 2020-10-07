@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.ProBuilder;
@@ -13,7 +12,7 @@ using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
-    public class MeshExporter: AbstractBinaryExpoerter
+    public class MeshExporter : AbstractBinaryExpoerter
     {
         public const uint Magic2 = 0x32444d55;
 
@@ -28,7 +27,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             _engine = engine;
         }
-       
+
         public void ExportMesh(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
             if (!_engine.Options.ExportMeshes)
@@ -43,7 +42,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             var assetKey = mesh.GetKey();
             var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
-            ExportMeshModel(()=> new MeshSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
+            ExportMeshModel(() => new MeshSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
         }
 
         public void ExportLODGroup(LODGroup mesh, PrefabContext prefabContext)
@@ -54,18 +53,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var mdlFilePath = EvaluateLODGroupName(mesh, prefabContext);
             var assetKey = mesh.GetKey();
             var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
-            ExportMeshModel(()=> new LODGroupSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
+            ExportMeshModel(() => new LODGroupSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
         }
-        
+
 
         public string ExportMesh(NavMeshTriangulation mesh, PrefabContext prefabContext)
         {
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             if (_engine.Options.ExportMeshes)
-            {
-                ExportMeshModel(()=>new NavMeshSource(mesh), mdlFilePath,
+                ExportMeshModel(() => new NavMeshSource(mesh), mdlFilePath,
                     SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
-            }
 
             return mdlFilePath;
         }
@@ -88,15 +85,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (skinnedMeshRenderer != null)
                     mesh = skinnedMeshRenderer.sharedMesh;
                 else if (meshFilter != null) mesh = meshFilter.sharedMesh;
-                ExportMeshModel(()=> new MeshSource(mesh, skinnedMeshRenderer), EvaluateMeshName(mesh, prefabContext), mesh.GetKey(),
+                ExportMeshModel(() => new MeshSource(mesh, skinnedMeshRenderer), EvaluateMeshName(mesh, prefabContext),
+                    mesh.GetKey(),
                     ExportUtils.GetLastWriteTimeUtc(mesh));
             }
 
 
-            for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject, prefabContext);
+            for (var i = 0; i < go.transform.childCount; ++i)
+                ExportMesh(go.transform.GetChild(i).gameObject, prefabContext);
         }
 
-        public void ExportMeshModel(Func<IMeshSource> meshSource, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
+        public void ExportMeshModel(Func<IMeshSource> meshSource, string mdlFilePath, AssetKey key,
+            DateTime lastWriteDateTimeUtc)
         {
             if (!_engine.Options.ExportMeshes)
                 return;
@@ -115,12 +115,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (mesh == null)
                 return null;
-            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh), "");
-            if (string.IsNullOrWhiteSpace(folder))
-            {
-                folder = prefabContext.TempFolder;
-            }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + ".mdl");
+            var folder =
+                ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh), "");
+            if (string.IsNullOrWhiteSpace(folder)) folder = prefabContext.TempFolder;
+            return ExportUtils.Combine(folder,
+                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + ".mdl");
         }
 
         public string EvaluateLODGroupName(LODGroup lodGroup, PrefabContext prefabContext)
@@ -128,21 +127,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (lodGroup == null)
                 return null;
             if (!string.IsNullOrWhiteSpace(lodGroup.gameObject.name))
-            {
                 return ExportUtils.Combine(prefabContext.TempFolder, lodGroup.gameObject.name + ".mdl");
-            }
             var lods = lodGroup.GetLODs();
             if (lods.Length == 0)
                 return null;
             var firstMesh = lods[0].renderers.FirstOrDefault();
             if (firstMesh == null)
                 return null;
-            var folder = ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, firstMesh), "");
-            if (string.IsNullOrWhiteSpace(folder))
-            {
-                folder = prefabContext.TempFolder;
-            }
-            return ExportUtils.Combine(folder, ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(firstMesh))) + ".With"+lods.Length.ToString(CultureInfo.InvariantCulture)+"Lods.mdl");
+            var folder =
+                ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, firstMesh), "");
+            if (string.IsNullOrWhiteSpace(folder)) folder = prefabContext.TempFolder;
+            return ExportUtils.Combine(folder,
+                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(firstMesh))) + ".With" +
+                lods.Length.ToString(CultureInfo.InvariantCulture) + "Lods.mdl");
         }
 
         public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)
@@ -155,7 +152,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetUrhoAssetName = ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh);
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
-                name = ExportUtils.Combine(prefabContext.TempFolder , ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + "." + _dynamicMeshNames.Count +".mdl");
+                name = ExportUtils.Combine(prefabContext.TempFolder,
+                    ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + "." +
+                    _dynamicMeshNames.Count + ".mdl");
                 _dynamicMeshNames.Add(mesh, name);
                 return name;
             }
@@ -171,12 +170,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
-            ExportMeshModel(()=>new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh, prefabContext),
+            ExportMeshModel(() => new ProBuilderMeshSource(proBuilderMesh),
+                EvaluateMeshName(proBuilderMesh, prefabContext),
                 proBuilderMesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh));
         }
 
-  
-    
 
         private Urho3DBone[] BuildBones(IMeshSource skinnedMeshRenderer)
         {
@@ -224,8 +222,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var indexBuffer = new List<int>(1024);
             writer.Write(Magic2);
             var positions = mesh.Vertices;
-            {   // Vertex buffer
-                UInt32 numVertexBuffers = 1;
+            {
+                // Vertex buffer
+                uint numVertexBuffers = 1;
                 writer.Write(numVertexBuffers);
                 for (var vbIndex = 0; vbIndex < numVertexBuffers; ++vbIndex)
                 {
@@ -284,7 +283,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     {
                         var meshGeometry = mesh.GetGeomtery(subMeshIndex);
-                        for (int lodIndex = 0; lodIndex < meshGeometry.NumLods; lodIndex++)
+                        for (var lodIndex = 0; lodIndex < meshGeometry.NumLods; lodIndex++)
                         {
                             var indices = meshGeometry.GetIndices(lodIndex);
                             indexBuffer.AddRange(indices);
@@ -310,8 +309,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            {   // Index buffer
-                UInt32 numIndexBuffers = 1;
+            {
+                // Index buffer
+                uint numIndexBuffers = 1;
                 writer.Write(numIndexBuffers);
                 writer.Write(totalIndices);
                 if (!indexBuffer.Any(_ => _ > 65535))
@@ -319,19 +319,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.Write(2);
                     for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indexBuffer.Count; ++i)
-                        writer.Write((ushort)indexBuffer[i]);
+                        writer.Write((ushort) indexBuffer[i]);
                 }
                 else
                 {
                     writer.Write(4);
                     for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indexBuffer.Count; ++i)
-                        writer.Write((uint)indexBuffer[i]);
+                        writer.Write((uint) indexBuffer[i]);
                 }
             }
 
             writer.Write(mesh.SubMeshCount);
-            int indexOffset = 0;
+            var indexOffset = 0;
             for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
             {
                 var numberOfBoneMappingEntries = 0;
@@ -340,12 +340,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var geomtery = mesh.GetGeomtery(subMeshIndex);
 
                 var numberOfLODLevels = geomtery.NumLods;
-                writer.Write((int)numberOfLODLevels);
-                for (int lodIndex = 0; lodIndex < numberOfLODLevels; lodIndex++)
+                writer.Write(numberOfLODLevels);
+                for (var lodIndex = 0; lodIndex < numberOfLODLevels; lodIndex++)
                 {
                     var lodIndices = geomtery.GetIndices(lodIndex);
                     writer.Write(0.0f);
-                    writer.Write((int)PrimitiveType.TRIANGLE_LIST);
+                    writer.Write((int) PrimitiveType.TRIANGLE_LIST);
                     writer.Write(0);
                     writer.Write(0);
                     writer.Write(indexOffset);
@@ -427,7 +427,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.Write(maxX);
             writer.Write(maxY);
             writer.Write(maxZ);
-            
         }
 
         private Vector4[] FlipW(IList<Vector4> tangents)
@@ -457,7 +456,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-    
+
         public class Urho3DBone
         {
             public string name;
@@ -582,6 +581,5 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.Write((byte) positions[index].w);
             }
         }
-
     }
 }

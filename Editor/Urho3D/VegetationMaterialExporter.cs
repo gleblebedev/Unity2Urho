@@ -1,5 +1,4 @@
-﻿using UnityToCustomEngineExporter.Editor.Urho3D;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -15,10 +14,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override bool CanExportMaterial(Material material)
         {
-            return (material.shader.name == "Urho3D/PBR/PBRVegetation");
+            return material.shader.name == "Urho3D/PBR/PBRVegetation";
         }
 
-        protected override UrhoPBRMaterial FromMetallicGlossiness(Material mat, MetallicGlossinessShaderArguments arguments)
+        protected override UrhoPBRMaterial FromMetallicGlossiness(Material mat,
+            MetallicGlossinessShaderArguments arguments)
         {
             var material = base.FromMetallicGlossiness(mat, arguments);
             var _WindHeightFactor = mat.GetFloat("_WindHeightFactor");
@@ -36,7 +36,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.ExtraParameters.Add("WindPeriod", _WindPeriod);
             material.ExtraParameters.Add("WindWorldSpacingX", new Vector2(_WindWorldSpacingX, _WindWorldSpacingY));
 
-            CullMode cull = (CullMode)mat.GetFloat("_Cull");
+            var cull = (CullMode) mat.GetFloat("_Cull");
             switch (cull)
             {
                 case CullMode.Off:
@@ -53,10 +53,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     break;
             }
 
-            if (windStemAxis != Vector3.up)
-            {
-                material.VertexShaderDefines.Add("WINDSTEMAXIS");
-            }
+            if (windStemAxis != Vector3.up) material.VertexShaderDefines.Add("WINDSTEMAXIS");
             material.Technique = "Techniques/PBR/PBRVegetationDiff.xml";
 
             return material;

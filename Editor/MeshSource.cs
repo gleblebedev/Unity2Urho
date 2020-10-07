@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Xml.Xsl;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -73,7 +72,7 @@ namespace UnityToCustomEngineExporter.Editor
             return new Geometry(_mesh, subMeshIndex);
         }
 
-        private class Geometry:IMeshGeometry
+        private class Geometry : IMeshGeometry
         {
             private readonly Mesh _mesh;
             private readonly int _submesh;
@@ -83,10 +82,9 @@ namespace UnityToCustomEngineExporter.Editor
                 _mesh = mesh;
                 _submesh = submesh;
             }
-            public int NumLods
-            {
-                get { return 1; }
-            }
+
+            public int NumLods => 1;
+
             public IList<int> GetIndices(int lod)
             {
                 if (lod == 0)

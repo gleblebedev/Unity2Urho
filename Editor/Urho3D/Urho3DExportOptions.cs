@@ -3,8 +3,8 @@
     public class Urho3DExportOptions
     {
         public Urho3DExportOptions(string subfolder,
-        bool exportUpdatedOnly,
-        bool exportSceneAsPrefab, bool skipDisabled, bool usePhysicalValues)
+            bool exportUpdatedOnly,
+            bool exportSceneAsPrefab, bool skipDisabled, bool usePhysicalValues)
         {
             Subfolder = (subfolder ?? "").FixAssetSeparator().Trim('/');
             if (!string.IsNullOrWhiteSpace(Subfolder)) Subfolder += "/";
@@ -12,7 +12,6 @@
             UsePhysicalValues = usePhysicalValues;
             SkipDisabled = skipDisabled;
             ExportSceneAsPrefab = exportSceneAsPrefab;
-
         }
 
         public bool ExportUpdatedOnly { get; set; }
@@ -31,7 +30,7 @@
         public bool ExportMeshes { get; set; } = true;
 
         /// <summary>
-        /// Replace all non-ASCII characters in file and node names.
+        ///     Replace all non-ASCII characters in file and node names.
         /// </summary>
         public bool ASCIIOnly { get; set; } = false;
     }

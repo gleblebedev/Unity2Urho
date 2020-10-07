@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.ProBuilder;
@@ -24,10 +23,7 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             _geometries = new List<Geometry>(subMeshCount);
-            for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
-            {
-                _geometries.Add(new Geometry());
-            }
+            for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex) _geometries.Add(new Geometry());
 
             foreach (var face in _mesh.faces)
             {
@@ -44,30 +40,27 @@ namespace UnityToCustomEngineExporter.Editor
         public override IList<Vector4> Tangents => _mesh.tangents ?? Array.Empty<Vector4>();
         public override IList<Vector2> TexCoords0 => _mesh.textures ?? Array.Empty<Vector2>();
         public override int SubMeshCount => _geometries.Count;
+
         public override IMeshGeometry GetGeomtery(int subMeshIndex)
         {
             return _geometries[subMeshIndex];
         }
 
-        class Geometry:IMeshGeometry
+        private class Geometry : IMeshGeometry
         {
-            List<int> _indices = new List<int>();
+            private readonly List<int> _indices = new List<int>();
 
-            public Geometry()
-            {
-            }
+            public int NumLods => 1;
 
             public void AddRange(IEnumerable<int> faceIndexes)
             {
                 _indices.AddRange(faceIndexes);
             }
 
-            public int NumLods => 1;
             public IList<int> GetIndices(int lod)
             {
                 return _indices;
             }
         }
-
     }
 }

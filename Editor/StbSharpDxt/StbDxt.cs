@@ -2,8 +2,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
@@ -37,8 +35,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             0.866667f, 0.882353f, 0.898039f, 0.913725f, 0.929412f, 0.945098f, 0.960784f, 0.976471f, 0.992157f, 1.0f
         };
 
-        public static int[] w1Tab = { 3, 0, 2, 1 };
-        public static int[] prods = { 0x090000, 0x000900, 0x040102, 0x010402 };
+        public static int[] w1Tab = {3, 0, 2, 1};
+        public static int[] prods = {0x090000, 0x000900, 0x040102, 0x010402};
         public static int init = 1;
 
         public static int stb__Mul8Bit(int a, int b)
@@ -60,7 +58,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
         public static ushort stb__As16Bit(int r, int g, int b)
         {
-            return (ushort)((stb__Mul8Bit(r, 31) << 11) + (stb__Mul8Bit(g, 63) << 5) + stb__Mul8Bit(b, 31));
+            return (ushort) ((stb__Mul8Bit(r, 31) << 11) + (stb__Mul8Bit(g, 63) << 5) + stb__Mul8Bit(b, 31));
         }
 
         public static int stb__Lerp13(int a, int b)
@@ -70,9 +68,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
         public static void stb__Lerp13RGB(byte* _out_, byte* p1, byte* p2)
         {
-            _out_[0] = (byte)stb__Lerp13(p1[0], p2[0]);
-            _out_[1] = (byte)stb__Lerp13(p1[1], p2[1]);
-            _out_[2] = (byte)stb__Lerp13(p1[2], p2[2]);
+            _out_[0] = (byte) stb__Lerp13(p1[0], p2[0]);
+            _out_[1] = (byte) stb__Lerp13(p1[1], p2[1]);
+            _out_[2] = (byte) stb__Lerp13(p1[2], p2[2]);
         }
 
         public static void stb__PrepareOptTable(byte[] Table, byte[] expand, int size)
@@ -84,19 +82,19 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             {
                 var bestErr = 256;
                 for (mn = 0; mn < size; mn++)
-                    for (mx = 0; mx < size; mx++)
+                for (mx = 0; mx < size; mx++)
+                {
+                    var mine = (int) expand[mn];
+                    var maxe = (int) expand[mx];
+                    var err = Math.Abs(stb__Lerp13(maxe, mine) - i);
+                    err += Math.Abs(maxe - mine) * 3 / 100;
+                    if (err < bestErr)
                     {
-                        var mine = (int)expand[mn];
-                        var maxe = (int)expand[mx];
-                        var err = Math.Abs(stb__Lerp13(maxe, mine) - i);
-                        err += Math.Abs(maxe - mine) * 3 / 100;
-                        if (err < bestErr)
-                        {
-                            Table[i * 2 + 0] = (byte)mx;
-                            Table[i * 2 + 1] = (byte)mn;
-                            bestErr = err;
-                        }
+                        Table[i * 2 + 0] = (byte) mx;
+                        Table[i * 2 + 1] = (byte) mn;
+                        bestErr = err;
                     }
+                }
             }
         }
 
@@ -110,7 +108,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
         public static uint stb__MatchColorsBlock(Color32* block, Color32* color, int dither)
         {
-            var mask = (uint)0;
+            var mask = (uint) 0;
             var dirr = color[0].r - color[1].r;
             var dirg = color[0].g - color[1].g;
             var dirb = color[0].b - color[1].b;
@@ -133,8 +131,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 {
                     var dot = dots[i] * 2;
                     mask <<= 2;
-                    if (dot < halfPoint) mask |= (uint)(dot < c0Point ? 1 : 3);
-                    else mask |= (uint)(dot < c3Point ? 2 : 0);
+                    if (dot < halfPoint) mask |= (uint) (dot < c0Point ? 1 : 3);
+                    else mask |= (uint) (dot < c3Point ? 2 : 0);
                 }
             }
             else
@@ -174,7 +172,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                     ep1[3] = dp[3] - stops[step];
                     lmask |= step << 6;
                     dp += 4;
-                    mask |= (uint)(lmask << (y * 8));
+                    mask |= (uint) (lmask << (y * 8));
                     {
                         var et = ep1;
                         ep1 = ep2;
@@ -254,9 +252,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 vfb = b;
             }
 
-            magn = (float)Math.Abs((double) vfr);
-            if ((float)Math.Abs((double) vfg) > magn) magn = (float)Math.Abs((double) vfg);
-            if ((float)Math.Abs((double) vfb) > magn) magn = (float)Math.Abs((double) vfb);
+            magn = (float) Math.Abs((double) vfr);
+            if ((float) Math.Abs((double) vfg) > magn) magn = (float) Math.Abs((double) vfg);
+            if ((float) Math.Abs((double) vfb) > magn) magn = (float) Math.Abs((double) vfb);
             if (magn < 4.0f)
             {
                 v_r = 299;
@@ -266,9 +264,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             else
             {
                 magn = 512.0 / magn;
-                v_r = (int)(vfr * magn);
-                v_g = (int)(vfg * magn);
-                v_b = (int)(vfb * magn);
+                v_r = (int) (vfr * magn);
+                v_g = (int) (vfg * magn);
+                v_b = (int) (vfb * magn);
             }
 
             for (i = 0; i < 16; i++)
@@ -295,8 +293,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
         {
             ushort q = 0;
             x = x < 0 ? 0 : x > 1 ? 1 : x;
-            q = (ushort)(x * 31);
-            q += (ushort)(x > midpoints5[q] ? 1 : 0);
+            q = (ushort) (x * 31);
+            q += (ushort) (x > midpoints5[q] ? 1 : 0);
             return q;
         }
 
@@ -304,8 +302,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
         {
             ushort q = 0;
             x = x < 0 ? 0 : x > 1 ? 1 : x;
-            q = (ushort)(x * 63);
-            q += (ushort)(x > midpoints6[q] ? 1 : 0);
+            q = (ushort) (x * 63);
+            q += (ushort) (x > midpoints6[q] ? 1 : 0);
             return q;
         }
 
@@ -345,9 +343,9 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 r >>= 4;
                 g >>= 4;
                 b >>= 4;
-                max16 = (ushort)((stb__OMatch5[r * 2 + 0] << 11) | (stb__OMatch6[g * 2 + 0] << 5) |
+                max16 = (ushort) ((stb__OMatch5[r * 2 + 0] << 11) | (stb__OMatch6[g * 2 + 0] << 5) |
                                   stb__OMatch5[b * 2 + 0]);
-                min16 = (ushort)((stb__OMatch5[r * 2 + 1] << 11) | (stb__OMatch6[g * 2 + 1] << 5) |
+                min16 = (ushort) ((stb__OMatch5[r * 2 + 1] << 11) | (stb__OMatch6[g * 2 + 1] << 5) |
                                   stb__OMatch5[b * 2 + 1]);
             }
             else
@@ -356,11 +354,11 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 At2_r = At2_g = At2_b = 0;
                 for (i = 0; i < 16; ++i, cm >>= 2)
                 {
-                    var step = (int)(cm & 3);
+                    var step = (int) (cm & 3);
                     var w1 = w1Tab[step];
-                    var r = (int)block[i * 4 + 0];
-                    var g = (int)block[i * 4 + 1];
-                    var b = (int)block[i * 4 + 2];
+                    var r = (int) block[i * 4 + 0];
+                    var g = (int) block[i * 4 + 1];
+                    var b = (int) block[i * 4 + 2];
                     akku += prods[step];
                     At1_r += w1 * r;
                     At1_g += w1 * g;
@@ -377,12 +375,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 yy = (akku >> 8) & 0xff;
                 xy = (akku >> 0) & 0xff;
                 f = 3.0f / 255.0f / (xx * yy - xy * xy);
-                max16 = (ushort)(stb__Quantize5((At1_r * yy - At2_r * xy) * f) << 11);
-                max16 |= (ushort)(stb__Quantize6((At1_g * yy - At2_g * xy) * f) << 5);
-                max16 |= (ushort)(stb__Quantize5((At1_b * yy - At2_b * xy) * f) << 0);
-                min16 = (ushort)(stb__Quantize5((At2_r * xx - At1_r * xy) * f) << 11);
-                min16 |= (ushort)(stb__Quantize6((At2_g * xx - At1_g * xy) * f) << 5);
-                min16 |= (ushort)(stb__Quantize5((At2_b * xx - At1_b * xy) * f) << 0);
+                max16 = (ushort) (stb__Quantize5((At1_r * yy - At2_r * xy) * f) << 11);
+                max16 |= (ushort) (stb__Quantize6((At1_g * yy - At2_g * xy) * f) << 5);
+                max16 |= (ushort) (stb__Quantize5((At1_b * yy - At2_b * xy) * f) << 0);
+                min16 = (ushort) (stb__Quantize5((At2_r * xx - At1_r * xy) * f) << 11);
+                min16 |= (ushort) (stb__Quantize6((At2_g * xx - At1_g * xy) * f) << 5);
+                min16 |= (ushort) (stb__Quantize5((At2_b * xx - At1_b * xy) * f) << 0);
             }
 
             *pmin16 = min16;
@@ -403,7 +401,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             dither = mode & 1;
             refinecount = (mode & 2) != 0 ? 2 : 1;
             for (i = 1; i < 16; i++)
-                if (((uint*)block)[i] != ((uint*)block)[0])
+                if (((uint*) block)[i] != ((uint*) block)[0])
                     break;
             if (i == 16)
             {
@@ -411,19 +409,19 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 var g = block[0].g;
                 var b = block[0].b;
                 mask = 0xaaaaaaaa;
-                max16 = (ushort)((stb__OMatch5[r * 2 + 0] << 11) | (stb__OMatch6[g * 2 + 0] << 5) |
+                max16 = (ushort) ((stb__OMatch5[r * 2 + 0] << 11) | (stb__OMatch6[g * 2 + 0] << 5) |
                                   stb__OMatch5[b * 2 + 0]);
-                min16 = (ushort)((stb__OMatch5[r * 2 + 1] << 11) | (stb__OMatch6[g * 2 + 1] << 5) |
+                min16 = (ushort) ((stb__OMatch5[r * 2 + 1] << 11) | (stb__OMatch6[g * 2 + 1] << 5) |
                                   stb__OMatch5[b * 2 + 1]);
             }
             else
             {
-                if (dither != 0) stb__DitherBlock((byte*)dblock, (byte*)block);
-                stb__OptimizeColorsBlock(dither != 0 ? (byte*)dblock : (byte*)block, &max16, &min16);
+                if (dither != 0) stb__DitherBlock((byte*) dblock, (byte*) block);
+                stb__OptimizeColorsBlock(dither != 0 ? (byte*) dblock : (byte*) block, &max16, &min16);
                 if (max16 != min16)
                 {
                     stb__EvalColors(color, max16, min16);
-                    mask = stb__MatchColorsBlock(block, (Color32*)color, dither);
+                    mask = stb__MatchColorsBlock(block, (Color32*) color, dither);
                 }
                 else
                 {
@@ -433,12 +431,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 for (i = 0; i < refinecount; i++)
                 {
                     var lastmask = mask;
-                    if (stb__RefineBlock(dither != 0 ? (byte*)dblock : (byte*)block, &max16, &min16, mask) != 0)
+                    if (stb__RefineBlock(dither != 0 ? (byte*) dblock : (byte*) block, &max16, &min16, mask) != 0)
                     {
                         if (max16 != min16)
                         {
                             stb__EvalColors(color, max16, min16);
-                            mask = stb__MatchColorsBlock(block, (Color32*)color, dither);
+                            mask = stb__MatchColorsBlock(block, (Color32*) color, dither);
                         }
                         else
                         {
@@ -459,14 +457,14 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 mask ^= 0x55555555;
             }
 
-            dest[0] = (byte)max16;
-            dest[1] = (byte)(max16 >> 8);
-            dest[2] = (byte)min16;
-            dest[3] = (byte)(min16 >> 8);
-            dest[4] = (byte)mask;
-            dest[5] = (byte)(mask >> 8);
-            dest[6] = (byte)(mask >> 16);
-            dest[7] = (byte)(mask >> 24);
+            dest[0] = (byte) max16;
+            dest[1] = (byte) (max16 >> 8);
+            dest[2] = (byte) min16;
+            dest[3] = (byte) (min16 >> 8);
+            dest[4] = (byte) mask;
+            dest[5] = (byte) (mask >> 8);
+            dest[6] = (byte) (mask >> 16);
+            dest[7] = (byte) (mask >> 24);
         }
 
         public static void stb__CompressAlphaBlock(byte* dest, Color32* src)
@@ -484,8 +482,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             for (i = 1; i < 16; i++)
                 if (src[i].a < mn) mn = src[i].a;
                 else if (src[i].a > mx) mx = src[i].a;
-            dest[0] = (byte)mx;
-            dest[1] = (byte)mn;
+            dest[0] = (byte) mx;
+            dest[1] = (byte) mn;
             dest += 2;
             dist = mx - mn;
             dist4 = dist * 4;
@@ -511,7 +509,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                 mask |= ind << bits;
                 if ((bits += 3) >= 8)
                 {
-                    *dest++ = (byte)mask;
+                    *dest++ = (byte) mask;
                     mask >>= 8;
                     bits -= 8;
                 }
@@ -521,8 +519,8 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
         public static void stb__InitDXT()
         {
             var i = 0;
-            for (i = 0; i < 32; i++) stb__Expand5[i] = (byte)((i << 3) | (i >> 2));
-            for (i = 0; i < 64; i++) stb__Expand6[i] = (byte)((i << 2) | (i >> 4));
+            for (i = 0; i < 32; i++) stb__Expand5[i] = (byte) ((i << 3) | (i >> 2));
+            for (i = 0; i < 64; i++) stb__Expand6[i] = (byte) ((i << 2) | (i >> 4));
             for (i = 0; i < 256 + 16; i++)
             {
                 var v = i - 8 < 0 ? 0 : i - 8 > 255 ? 255 : i - 8;
@@ -553,6 +551,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                     data[i] = src[i];
                     data[i].a = 255;
                 }
+
                 src = data;
             }
 
@@ -561,7 +560,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
         public static void stb__DitherBlock(byte* dest, byte* block)
         {
-            int* err = stackalloc int[8];
+            var err = stackalloc int[8];
             var ep1 = err;
             var ep2 = err + 4;
             int ch;
@@ -569,16 +568,13 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
             {
                 var bp = block + ch;
                 var dp = dest + ch;
-                var quantArray = ch == (1) ? stb__QuantGTab : stb__QuantRBTab;
+                var quantArray = ch == 1 ? stb__QuantGTab : stb__QuantRBTab;
                 fixed (byte* quant = quantArray)
                 {
-                    for (long i = 0; i < 8; ++i)
-                    {
-                        err[i] = 0;
-                    }
+                    for (long i = 0; i < 8; ++i) err[i] = 0;
 
                     int y;
-                    for (y = 0; (y) < (4); ++y)
+                    for (y = 0; y < 4; ++y)
                     {
                         dp[0] = quant[bp[0] + ((3 * ep2[1] + 5 * ep2[0]) >> 4)];
                         ep1[0] = bp[0] - dp[0];
@@ -600,15 +596,12 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
 
         public static byte[] CompressDxt(int width, int height, Color32[] data, bool hasAlpha, CompressionMode mode)
         {
-            if (data.Length != width * height)
-            {
-                throw new Exception("Unexpected data length");
-            }
+            if (data.Length != width * height) throw new Exception("Unexpected data length");
 
             var blockSize = hasAlpha ? 16 : 8;
-            var numBlocks = ((width + 3) / 4) * ((height + 3) / 4);
+            var numBlocks = (width + 3) / 4 * ((height + 3) / 4);
             var result = new byte[numBlocks * blockSize];
-            Color32* block = stackalloc Color32[16];
+            var block = stackalloc Color32[16];
 
             fixed (Color32* colors = data)
             {
@@ -622,7 +615,7 @@ namespace UnityToCustomEngineExporter.Editor.StbSharpDxt
                         for (var col = 0; col < width; col += 4)
                         {
                             var y = 0;
-                            Color32* blockRow = block;
+                            var blockRow = block;
                             for (; y < numRows; ++y)
                             {
                                 CopyRow(blockRow, colors + ((height - row - y - 1) * width + col), width - col);

@@ -36,7 +36,8 @@ namespace UnityToCustomEngineExporter.Editor
             EditorTaskScheduler.Default.ScheduleForegroundTask(() => ExportAssetsAtPath(assetPath, prefabContext));
         }
 
-        protected abstract void ExportAssetBlock(string assetPath, Type mainType, Object[] assets, PrefabContext prefabContext);
+        protected abstract void ExportAssetBlock(string assetPath, Type mainType, Object[] assets,
+            PrefabContext prefabContext);
 
         protected abstract IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset, PrefabContext prefabContext);
 

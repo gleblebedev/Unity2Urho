@@ -12,6 +12,50 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override int ExporterPriority => 0;
 
+        public SkyboxShaderArguments SetupSkybox(Material material)
+        {
+            var setupProceduralSkybox = new SkyboxShaderArguments();
+            var shader = material.shader;
+            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
+            {
+                var propertyName = ShaderUtil.GetPropertyName(shader, i);
+                var propertyType = ShaderUtil.GetPropertyType(shader, i);
+                if (propertyType == ShaderUtil.ShaderPropertyType.TexEnv)
+                {
+                    var texture = material.GetTexture(propertyName);
+                    switch (propertyName)
+                    {
+                        case "_Tex":
+                            setupProceduralSkybox.Skybox = texture;
+                            break;
+                        case "_MainTex":
+                            setupProceduralSkybox.Skybox = texture;
+                            break;
+                        case "_FrontTex":
+                            setupProceduralSkybox.FrontTex = texture;
+                            break;
+                        case "_BackTex":
+                            setupProceduralSkybox.BackTex = texture;
+                            break;
+                        case "_LeftTex":
+                            setupProceduralSkybox.LeftTex = texture;
+                            break;
+                        case "_RightTex":
+                            setupProceduralSkybox.RightTex = texture;
+                            break;
+                        case "_UpTex":
+                            setupProceduralSkybox.UpTex = texture;
+                            break;
+                        case "_DownTex":
+                            setupProceduralSkybox.DownTex = texture;
+                            break;
+                    }
+                }
+            }
+
+            return setupProceduralSkybox;
+        }
+
         public override bool CanExportMaterial(Material material)
         {
             return material.shader.name.StartsWith("Skybox/");
@@ -33,7 +77,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var technique = "Techniques/DiffSkyboxHDRScale.xml";
 
                 var anyFace = arguments.BackTex ?? arguments.DownTex ?? arguments.FrontTex ??
-                              arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
+                    arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
                 if (arguments.Skybox != null)
                 {
                     Engine.ScheduleAssetExport(arguments.Skybox, prefabContext);
@@ -93,7 +137,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else
                 {
-                    WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse", prefabContext);
+                    WriteTexture("Resources/unity_builtin_extra/Default-Skybox-Map.xml", writer, "diffuse",
+                        prefabContext);
                 }
 
                 WriteTechnique(writer, technique);
@@ -120,50 +165,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 writer.WriteEndElement();
             }
-        }
-
-        public SkyboxShaderArguments SetupSkybox(Material material)
-        {
-            var setupProceduralSkybox = new SkyboxShaderArguments();
-            var shader = material.shader;
-            for (var i = 0; i < ShaderUtil.GetPropertyCount(shader); i++)
-            {
-                var propertyName = ShaderUtil.GetPropertyName(shader, i);
-                var propertyType = ShaderUtil.GetPropertyType(shader, i);
-                if (propertyType == ShaderUtil.ShaderPropertyType.TexEnv)
-                {
-                    var texture = material.GetTexture(propertyName);
-                    switch (propertyName)
-                    {
-                        case "_Tex":
-                            setupProceduralSkybox.Skybox = texture;
-                            break;
-                        case "_MainTex":
-                            setupProceduralSkybox.Skybox = texture;
-                            break;
-                        case "_FrontTex":
-                            setupProceduralSkybox.FrontTex = texture;
-                            break;
-                        case "_BackTex":
-                            setupProceduralSkybox.BackTex = texture;
-                            break;
-                        case "_LeftTex":
-                            setupProceduralSkybox.LeftTex = texture;
-                            break;
-                        case "_RightTex":
-                            setupProceduralSkybox.RightTex = texture;
-                            break;
-                        case "_UpTex":
-                            setupProceduralSkybox.UpTex = texture;
-                            break;
-                        case "_DownTex":
-                            setupProceduralSkybox.DownTex = texture;
-                            break;
-                    }
-                }
-            }
-
-            return setupProceduralSkybox;
         }
     }
 }

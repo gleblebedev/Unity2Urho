@@ -29,7 +29,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
                 urhoMaterial.Technique = "Techniques/PBR/PBRWater.xml";
                 var metallicGlossinessShaderArguments = new MetallicGlossinessShaderArguments();
 
-                var _SlowWaterNormal = GetTexture(material,"_SlowWaterNormal");
+                var _SlowWaterNormal = GetTexture(material, "_SlowWaterNormal");
                 var _SlowNormalScale = GetFloat(material, "_SlowNormalScale", 1);
 
                 metallicGlossinessShaderArguments.Bump = _SlowWaterNormal;

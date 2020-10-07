@@ -11,7 +11,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public static class ExportUtils
     {
-        private static readonly char[] InvalidFileNameChars = new char[]
+        private static readonly char[] InvalidFileNameChars =
         {
             '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\x09', '\x0A',
             '\x0B', '\x0C', '\x0D', '\x0E', '\x0F', '\x10', '\x11', '\x12', '\x13', '\x14', '\x15',
@@ -146,7 +146,7 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             // Default texture options.
-            return new TextureOptions()
+            return new TextureOptions
             {
                 filterMode = FilterMode.Trilinear,
                 mipmapEnabled = true,
@@ -154,6 +154,37 @@ namespace UnityToCustomEngineExporter.Editor
                 textureImporterFormat = null,
                 wrapMode = TextureWrapMode.Repeat
             };
+        }
+
+        public static string Combine(params string[] segments)
+        {
+            var path = new StringBuilder();
+            var separator = "";
+            foreach (var segment in segments)
+            {
+                if (string.IsNullOrWhiteSpace(segment)) continue;
+
+                path.Append(separator);
+                separator = "/";
+
+                path.Append(segment);
+
+                if (segment.EndsWith("/"))
+                    separator = "";
+            }
+
+            return path.ToString();
+        }
+
+        public static string GetName(Object asset)
+        {
+            if (!string.IsNullOrWhiteSpace(asset.name))
+                return asset.name;
+            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long localId))
+                return guid + "_" + localId;
+
+            return asset.GetInstanceID().ToString();
+            //return asset.GetInstanceID().ToString();
         }
 
         private static DateTime GetLastWriteTimeUtcFromRelPath(string relPath)
@@ -164,41 +195,6 @@ namespace UnityToCustomEngineExporter.Editor
             if (!File.Exists(file))
                 return DateTime.MaxValue;
             return File.GetLastWriteTimeUtc(file);
-        }
-
-        public static string Combine(params string[] segments)
-        {
-            var path = new StringBuilder();
-            var separator = "";
-            foreach (var segment in segments)
-            {
-                if (string.IsNullOrWhiteSpace(segment))
-                {
-                    continue;
-                }
-
-                path.Append(separator);
-                separator = "/";
-
-                path.Append(segment);
-
-                if (segment.EndsWith("/"))
-                    separator = "";
-            }
-            return path.ToString();
-        }
-
-        public static string GetName(Object asset)
-        {
-            if (!string.IsNullOrWhiteSpace(asset.name))
-                return asset.name;
-            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out string guid, out long localId))
-            {
-                return guid + "_" + localId;
-            }
-
-            return asset.GetInstanceID().ToString();
-            //return asset.GetInstanceID().ToString();
         }
     }
 }

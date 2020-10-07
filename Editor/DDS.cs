@@ -13,16 +13,17 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 using (var binaryWriter = new BinaryWriter(fileStream))
                 {
-                    bool compress = true;
+                    var compress = true;
                     if (compress)
                     {
                         WriteCompressedHeader(binaryWriter, texture.width, texture.height, texture.mipmapCount, false,
                             hasAlpha);
-                        int width = texture.width;
-                        int height = texture.height;
+                        var width = texture.width;
+                        var height = texture.height;
                         for (var mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
                         {
-                            WriteCompressed(binaryWriter, texture.GetPixels32(mipIndex), width, height, hasAlpha, dither);
+                            WriteCompressed(binaryWriter, texture.GetPixels32(mipIndex), width, height, hasAlpha,
+                                dither);
                             width = Math.Max(1, width / 2);
                             height = Math.Max(1, height / 2);
                         }
@@ -38,19 +39,12 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private static void WriteCompressed(BinaryWriter binaryWriter, Color32[] getPixels32, int width, int height, bool hasAlpha, bool dither = false)
-        {
-            //var data = StbSharpDxt.StbDxt.stb_compress_dxt(image, hasAlpha);
-            var data = Compress(width, height, getPixels32, hasAlpha, dither);
-            binaryWriter.Write(data);
-        }
-
         public static byte[] Compress(int width, int height, Color32[] pixels, bool hasAlpha, bool dithered = false)
         {
             var mode = CompressionMode.HighQuality;
             if (dithered)
                 mode |= CompressionMode.Dithered;
-            return StbSharpDxt.StbDxt.CompressDxt(width, height, pixels, hasAlpha, mode);
+            return StbDxt.CompressDxt(width, height, pixels, hasAlpha, mode);
         }
 
         public static void SaveAsRgbaDds(Cubemap texture, string fileName, bool convertToSRGB = false)
@@ -85,21 +79,26 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        private static void WriteCompressedHeader(BinaryWriter binaryWriter, int width, int height, int mipMapCount, bool cubemap, bool hasAlpha)
+        private static void WriteCompressed(BinaryWriter binaryWriter, Color32[] getPixels32, int width, int height,
+            bool hasAlpha, bool dither = false)
         {
-            binaryWriter.Write((uint)0x20534444); // DDS magic
+            //var data = StbSharpDxt.StbDxt.stb_compress_dxt(image, hasAlpha);
+            var data = Compress(width, height, getPixels32, hasAlpha, dither);
+            binaryWriter.Write(data);
+        }
+
+        private static void WriteCompressedHeader(BinaryWriter binaryWriter, int width, int height, int mipMapCount,
+            bool cubemap, bool hasAlpha)
+        {
+            binaryWriter.Write((uint) 0x20534444); // DDS magic
             binaryWriter.Write(124); // Size
             binaryWriter.Write(0x00001007 | 0x000A0000); // Flags
             binaryWriter.Write(height); // Height
             binaryWriter.Write(width); // Width
             if (hasAlpha)
-            {
                 binaryWriter.Write(height * width); // Pitch
-            }
             else
-            {
                 binaryWriter.Write(height * width / 2); // Pitch
-            }
 
             binaryWriter.Write(1); // Depth
             binaryWriter.Write(mipMapCount); // MipMapCount
@@ -120,13 +119,9 @@ namespace UnityToCustomEngineExporter.Editor
             binaryWriter.Write(32); //Size
             binaryWriter.Write(0x00000004); //compressed
             if (hasAlpha)
-            {
                 binaryWriter.Write(0x35545844); //DXT5
-            }
             else
-            {
                 binaryWriter.Write(0x31545844); //DXT1
-            }
             binaryWriter.Write(0);
             binaryWriter.Write(0);
             binaryWriter.Write(0);
@@ -157,7 +152,7 @@ namespace UnityToCustomEngineExporter.Editor
             binaryWriter.Write(0x00001007 | 0x00020000 | 0x00000008); // Flags
             binaryWriter.Write(height); // Height
             binaryWriter.Write(width); // Width
-            binaryWriter.Write(width*4); // Pitch
+            binaryWriter.Write(width * 4); // Pitch
 
             binaryWriter.Write(1); // Depth
             binaryWriter.Write(mipMapCount); // MipMapCount
@@ -231,15 +226,13 @@ namespace UnityToCustomEngineExporter.Editor
         {
             var height = getPixels32.Length / width;
             for (var y = height - 1; y >= 0; y--)
+            for (var x = 0; x < width; x++)
             {
-                for (int x = 0; x < width; x++)
-                {
-                    var index = x + y * width;
-                    binaryWriter.Write(getPixels32[index].r);
-                    binaryWriter.Write(getPixels32[index].g);
-                    binaryWriter.Write(getPixels32[index].b);
-                    binaryWriter.Write(getPixels32[index].a);
-                }
+                var index = x + y * width;
+                binaryWriter.Write(getPixels32[index].r);
+                binaryWriter.Write(getPixels32[index].g);
+                binaryWriter.Write(getPixels32[index].b);
+                binaryWriter.Write(getPixels32[index].a);
             }
         }
     }

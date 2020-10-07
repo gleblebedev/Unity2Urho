@@ -50,11 +50,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             using (var writer =
                 _engine.TryCreateXml(assetGuid, resourceName, sourceFileTimestampUtc))
             {
-                if (writer != null)
-                {
-                    WriteCubemap(texture, resourceName, writer);
-                }
+                if (writer != null) WriteCubemap(texture, resourceName, writer);
             }
+        }
+
+        public string EvaluateCubemapName(Cubemap cubemap)
+        {
+            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, cubemap),
+                ".xml");
         }
 
         private void WriteCubemap(Cubemap texture, string resourceName, XmlWriter writer)
@@ -72,11 +75,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
             writer.WriteEndElement();
-        }
-
-        public string EvaluateCubemapName(Cubemap cubemap)
-        {
-            return ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, cubemap), ".xml");
         }
     }
 }

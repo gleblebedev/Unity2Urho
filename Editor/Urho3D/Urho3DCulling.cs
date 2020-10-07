@@ -4,6 +4,6 @@
     {
         ccw,
         cw,
-        none,
+        none
     }
 }

@@ -66,16 +66,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             .Where(_ => _ != null).FirstOrDefault();
                         var skyboxMaterial = skybox?.material ?? RenderSettings.skybox;
                         if (skybox == null && skyboxMaterial != null)
-                        {
                             WriteSkyboxComponent(writer, "\t", skyboxMaterial, prefabContext, true);
-                        }
                         if (skyboxMaterial != null)
                         {
                             var skyboxCubemap = _engine.TryGetSkyboxCubemap(skyboxMaterial);
                             if (!string.IsNullOrWhiteSpace(skyboxCubemap))
-                            {
-                                ExportZone(writer, "\t", new Vector3(2000, 2000, 2000), skyboxCubemap, prefabContext, true);
-                            }
+                                ExportZone(writer, "\t", new Vector3(2000, 2000, 2000), skyboxCubemap, prefabContext,
+                                    true);
                         }
 
                         foreach (var gameObject in rootGameObjects)

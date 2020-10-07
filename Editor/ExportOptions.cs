@@ -10,21 +10,36 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class ExportOptions : EditorWindow
     {
-
         private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";
         private static readonly string _subfolderKey = "UnityToCustomEngineExporter.Subfolder";
         private static readonly string _exportUpdatedOnlyKey = "UnityToCustomEngineExporter.UpdatedOnly";
         private static readonly string _exportSceneAsPrefabKey = "UnityToCustomEngineExporter.SceneAsPrefab";
         private static readonly string _skipDisabledKey = "UnityToCustomEngineExporter.SkipDisabled";
         private static readonly string _usePhysicalValuesKey = "UnityToCustomEngineExporter.UsePhysicalValues";
-        private BoolEditorProperty _exportShadersAndTechniques = new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques", "Export Shaders and Techniques", true);
-        private BoolEditorProperty _exportCameras = new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
-        private BoolEditorProperty _exportLights = new BoolEditorProperty("UnityToCustomEngineExporter.ExportLights", "Export Lights", true);
-        private BoolEditorProperty _exportTextures = new BoolEditorProperty("UnityToCustomEngineExporter.ExportTextures", "Export Textures", true);
-        private BoolEditorProperty _exportAnimations = new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
-        private BoolEditorProperty _exportMeshes = new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
-        private BoolEditorProperty _exportAscii = new BoolEditorProperty("UnityToCustomEngineExporter.ExportAscii", "Replace non-ASCII chars", false);
-        private IList<BoolEditorProperty> _extraFlags;
+
+        private readonly BoolEditorProperty _exportShadersAndTechniques =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques",
+                "Export Shaders and Techniques", true);
+
+        private readonly BoolEditorProperty _exportCameras =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
+
+        private readonly BoolEditorProperty _exportLights =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportLights", "Export Lights", true);
+
+        private readonly BoolEditorProperty _exportTextures =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportTextures", "Export Textures", true);
+
+        private readonly BoolEditorProperty _exportAnimations =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
+
+        private readonly BoolEditorProperty _exportMeshes =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
+
+        private readonly BoolEditorProperty _exportAscii =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportAscii", "Replace non-ASCII chars", false);
+
+        private readonly IList<BoolEditorProperty> _extraFlags;
         private string _exportFolder = "";
         private string _subfolder = "";
         private bool _exportUpdatedOnly;
@@ -48,7 +63,7 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportTextures,
                 _exportAnimations,
                 _exportMeshes,
-                _exportAscii,
+                _exportAscii
             };
         }
 
@@ -82,14 +97,8 @@ namespace UnityToCustomEngineExporter.Editor
             _exportFolder = EditorGUILayout.TextField("Export Folder", _exportFolder);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Pick"))
-                {
-                    PickFolder();
-                }
-                if (GUILayout.Button("Open"))
-                {
-                    EditorUtility.RevealInFinder(_exportFolder);
-                }
+                if (GUILayout.Button("Pick")) PickFolder();
+                if (GUILayout.Button("Open")) EditorUtility.RevealInFinder(_exportFolder);
             }
 
             _subfolder = EditorGUILayout.TextField("Subfolder", _subfolder);
@@ -105,10 +114,7 @@ namespace UnityToCustomEngineExporter.Editor
             if (_showExtraOptions)
             {
                 _skipDisabled = EditorGUILayout.Toggle("Skip disabled entities", _skipDisabled);
-                foreach (var flag in _extraFlags)
-                {
-                    flag.Toggle();
-                }
+                foreach (var flag in _extraFlags) flag.Toggle();
             }
 
             //GUILayout.Label(EditorTaskScheduler.Default.CurrentReport.Message);
@@ -148,12 +154,17 @@ namespace UnityToCustomEngineExporter.Editor
                     }
                 }
             }
-   
 
 
             EditorGUILayout.Separator();
-            EditorGUILayout.LabelField("Before exporting content with the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms", _myCustomStyle);
+            EditorGUILayout.LabelField(
+                "Before exporting content with the tool please check that you have an appropriate license for the assets you are exporting. You can find Asset Store Terms of Service and EULA at https://unity3d.com/legal/as_terms",
+                _myCustomStyle);
+        }
 
+        protected void Update()
+        {
+            if (_exporting) _exporting = EditorTaskScheduler.Default.DisplayProgressBar();
         }
 
         private void StartExportScene()
@@ -165,14 +176,6 @@ namespace UnityToCustomEngineExporter.Editor
                 _engine = CreateEngine();
                 EditorTaskScheduler.Default.ScheduleForegroundTask(() => { _engine.ExportScene(activeScene); },
                     activeScene.path);
-            }
-        }
-
-        protected void Update()
-        {
-            if (_exporting)
-            {
-                _exporting = EditorTaskScheduler.Default.DisplayProgressBar();
             }
         }
 
@@ -244,10 +247,7 @@ namespace UnityToCustomEngineExporter.Editor
             if (EditorPrefs.HasKey(_usePhysicalValuesKey))
                 _usePhysicalValues = EditorPrefs.GetBool(_usePhysicalValuesKey);
 
-            foreach (var flag in _extraFlags)
-            {
-                flag.Load();
-            }
+            foreach (var flag in _extraFlags) flag.Load();
         }
 
         private void OnLostFocus()
@@ -263,10 +263,7 @@ namespace UnityToCustomEngineExporter.Editor
             EditorPrefs.SetBool(_exportSceneAsPrefabKey, _exportSceneAsPrefab);
             EditorPrefs.SetBool(_skipDisabledKey, _skipDisabled);
             EditorPrefs.SetBool(_usePhysicalValuesKey, _usePhysicalValues);
-            foreach (var flag in _extraFlags)
-            {
-                flag.Save();
-            }
+            foreach (var flag in _extraFlags) flag.Save();
         }
 
         private void OnDestroy()

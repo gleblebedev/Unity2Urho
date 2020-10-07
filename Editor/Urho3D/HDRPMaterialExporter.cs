@@ -13,10 +13,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override bool CanExportMaterial(Material material)
         {
-            return (material.shader.name == "HDRP/Lit");
+            return material.shader.name == "HDRP/Lit";
         }
 
-        protected override void ParseColor(string propertyName, Color color, MetallicGlossinessShaderArguments arguments)
+        protected override void ParseColor(string propertyName, Color color,
+            MetallicGlossinessShaderArguments arguments)
         {
             switch (propertyName)
             {
@@ -50,7 +51,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        protected override void ParseTexture(string propertyName, Texture texture, MetallicGlossinessShaderArguments arguments)
+        protected override void ParseTexture(string propertyName, Texture texture,
+            MetallicGlossinessShaderArguments arguments)
         {
             if (texture == null)
                 return;
@@ -89,7 +91,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        protected override void ParseFloatOrRange(string propertyName, float value, MetallicGlossinessShaderArguments arguments)
+        protected override void ParseFloatOrRange(string propertyName, float value,
+            MetallicGlossinessShaderArguments arguments)
         {
             switch (propertyName)
             {

@@ -8,12 +8,14 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class TextureProcessor
     {
-        public void ProcessAndSaveTexture(Texture sourceTexture, string shaderName, string fullOutputPath, bool hasAlpha = true)
+        public void ProcessAndSaveTexture(Texture sourceTexture, string shaderName, string fullOutputPath,
+            bool hasAlpha = true)
         {
             ProcessAndSaveTexture(sourceTexture, Shader.Find(shaderName), fullOutputPath, hasAlpha);
         }
 
-        public void ProcessAndSaveTexture(Texture sourceTexture, Shader shader, string fullOutputPath, bool hasAlpha = true)
+        public void ProcessAndSaveTexture(Texture sourceTexture, Shader shader, string fullOutputPath,
+            bool hasAlpha = true)
         {
             Material material = null;
 
@@ -28,9 +30,11 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
-        public void ProcessAndSaveTexture(Texture sourceTexture, Material material, string fullOutputPath, bool hasAlpha = true)
+        public void ProcessAndSaveTexture(Texture sourceTexture, Material material, string fullOutputPath,
+            bool hasAlpha = true)
         {
-            ProcessAndSaveTexture(sourceTexture, sourceTexture.width, sourceTexture.height, material, fullOutputPath, hasAlpha);
+            ProcessAndSaveTexture(sourceTexture, sourceTexture.width, sourceTexture.height, material, fullOutputPath,
+                hasAlpha);
         }
 
         public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material,

@@ -26,6 +26,5 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var a = new UTF8Encoding(false).GetBytes(boneName + '\0');
             writer.Write(a);
         }
-
     }
 }
