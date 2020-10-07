@@ -31,10 +31,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var exlusion = new HashSet<Renderer>();
 
             var sceneAssetName = ResolveAssetPath(scene);
-            var prefabContext = new PrefabContext()
-            {
-                TempFolder = ExportUtils.ReplaceExtension(sceneAssetName, "")
-            };
+            var prefabContext = new PrefabContext(_engine, null, ExportUtils.ReplaceExtension(sceneAssetName, ""));
             using (var writer = _engine.TryCreateXml(AssetKey.Empty, sceneAssetName, DateTime.MaxValue))
             {
                 if (writer == null) return;

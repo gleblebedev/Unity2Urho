@@ -40,11 +40,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (!_engine.Options.ExportMeshes)
                 return;
-            var meshSource = new MeshSource(mesh);
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             var assetKey = mesh.GetKey();
             var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
-            ExportMeshModel(meshSource, mdlFilePath, assetKey, lastWriteDateTimeUtc);
+            ExportMeshModel(()=> new MeshSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
         }
 
         public void ExportLODGroup(LODGroup mesh, PrefabContext prefabContext)
@@ -52,13 +51,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!_engine.Options.ExportMeshes)
                 return;
 
-            //TODO: Export lods.
-            return;
-            //var meshSource = new LODGroupSource(mesh);
-            //var mdlFilePath = EvaluateLODGroupName(mesh, prefabContext);
-            //var assetKey = mesh.GetKey();
-            //var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
-            //ExportMeshModel(meshSource, mdlFilePath, assetKey, lastWriteDateTimeUtc);
+            var mdlFilePath = EvaluateLODGroupName(mesh, prefabContext);
+            var assetKey = mesh.GetKey();
+            var lastWriteDateTimeUtc = ExportUtils.GetLastWriteTimeUtc(mesh);
+            ExportMeshModel(()=> new LODGroupSource(mesh), mdlFilePath, assetKey, lastWriteDateTimeUtc);
         }
         
 
@@ -67,7 +63,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var mdlFilePath = EvaluateMeshName(mesh, prefabContext);
             if (_engine.Options.ExportMeshes)
             {
-                ExportMeshModel(new NavMeshSource(mesh), mdlFilePath,
+                ExportMeshModel(()=>new NavMeshSource(mesh), mdlFilePath,
                     SceneManager.GetActiveScene().GetRootGameObjects().FirstOrDefault().GetKey(), DateTime.MaxValue);
             }
 
@@ -92,8 +88,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (skinnedMeshRenderer != null)
                     mesh = skinnedMeshRenderer.sharedMesh;
                 else if (meshFilter != null) mesh = meshFilter.sharedMesh;
-                var meshSource = new MeshSource(mesh, skinnedMeshRenderer);
-                ExportMeshModel(meshSource, EvaluateMeshName(mesh, prefabContext), mesh.GetKey(),
+                ExportMeshModel(()=> new MeshSource(mesh, skinnedMeshRenderer), EvaluateMeshName(mesh, prefabContext), mesh.GetKey(),
                     ExportUtils.GetLastWriteTimeUtc(mesh));
             }
 
@@ -101,7 +96,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             for (var i = 0; i < go.transform.childCount; ++i) ExportMesh(go.transform.GetChild(i).gameObject, prefabContext);
         }
 
-        public void ExportMeshModel(IMeshSource mesh, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
+        public void ExportMeshModel(Func<IMeshSource> meshSource, string mdlFilePath, AssetKey key, DateTime lastWriteDateTimeUtc)
         {
             if (!_engine.Options.ExportMeshes)
                 return;
@@ -110,6 +105,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (file != null)
                     using (var writer = new BinaryWriter(file))
                     {
+                        var mesh = meshSource();
                         WriteMesh(writer, mesh);
                     }
             }
@@ -131,6 +127,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (lodGroup == null)
                 return null;
+            if (!string.IsNullOrWhiteSpace(lodGroup.gameObject.name))
+            {
+                return ExportUtils.Combine(prefabContext.TempFolder, lodGroup.gameObject.name + ".mdl");
+            }
             var lods = lodGroup.GetLODs();
             if (lods.Length == 0)
                 return null;
@@ -171,7 +171,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
         {
-            ExportMeshModel(new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh, prefabContext),
+            ExportMeshModel(()=>new ProBuilderMeshSource(proBuilderMesh), EvaluateMeshName(proBuilderMesh, prefabContext),
                 proBuilderMesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh));
         }
 
@@ -215,200 +215,219 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void WriteMesh(BinaryWriter writer, IMeshSource mesh)
         {
-            writer.Write(Magic2);
-            writer.Write(1);
-            for (var vbIndex = 0; vbIndex < 1 /*_mesh.vertexBufferCount*/; ++vbIndex)
-            {
-                var positions = mesh.Vertices;
-                var normals = mesh.Normals;
-                var colors = mesh.Colors;
-                var tangents = mesh.Tangents;
-                var boneWeights = mesh.BoneWeights;
-                var uvs = mesh.TexCoords0;
-                var uvs2 = mesh.TexCoords1;
-                var uvs3 = mesh.TexCoords2;
-                var uvs4 = mesh.TexCoords3;
+            float minX, minY, minZ;
+            float maxX, maxY, maxZ;
+            maxX = maxY = maxZ = float.MinValue;
+            minX = minY = minZ = float.MaxValue;
+            var totalIndices = 0;
 
-                writer.Write(positions.Count);
-                var elements = new List<MeshStreamWriter>();
-                if (positions.Count > 0)
-                    elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
-                if (normals.Count > 0)
-                    elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
-                if (boneWeights.Length > 0)
+            var indexBuffer = new List<int>(1024);
+            writer.Write(Magic2);
+            var positions = mesh.Vertices;
+            {   // Vertex buffer
+                UInt32 numVertexBuffers = 1;
+                writer.Write(numVertexBuffers);
+                for (var vbIndex = 0; vbIndex < numVertexBuffers; ++vbIndex)
                 {
-                    var indices = new Vector4[boneWeights.Length];
-                    var weights = new Vector4[boneWeights.Length];
-                    for (var i = 0; i < boneWeights.Length; ++i)
+                    var normals = mesh.Normals;
+                    var colors = mesh.Colors;
+                    var tangents = mesh.Tangents;
+                    var boneWeights = mesh.BoneWeights;
+                    var uvs = mesh.TexCoords0;
+                    var uvs2 = mesh.TexCoords1;
+                    var uvs3 = mesh.TexCoords2;
+                    var uvs4 = mesh.TexCoords3;
+
+                    writer.Write(positions.Count);
+                    var elements = new List<MeshStreamWriter>();
+                    if (positions.Count > 0)
+                        elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
+                    if (normals.Count > 0)
+                        elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
+                    if (boneWeights.Length > 0)
                     {
-                        indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
-                            boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
-                        weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
-                            boneWeights[i].weight2, boneWeights[i].weight3);
+                        var indices = new Vector4[boneWeights.Length];
+                        var weights = new Vector4[boneWeights.Length];
+                        for (var i = 0; i < boneWeights.Length; ++i)
+                        {
+                            indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
+                                boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
+                            weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
+                                boneWeights[i].weight2, boneWeights[i].weight3);
+                        }
+
+                        elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
+                        elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
                     }
 
-                    elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
-                    elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
-                }
+                    if (colors.Count > 0) elements.Add(new MeshColor32Stream(colors, VertexElementSemantic.SEM_COLOR));
+                    if (tangents.Count > 0)
+                        elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
+                    if (uvs.Count > 0)
+                        elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
+                    if (uvs2.Count > 0)
+                        elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
+                    if (uvs3.Count > 0)
+                        elements.Add(new MeshUVStream(uvs3, VertexElementSemantic.SEM_TEXCOORD, 2));
+                    if (uvs4.Count > 0)
+                        elements.Add(new MeshUVStream(uvs4, VertexElementSemantic.SEM_TEXCOORD, 3));
+                    writer.Write(elements.Count);
+                    for (var i = 0; i < elements.Count; ++i)
+                        writer.Write(elements[i].Element);
+                    var morphableVertexRangeStartIndex = 0;
+                    var morphableVertexCount = 0;
+                    writer.Write(morphableVertexRangeStartIndex);
+                    writer.Write(morphableVertexCount);
+                    for (var index = 0; index < positions.Count; ++index)
+                    for (var i = 0; i < elements.Count; ++i)
+                        elements[i].Write(writer, index);
+                    for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
+                    {
+                        var meshGeometry = mesh.GetGeomtery(subMeshIndex);
+                        for (int lodIndex = 0; lodIndex < meshGeometry.NumLods; lodIndex++)
+                        {
+                            var indices = meshGeometry.GetIndices(lodIndex);
+                            indexBuffer.AddRange(indices);
+                            totalIndices += indices.Count;
+                        }
+                    }
 
-                if (colors.Count > 0) elements.Add(new MeshColor32Stream(colors, VertexElementSemantic.SEM_COLOR));
-                if (tangents.Count > 0)
-                    elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
-                if (uvs.Count > 0)
-                    elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
-                if (uvs2.Count > 0)
-                    elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
-                if (uvs3.Count > 0)
-                    elements.Add(new MeshUVStream(uvs3, VertexElementSemantic.SEM_TEXCOORD, 2));
-                if (uvs4.Count > 0)
-                    elements.Add(new MeshUVStream(uvs4, VertexElementSemantic.SEM_TEXCOORD, 3));
-                writer.Write(elements.Count);
-                for (var i = 0; i < elements.Count; ++i)
-                    writer.Write(elements[i].Element);
-                var morphableVertexRangeStartIndex = 0;
-                var morphableVertexCount = 0;
-                writer.Write(morphableVertexRangeStartIndex);
-                writer.Write(morphableVertexCount);
-                for (var index = 0; index < positions.Count; ++index)
-                for (var i = 0; i < elements.Count; ++i)
-                    elements[i].Write(writer, index);
-                var indicesPerSubMesh = new List<IList<int>>();
-                var totalIndices = 0;
-                for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
-                {
-                    var indices = mesh.GetIndices(subMeshIndex);
-                    indicesPerSubMesh.Add(indices);
-                    totalIndices += indices.Count;
+                    for (var i = 0; i < positions.Count; ++i)
+                    {
+                        if (minX > positions[i].x)
+                            minX = positions[i].x;
+                        if (minY > positions[i].y)
+                            minY = positions[i].y;
+                        if (minZ > positions[i].z)
+                            minZ = positions[i].z;
+                        if (maxX < positions[i].x)
+                            maxX = positions[i].x;
+                        if (maxY < positions[i].y)
+                            maxY = positions[i].y;
+                        if (maxZ < positions[i].z)
+                            maxZ = positions[i].z;
+                    }
                 }
+            }
 
-                writer.Write(1);
+            {   // Index buffer
+                UInt32 numIndexBuffers = 1;
+                writer.Write(numIndexBuffers);
                 writer.Write(totalIndices);
-                if (positions.Count < 65536)
+                if (!indexBuffer.Any(_ => _ > 65535))
                 {
                     writer.Write(2);
                     for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
-                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
-                        writer.Write((ushort) indicesPerSubMesh[subMeshIndex][i]);
+                    for (var i = 0; i < indexBuffer.Count; ++i)
+                        writer.Write((ushort)indexBuffer[i]);
                 }
                 else
                 {
                     writer.Write(4);
                     for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
-                    for (var i = 0; i < indicesPerSubMesh[subMeshIndex].Count; ++i)
-                        writer.Write(indicesPerSubMesh[subMeshIndex][i]);
+                    for (var i = 0; i < indexBuffer.Count; ++i)
+                        writer.Write((uint)indexBuffer[i]);
                 }
-
-                writer.Write(indicesPerSubMesh.Count);
-                totalIndices = 0;
-                for (var subMeshIndex = 0; subMeshIndex < indicesPerSubMesh.Count; ++subMeshIndex)
-                {
-                    var numberOfBoneMappingEntries = 0;
-                    writer.Write(numberOfBoneMappingEntries);
-                    var numberOfLODLevels = 1;
-                    writer.Write(numberOfLODLevels);
-                    writer.Write(0.0f);
-                    writer.Write((int) PrimitiveType.TRIANGLE_LIST);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(totalIndices);
-                    writer.Write(indicesPerSubMesh[subMeshIndex].Count);
-                    totalIndices += indicesPerSubMesh[subMeshIndex].Count;
-                }
-
-                var numMorphTargets = 0;
-                writer.Write(numMorphTargets);
-
-                var bones = BuildBones(mesh);
-                var numOfBones = bones.Length;
-                writer.Write(numOfBones);
-                var boneIndex = 0;
-                foreach (var bone in bones)
-                {
-                    WriteStringSZ(writer, _engine.DecorateName(bone.name));
-                    writer.Write(bone.parent); //Parent
-                    Write(writer, bone.actualPos);
-                    Write(writer, bone.actualRot);
-                    Write(writer, bone.actualScale);
-
-                    var d = new[]
-                    {
-                        bone.binding.m00, bone.binding.m01, bone.binding.m02, bone.binding.m03,
-                        bone.binding.m10, bone.binding.m11, bone.binding.m12, bone.binding.m13,
-                        bone.binding.m20, bone.binding.m21, bone.binding.m22, bone.binding.m23
-                    };
-                    foreach (var v in d) writer.Write(v);
-
-                    using (var e = GetBoneVertices(boneWeights, boneIndex).GetEnumerator())
-                    {
-                        if (!e.MoveNext())
-                        {
-                            writer.Write((byte) 3);
-                            //R
-                            writer.Write(0.1f);
-                            //BBox
-                            Write(writer, new Vector3(-0.1f, -0.1f, -0.1f));
-                            Write(writer, new Vector3(0.1f, 0.1f, 0.1f));
-                        }
-                        else
-                        {
-                            var binding = bone.binding;
-                            //binding = binding.inverse;
-                            var center = binding.MultiplyPoint(positions[e.Current]);
-                            var min = center;
-                            var max = center;
-
-                            while (e.MoveNext())
-                            {
-                                var originalPosition = positions[e.Current];
-                                var p = binding.MultiplyPoint(originalPosition);
-                                if (p.x < min.x) min.x = p.x;
-                                if (p.y < min.y) min.y = p.y;
-                                if (p.z < min.z) min.z = p.z;
-                                if (p.x > max.x) max.x = p.x;
-                                if (p.y > max.y) max.y = p.y;
-                                if (p.z > max.z) max.z = p.z;
-                            }
-
-                            writer.Write((byte) 3);
-                            //R
-                            writer.Write(Math.Max(max.magnitude, min.magnitude));
-                            //BBox
-                            Write(writer, min);
-                            Write(writer, max);
-                        }
-                    }
-
-
-                    ++boneIndex;
-                }
-
-                float minX, minY, minZ;
-                float maxX, maxY, maxZ;
-                maxX = maxY = maxZ = float.MinValue;
-                minX = minY = minZ = float.MaxValue;
-                for (var i = 0; i < positions.Count; ++i)
-                {
-                    if (minX > positions[i].x)
-                        minX = positions[i].x;
-                    if (minY > positions[i].y)
-                        minY = positions[i].y;
-                    if (minZ > positions[i].z)
-                        minZ = positions[i].z;
-                    if (maxX < positions[i].x)
-                        maxX = positions[i].x;
-                    if (maxY < positions[i].y)
-                        maxY = positions[i].y;
-                    if (maxZ < positions[i].z)
-                        maxZ = positions[i].z;
-                }
-
-                writer.Write(minX);
-                writer.Write(minY);
-                writer.Write(minZ);
-                writer.Write(maxX);
-                writer.Write(maxY);
-                writer.Write(maxZ);
             }
+
+            writer.Write(mesh.SubMeshCount);
+            int indexOffset = 0;
+            for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
+            {
+                var numberOfBoneMappingEntries = 0;
+                writer.Write(numberOfBoneMappingEntries);
+
+                var geomtery = mesh.GetGeomtery(subMeshIndex);
+
+                var numberOfLODLevels = geomtery.NumLods;
+                writer.Write((int)numberOfLODLevels);
+                for (int lodIndex = 0; lodIndex < numberOfLODLevels; lodIndex++)
+                {
+                    var lodIndices = geomtery.GetIndices(lodIndex);
+                    writer.Write(0.0f);
+                    writer.Write((int)PrimitiveType.TRIANGLE_LIST);
+                    writer.Write(0);
+                    writer.Write(0);
+                    writer.Write(indexOffset);
+                    var indicesPerLod = lodIndices.Count;
+                    writer.Write(indicesPerLod);
+                    indexOffset += indicesPerLod;
+                }
+            }
+
+            var numMorphTargets = 0;
+            writer.Write(numMorphTargets);
+
+            var bones = BuildBones(mesh);
+            var numOfBones = bones.Length;
+            writer.Write(numOfBones);
+            var boneIndex = 0;
+            foreach (var bone in bones)
+            {
+                WriteStringSZ(writer, _engine.DecorateName(bone.name));
+                writer.Write(bone.parent); //Parent
+                Write(writer, bone.actualPos);
+                Write(writer, bone.actualRot);
+                Write(writer, bone.actualScale);
+
+                var d = new[]
+                {
+                    bone.binding.m00, bone.binding.m01, bone.binding.m02, bone.binding.m03,
+                    bone.binding.m10, bone.binding.m11, bone.binding.m12, bone.binding.m13,
+                    bone.binding.m20, bone.binding.m21, bone.binding.m22, bone.binding.m23
+                };
+                foreach (var v in d) writer.Write(v);
+
+                using (var e = GetBoneVertices(mesh.BoneWeights, boneIndex).GetEnumerator())
+                {
+                    if (!e.MoveNext())
+                    {
+                        writer.Write((byte) 3);
+                        //R
+                        writer.Write(0.1f);
+                        //BBox
+                        Write(writer, new Vector3(-0.1f, -0.1f, -0.1f));
+                        Write(writer, new Vector3(0.1f, 0.1f, 0.1f));
+                    }
+                    else
+                    {
+                        var binding = bone.binding;
+                        //binding = binding.inverse;
+                        var center = binding.MultiplyPoint(positions[e.Current]);
+                        var min = center;
+                        var max = center;
+
+                        while (e.MoveNext())
+                        {
+                            var originalPosition = positions[e.Current];
+                            var p = binding.MultiplyPoint(originalPosition);
+                            if (p.x < min.x) min.x = p.x;
+                            if (p.y < min.y) min.y = p.y;
+                            if (p.z < min.z) min.z = p.z;
+                            if (p.x > max.x) max.x = p.x;
+                            if (p.y > max.y) max.y = p.y;
+                            if (p.z > max.z) max.z = p.z;
+                        }
+
+                        writer.Write((byte) 3);
+                        //R
+                        writer.Write(Math.Max(max.magnitude, min.magnitude));
+                        //BBox
+                        Write(writer, min);
+                        Write(writer, max);
+                    }
+                }
+
+                ++boneIndex;
+            }
+
+            writer.Write(minX);
+            writer.Write(minY);
+            writer.Write(minZ);
+            writer.Write(maxX);
+            writer.Write(maxY);
+            writer.Write(maxZ);
+            
         }
 
         private Vector4[] FlipW(IList<Vector4> tangents)

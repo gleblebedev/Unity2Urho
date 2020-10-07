@@ -24,10 +24,24 @@ namespace UnityToCustomEngineExporter.Editor
         public override IList<Vector2> TexCoords0 { get; }
 
         public override int SubMeshCount => 1;
-
-        public override IList<int> GetIndices(int subMeshIndex)
+        public override IMeshGeometry GetGeomtery(int subMeshIndex)
         {
-            return _mesh.indices;
+            return new Geometry(_mesh);
+        }
+
+        class Geometry:IMeshGeometry
+        {
+            private readonly NavMeshTriangulation _mesh;
+
+            public Geometry(NavMeshTriangulation mesh)
+            {
+                _mesh = mesh;
+            }
+            public int NumLods => 1;
+            public IList<int> GetIndices(int lod)
+            {
+                return _mesh.indices;
+            }
         }
     }
 }

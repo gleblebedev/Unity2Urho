@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Xml;
 using TreeEditor;
 using UnityEditor;
@@ -117,6 +118,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
             bool parentEnabled, PrefabContext prefabContext)
         {
+            prefabContext = prefabContext.Retarget(obj);
+
             var isEnabled = obj.activeSelf && parentEnabled;
             if (_engine.Options.SkipDisabled && !isEnabled) return;
 
@@ -275,15 +278,59 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (lodGroup != null)
             {
-                //TODO: Generate lod mesh
-                var name = _engine.ScheduleLODGroup(lodGroup, prefabContext);
+                bool canExportLods = false;
+                if (canExportLods)
+                {
+                    _engine.ScheduleLODGroup(lodGroup, prefabContext);
+                    var lods = lodGroup.GetLODs();
+                    var renderers = lods.SelectMany(_ => _.renderers).ToList();
 
-                var lods = lodGroup.GetLODs();
-                foreach (var lod in lods.Skip(1))
-                foreach (var renderer in lod.renderers)
-                    localExcludeList.Add(renderer);
+                    StartComponent(writer, subPrefix, "StaticModel", lodGroup.enabled);
+                    var meshPath = _engine.EvaluateMeshName(lodGroup, prefabContext);
+                    if (!string.IsNullOrWhiteSpace(meshPath))
+                        WriteAttribute(writer, subSubPrefix, "Model", "Model;" + meshPath);
+
+                    var materials = new StringBuilder("Material");
+                    var visitedMaterials = new HashSet<Material>();
+                    foreach (var renderer in renderers)
+                    {
+                        foreach (Material material in renderer.materials)
+                        {
+                            if (visitedMaterials.Add(material))
+                            {
+                                _engine.ScheduleAssetExport(material, prefabContext);
+                                var path = _engine.EvaluateMaterialName(material);
+                                materials.Append(";");
+                                materials.Append(path);
+                            }
+                        }
+                    }
+
+                    WriteAttribute(writer, subSubPrefix, "Material", materials.ToString());
+
+                    var firstRenderer = renderers.FirstOrDefault();
+                    if (firstRenderer != null)
+                    {
+                        WriteAttribute(writer, subSubPrefix, "Cast Shadows",
+                            firstRenderer.shadowCastingMode != ShadowCastingMode.Off);
+                    }
+
+                    EndElement(writer, subPrefix);
+
+                    foreach (var lod in lods.Skip(0))
+                    {
+                        foreach (var renderer in lod.renderers)
+                            localExcludeList.Add(renderer);
+                    }
+                }
+                else
+                {
+                    var lods = lodGroup.GetLODs();
+                    foreach (var lod in lods.Skip(1))
+                    foreach (var renderer in lod.renderers)
+                        localExcludeList.Add(renderer);
+                }
             }
-
             if (meshRenderer != null)
             {
                 if (!localExcludeList.Contains(meshRenderer))

@@ -241,7 +241,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             return _meshExporter.EvaluateMeshName(sharedMesh, prefabContext);
         }
-
+        public string EvaluateMeshName(LODGroup sharedMesh, PrefabContext prefabContext)
+        {
+            return _meshExporter.EvaluateLODGroupName(sharedMesh, prefabContext);
+        }
         public string EvaluateMeshName(ProBuilderMesh sharedMesh, PrefabContext prefabContext)
         {
             return _meshExporter.EvaluateMeshName(sharedMesh, prefabContext);
@@ -311,7 +314,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 foreach (var asset in assets)
                     if (asset is Mesh mesh)
                         EditorTaskScheduler.Default.ScheduleForegroundTask(
-                            () => _meshExporter.ExportMeshModel(new MeshSource(mesh), EvaluateMeshName(mesh, prefabContext),
+                            () => _meshExporter.ExportMeshModel(()=>new MeshSource(mesh), EvaluateMeshName(mesh, prefabContext),
                                 mesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(mesh)),
                             mesh.name + " from " + assetPath);
             }

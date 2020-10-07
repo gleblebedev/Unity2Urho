@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Xml.Xsl;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
@@ -66,9 +68,31 @@ namespace UnityToCustomEngineExporter.Editor
             return _skin.sharedMesh.bindposes[index];
         }
 
-        public override IList<int> GetIndices(int subMeshIndex)
+        public override IMeshGeometry GetGeomtery(int subMeshIndex)
         {
-            return _mesh.GetIndices(subMeshIndex);
+            return new Geometry(_mesh, subMeshIndex);
+        }
+
+        private class Geometry:IMeshGeometry
+        {
+            private readonly Mesh _mesh;
+            private readonly int _submesh;
+
+            public Geometry(Mesh mesh, int submesh)
+            {
+                _mesh = mesh;
+                _submesh = submesh;
+            }
+            public int NumLods
+            {
+                get { return 1; }
+            }
+            public IList<int> GetIndices(int lod)
+            {
+                if (lod == 0)
+                    return _mesh.GetIndices(_submesh);
+                return Array.Empty<int>();
+            }
         }
     }
 }

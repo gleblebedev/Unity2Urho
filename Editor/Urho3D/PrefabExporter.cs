@@ -16,10 +16,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (writer == null)
                     return;
-                var prefabContext = new PrefabContext()
-                {
-                    TempFolder = ExportUtils.ReplaceExtension(relativePath, "")
-                };
+                var prefabContext = new PrefabContext(_engine, gameObject, ExportUtils.ReplaceExtension(relativePath, ""));
 
                 WriteObject(writer, "", gameObject, new HashSet<Renderer>(), true, prefabContext);
             }

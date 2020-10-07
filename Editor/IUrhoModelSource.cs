@@ -19,6 +19,12 @@ namespace UnityToCustomEngineExporter.Editor
         Transform GetBoneTransform(int index);
         int? GetBoneParent(int index);
         Matrix4x4 GetBoneBindPose(int index);
-        IList<int> GetIndices(int subMeshIndex);
+        IMeshGeometry GetGeomtery(int subMeshIndex);
+    }
+
+    public interface IMeshGeometry
+    {
+        int NumLods { get; }
+        IList<int> GetIndices(int lod);
     }
 }

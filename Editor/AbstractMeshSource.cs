@@ -20,7 +20,7 @@ namespace UnityToCustomEngineExporter.Editor
         public virtual IList<Vector2> TexCoords2 => Array.Empty<Vector2>();
         public virtual IList<Vector2> TexCoords3 => Array.Empty<Vector2>();
 
-        public abstract IList<int> GetIndices(int subMeshIndex);
+        public abstract IMeshGeometry GetGeomtery(int subMeshIndex);
 
         public virtual Transform GetBoneTransform(int index)
         {

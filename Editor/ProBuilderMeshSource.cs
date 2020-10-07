@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.ProBuilder;
@@ -10,7 +11,7 @@ namespace UnityToCustomEngineExporter.Editor
     {
         private readonly ProBuilderMesh _mesh;
         private readonly Color32[] _colors;
-        private readonly List<List<int>> _indicesPerSubMesh;
+        private readonly List<Geometry> _geometries;
 
         public ProBuilderMeshSource(ProBuilderMesh mesh)
         {
@@ -22,15 +23,15 @@ namespace UnityToCustomEngineExporter.Editor
                 for (var index = 0; index < _mesh.colors.Count; index++) _colors[index] = _mesh.colors[index];
             }
 
-            _indicesPerSubMesh = new List<List<int>>(subMeshCount);
+            _geometries = new List<Geometry>(subMeshCount);
             for (var subMeshIndex = 0; subMeshIndex < subMeshCount; ++subMeshIndex)
             {
-                _indicesPerSubMesh.Add(new List<int>());
+                _geometries.Add(new Geometry());
             }
 
             foreach (var face in _mesh.faces)
             {
-                var indices = _indicesPerSubMesh[face.submeshIndex];
+                var indices = _geometries[face.submeshIndex];
                 indices.AddRange(face.indexes);
             }
         }
@@ -42,11 +43,31 @@ namespace UnityToCustomEngineExporter.Editor
         public override IList<Color32> Colors => _colors ?? Array.Empty<Color32>();
         public override IList<Vector4> Tangents => _mesh.tangents ?? Array.Empty<Vector4>();
         public override IList<Vector2> TexCoords0 => _mesh.textures ?? Array.Empty<Vector2>();
-        public override int SubMeshCount => _indicesPerSubMesh.Count;
-
-        public override IList<int> GetIndices(int subMeshIndex)
+        public override int SubMeshCount => _geometries.Count;
+        public override IMeshGeometry GetGeomtery(int subMeshIndex)
         {
-            return _indicesPerSubMesh[subMeshIndex];
+            return _geometries[subMeshIndex];
         }
+
+        class Geometry:IMeshGeometry
+        {
+            List<int> _indices = new List<int>();
+
+            public Geometry()
+            {
+            }
+
+            public void AddRange(IEnumerable<int> faceIndexes)
+            {
+                _indices.AddRange(faceIndexes);
+            }
+
+            public int NumLods => 1;
+            public IList<int> GetIndices(int lod)
+            {
+                return _indices;
+            }
+        }
+
     }
 }
