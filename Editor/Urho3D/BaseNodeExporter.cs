@@ -160,6 +160,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     ExportAudioSource(writer, audioSource, subPrefix, prefabContext);
                 }
+                else if (component is ParticleSystem particleSystem)
+                {
+                    ExportParticleSystem(writer, particleSystem, subPrefix, prefabContext, isEnabled);
+                }
                 else if (component is Terrain terrain)
                 {
                     ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix,
@@ -276,7 +280,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (lodGroup != null)
             {
-                var canExportLods = false;
+                var canExportLods = CanExportAsLod(lodGroup);
                 if (canExportLods)
                 {
                     _engine.ScheduleLODGroup(lodGroup, prefabContext);
@@ -291,11 +295,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     var materials = new StringBuilder("Material");
                     var visitedMaterials = new HashSet<Material>();
                     foreach (var renderer in renderers)
-                    foreach (var material in renderer.materials)
+                    foreach (var material in renderer.sharedMaterials)
                         if (visitedMaterials.Add(material))
                         {
                             _engine.ScheduleAssetExport(material, prefabContext);
-                            var path = _engine.EvaluateMaterialName(material);
+                            var path = _engine.EvaluateMaterialName(material, prefabContext);
                             materials.Append(";");
                             materials.Append(path);
                         }
@@ -352,7 +356,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         foreach (var material in meshRenderer.sharedMaterials)
                         {
                             _engine.ScheduleAssetExport(material, prefabContext);
-                            var path = _engine.EvaluateMaterialName(material);
+                            var path = _engine.EvaluateMaterialName(material, prefabContext);
                             materials += ";" + path;
                         }
 
@@ -384,7 +388,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     foreach (var material in skinnedMeshRenderer.sharedMaterials)
                     {
                         _engine.ScheduleAssetExport(material, prefabContext);
-                        var path = _engine.EvaluateMaterialName(material);
+                        var path = _engine.EvaluateMaterialName(material, prefabContext);
                         materials += ";" + path;
                     }
 
@@ -435,7 +439,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             _engine.ScheduleAssetExport(skyboxMaterial, prefabContext);
-            var materials = "Material;" + _engine.EvaluateMaterialName(skyboxMaterial);
+            var materials = "Material;" + _engine.EvaluateMaterialName(skyboxMaterial, prefabContext);
             WriteAttribute(writer, subSubPrefix, "Material", materials);
             EndElement(writer, subPrefix);
         }
@@ -503,6 +507,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteStartElement("node");
             writer.WriteAttributeString("id", (++_id).ToString(CultureInfo.InvariantCulture));
             writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        private bool CanExportAsLod(LODGroup lodGroup)
+        {
+            if (!_engine.Options.ExportLODs)
+                return false;
+            if (lodGroup.GetLODs().SelectMany(_ => _.renderers).Any(_ => _ is SkinnedMeshRenderer))
+                return false;
+            return true;
         }
 
         private void WriteCharacterController(XmlWriter writer, string prefix, CharacterController characterController,
@@ -775,6 +788,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 EndElement(writer, subPrefix);
             }
+        }
+
+        private void ExportParticleSystem(XmlWriter writer, ParticleSystem particleSystem, string subPrefix,
+            PrefabContext prefabContext, bool enabled)
+        {
+            var subSubPrefix = subPrefix + "\t";
+            StartComponent(writer, subPrefix, "ParticleEmitter", true);
+            var name = _engine.ScheduleParticleEffect(particleSystem, prefabContext);
+            WriteAttribute(writer, subSubPrefix, "Effect", "Texture2D;" + name);
+            WriteAttribute(writer, subSubPrefix, "Animation LOD Bias", 0);
+            EndElement(writer, subPrefix);
         }
 
         private void ExportAudioSource(XmlWriter writer, AudioSource audioSource, string subPrefix,

@@ -33,5 +33,8 @@
         ///     Replace all non-ASCII characters in file and node names.
         /// </summary>
         public bool ASCIIOnly { get; set; } = false;
+
+        public bool ExportLODs { get; set; } = false;
+        public bool ExportParticles { get; set; } = true;
     }
 }

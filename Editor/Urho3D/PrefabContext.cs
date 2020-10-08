@@ -6,9 +6,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     public class PrefabContext
     {
         private readonly Urho3DEngine _engine;
-        private string _prefabFolder;
         private readonly string _defaultFolder;
         private readonly GameObject _prefabRoot;
+        private string _prefabFolder;
 
         public PrefabContext(Urho3DEngine engine, GameObject prefabRoot, string path, string defaultFolder = null)
         {

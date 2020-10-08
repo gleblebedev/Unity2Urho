@@ -91,6 +91,11 @@ namespace UnityToCustomEngineExporter.Editor
                     return _mesh.GetIndices(_submesh);
                 return Array.Empty<int>();
             }
+
+            public float GetLodDistance(int lod)
+            {
+                return 0;
+            }
         }
     }
 }

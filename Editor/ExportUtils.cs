@@ -36,9 +36,11 @@ namespace UnityToCustomEngineExporter.Editor
             if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long localId))
                 return new AssetKey(guid, localId);
             var assetPath = AssetDatabase.GetAssetPath(asset);
-            if (string.IsNullOrWhiteSpace(assetPath))
-                return AssetKey.Empty;
-            return new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0);
+            if (!string.IsNullOrWhiteSpace(assetPath)) return new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0);
+            assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(asset);
+            if (!string.IsNullOrWhiteSpace(assetPath)) return new AssetKey(AssetDatabase.AssetPathToGUID(assetPath), 0);
+
+            return AssetKey.Empty;
         }
 
         public static string ReplaceExtension(string assetUrhoAssetName, string newExt)

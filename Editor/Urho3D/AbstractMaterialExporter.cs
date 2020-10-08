@@ -126,13 +126,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public abstract void ExportMaterial(Material material, PrefabContext prefabContext);
 
-        public virtual string EvaluateMaterialName(Material material)
+        public virtual string EvaluateMaterialName(Material material, PrefabContext context)
         {
             if (material == null)
                 return null;
             var assetPath = AssetDatabase.GetAssetPath(material);
             if (string.IsNullOrWhiteSpace(assetPath))
-                return null;
+                assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(material);
+            if (string.IsNullOrWhiteSpace(assetPath))
+                assetPath = ExportUtils.Combine(context.TempFolder, material.name + ".mat");
             if (assetPath.EndsWith(".mat", StringComparison.InvariantCultureIgnoreCase))
                 return ExportUtils.ReplaceExtension(
                     ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),

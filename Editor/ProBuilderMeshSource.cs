@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.ProBuilder;
+using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -12,9 +13,9 @@ namespace UnityToCustomEngineExporter.Editor
         private readonly Color32[] _colors;
         private readonly List<Geometry> _geometries;
 
-        public ProBuilderMeshSource(ProBuilderMesh mesh)
+        public ProBuilderMeshSource(Object mesh)
         {
-            _mesh = mesh;
+            _mesh = (ProBuilderMesh)mesh;
             var subMeshCount = _mesh.faces.Select(_ => _.submeshIndex).Max() + 1;
             if (_mesh.colors != null)
             {
@@ -60,6 +61,11 @@ namespace UnityToCustomEngineExporter.Editor
             public IList<int> GetIndices(int lod)
             {
                 return _indices;
+            }
+
+            public float GetLodDistance(int lod)
+            {
+                return 0;
             }
         }
     }

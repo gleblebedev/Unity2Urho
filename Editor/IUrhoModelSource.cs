@@ -26,5 +26,6 @@ namespace UnityToCustomEngineExporter.Editor
     {
         int NumLods { get; }
         IList<int> GetIndices(int lod);
+        float GetLodDistance(int lod);
     }
 }

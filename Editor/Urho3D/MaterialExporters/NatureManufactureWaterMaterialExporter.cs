@@ -18,7 +18,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
 
         public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
-            var urhoPath = EvaluateMaterialName(material);
+            var urhoPath = EvaluateMaterialName(material, prefabContext);
             using (var writer =
                 Engine.TryCreateXml(material.GetKey(), urhoPath, ExportUtils.GetLastWriteTimeUtc(material)))
             {

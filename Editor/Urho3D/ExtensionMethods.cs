@@ -21,7 +21,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\t");
             writer.WriteStartElement("parameter");
             writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("value", value.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttribute("value", value);
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
         }
@@ -31,8 +31,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\t");
             writer.WriteStartElement("parameter");
             writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("value",
-                string.Format(CultureInfo.InvariantCulture, "{0} {1}", value.x, value.y));
+            writer.WriteAttribute("value", value);
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
         }
@@ -42,8 +41,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\t");
             writer.WriteStartElement("parameter");
             writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("value",
-                string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", value.x, value.y, value.z));
+            writer.WriteAttribute("value", value);
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
         }
@@ -53,10 +51,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\t");
             writer.WriteStartElement("parameter");
             writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("value",
-                string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.x, value.y, value.z, value.w));
+            writer.WriteAttribute("value", value);
             writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        public static void WriteAttribute(this XmlWriter writer, string name, Vector4 value)
+        {
+            writer.WriteAttributeString(name,
+                string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.x, value.y, value.z, value.w));
+        }
+
+        public static void WriteAttribute(this XmlWriter writer, string name, Vector3 value)
+        {
+            writer.WriteAttributeString(name,
+                string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", value.x, value.y, value.z));
+        }
+
+        public static void WriteAttribute(this XmlWriter writer, string name, Vector2 value)
+        {
+            writer.WriteAttributeString(name, string.Format(CultureInfo.InvariantCulture, "{0} {1}", value.x, value.y));
+        }
+
+        public static void WriteAttribute(this XmlWriter writer, string name, float value)
+        {
+            writer.WriteAttributeString(name, value.ToString(CultureInfo.InvariantCulture));
         }
 
         public static void WriteParameter(this XmlWriter writer, string name, Quaternion value)

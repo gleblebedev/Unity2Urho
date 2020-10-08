@@ -64,7 +64,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
             var assetGuid = material.GetKey();
-            var urhoPath = EvaluateMaterialName(material);
+            var urhoPath = EvaluateMaterialName(material, prefabContext);
             var arguments = SetupSkybox(material);
             using (var writer = Engine.TryCreateXml(assetGuid, urhoPath, ExportUtils.GetLastWriteTimeUtc(material)))
             {

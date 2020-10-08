@@ -21,6 +21,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly TextureExporter _textureExporter;
         private readonly CubemapExporter _cubemapExporter;
         private readonly MeshExporter _meshExporter;
+        private readonly ParticleExporter _particleExporter;
         private readonly AnimationExporter _animationExporter;
         private readonly AnimationControllerExporter _animationControllerExporter;
         private readonly MaterialExporter _materialExporter;
@@ -44,6 +45,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _textureExporter = new TextureExporter(this);
             _cubemapExporter = new CubemapExporter(this);
             _meshExporter = new MeshExporter(this);
+            _particleExporter = new ParticleExporter(this);
             _materialExporter = new MaterialExporter(this);
             _sceneExporter = new SceneExporter(this);
             _prefabExporter = new PrefabExporter(this);
@@ -231,9 +233,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _textureExporter.EvaluateTextureName(texture);
         }
 
-        public string EvaluateMaterialName(Material skyboxMaterial)
+        public string EvaluateMaterialName(Material material, PrefabContext prefabContext)
         {
-            return _materialExporter.EvaluateMaterialName(skyboxMaterial);
+            return _materialExporter.EvaluateMaterialName(material, prefabContext);
         }
 
         public string EvaluateMeshName(Mesh sharedMesh, PrefabContext prefabContext)
@@ -292,9 +294,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _animationExporter.EvaluateAnimationName(clip, prefabContext);
         }
 
-        public string TryGetSkyboxCubemap(Material skyboxMaterial)
+        public string TryGetSkyboxCubemap(Material skyboxMaterial, PrefabContext prefabContext)
         {
-            return _materialExporter.TryGetSkyboxCubemap(skyboxMaterial);
+            return _materialExporter.TryGetSkyboxCubemap(skyboxMaterial, prefabContext);
         }
 
         public string ScheduleLODGroup(LODGroup lodGroup, PrefabContext prefabContext)
@@ -302,7 +304,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (lodGroup == null)
                 return null;
             var name = _meshExporter.EvaluateLODGroupName(lodGroup, prefabContext);
-            _meshExporter.ExportLODGroup(lodGroup, prefabContext);
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _meshExporter.ExportLODGroup(lodGroup, prefabContext), "LODGroup " + name);
+            return name;
+        }
+
+        public string ScheduleParticleEffect(ParticleSystem particleSystem, PrefabContext prefabContext)
+        {
+            if (particleSystem == null)
+                return null;
+            var name = _particleExporter.EvaluateName(particleSystem, prefabContext);
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _particleExporter.ExportEffect(particleSystem, prefabContext), "ParticleEffect " + name);
             return name;
         }
 
@@ -431,9 +444,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         protected override IEnumerable<ProgressBarReport> ExportDynamicAsset(Object asset, PrefabContext prefabContext)
         {
-            if (asset is ProBuilderMesh proBuilderMesh)
+            if (asset == null)
+                yield break;
+            if (asset.GetType().Name == "ProBuilderMesh")
             {
-                _meshExporter.ExportMesh(proBuilderMesh, prefabContext);
+                _meshExporter.ExportProBuilderMesh(asset, prefabContext);
                 yield break;
             }
 
@@ -442,6 +457,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _meshExporter.ExportMesh(mesh, prefabContext);
                 yield break;
             }
+
+            if (asset is Material material)
+            {
+                _materialExporter.ExportMaterial(material, prefabContext);
+                yield break;
+            }
+
+
+            if (asset is ParticleSystem particleSystem)
+            {
+                _particleExporter.ExportEffect(particleSystem, prefabContext);
+                yield break;
+            }
+
 
             if (asset is LODGroup lodGroup) _meshExporter.ExportLODGroup(lodGroup, prefabContext);
         }

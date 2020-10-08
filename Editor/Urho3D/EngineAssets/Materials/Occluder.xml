@@ -1,0 +1,4 @@
+<material>
+    <technique name="Techniques/Occluder.xml" />
+    <occlusion enable="true" />
+</material>

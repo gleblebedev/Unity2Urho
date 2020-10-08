@@ -36,8 +36,18 @@ namespace UnityToCustomEngineExporter.Editor
         private readonly BoolEditorProperty _exportMeshes =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
 
+        private readonly BoolEditorProperty _exportParticles =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportParticles", "Export Particles", true);
+
         private readonly BoolEditorProperty _exportAscii =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportAscii", "Replace non-ASCII chars", false);
+
+        private readonly BoolEditorProperty _exportLods =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportLODs", "Merge LOD Group into single model",
+                false);
+
+        private readonly BoolEditorProperty _mergeStaticGeometry =
+            new BoolEditorProperty("UnityToCustomEngineExporter.MergeStaticGeometry", "Merge static geometry", false);
 
         private readonly IList<BoolEditorProperty> _extraFlags;
         private string _exportFolder = "";
@@ -63,7 +73,9 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportTextures,
                 _exportAnimations,
                 _exportMeshes,
-                _exportAscii
+                _exportParticles,
+                _exportAscii,
+                _exportLods
             };
         }
 
@@ -199,6 +211,8 @@ namespace UnityToCustomEngineExporter.Editor
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
             options.ASCIIOnly = _exportAscii.Value;
+            options.ExportLODs = _exportLods.Value;
+            options.ExportParticles = _exportParticles.Value;
             return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, options);
         }
 

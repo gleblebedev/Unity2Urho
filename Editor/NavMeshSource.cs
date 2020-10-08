@@ -45,6 +45,11 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 return _mesh.indices;
             }
+
+            public float GetLodDistance(int lod)
+            {
+                return 0;
+            }
         }
     }
 }

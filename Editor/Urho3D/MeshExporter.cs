@@ -28,7 +28,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine = engine;
         }
 
-        public void ExportMesh(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
+        public void ExportProBuilderMesh(Object proBuilderMesh, PrefabContext prefabContext)
         {
             if (!_engine.Options.ExportMeshes)
                 return;
@@ -142,7 +142,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 lods.Length.ToString(CultureInfo.InvariantCulture) + "Lods.mdl");
         }
 
-        public string EvaluateMeshName(ProBuilderMesh mesh, PrefabContext prefabContext)
+        public string EvaluateMeshName(Object mesh, PrefabContext prefabContext)
         {
             if (mesh == null)
                 return null;
@@ -168,7 +168,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return ExportUtils.Combine(prefabContext.TempFolder, "NavMesh.mdl");
         }
 
-        private void ExportProBuilderMeshModel(ProBuilderMesh proBuilderMesh, PrefabContext prefabContext)
+        private void ExportProBuilderMeshModel(Object proBuilderMesh, PrefabContext prefabContext)
         {
             ExportMeshModel(() => new ProBuilderMeshSource(proBuilderMesh),
                 EvaluateMeshName(proBuilderMesh, prefabContext),
@@ -217,7 +217,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             float maxX, maxY, maxZ;
             maxX = maxY = maxZ = float.MinValue;
             minX = minY = minZ = float.MaxValue;
-            var totalIndices = 0;
 
             var indexBuffer = new List<int>(1024);
             writer.Write(Magic2);
@@ -287,7 +286,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         {
                             var indices = meshGeometry.GetIndices(lodIndex);
                             indexBuffer.AddRange(indices);
-                            totalIndices += indices.Count;
+                            foreach (var index in indices)
+                            {
+                                if (index > positions.Count)
+                                    throw new InvalidOperationException();
+                            }
                         }
                     }
 
@@ -313,18 +316,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 // Index buffer
                 uint numIndexBuffers = 1;
                 writer.Write(numIndexBuffers);
-                writer.Write(totalIndices);
+                writer.Write(indexBuffer.Count);
                 if (!indexBuffer.Any(_ => _ > 65535))
                 {
                     writer.Write(2);
-                    for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indexBuffer.Count; ++i)
                         writer.Write((ushort) indexBuffer[i]);
                 }
                 else
                 {
                     writer.Write(4);
-                    for (var subMeshIndex = 0; subMeshIndex < mesh.SubMeshCount; ++subMeshIndex)
                     for (var i = 0; i < indexBuffer.Count; ++i)
                         writer.Write((uint) indexBuffer[i]);
                 }
@@ -344,16 +345,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 for (var lodIndex = 0; lodIndex < numberOfLODLevels; lodIndex++)
                 {
                     var lodIndices = geomtery.GetIndices(lodIndex);
-                    writer.Write(0.0f);
-                    writer.Write((int) PrimitiveType.TRIANGLE_LIST);
-                    writer.Write(0);
-                    writer.Write(0);
-                    writer.Write(indexOffset);
+                    writer.Write((float)geomtery.GetLodDistance(lodIndex));
+                    writer.Write((uint) PrimitiveType.TRIANGLE_LIST);
+                    writer.Write((uint)0); //vb
+                    writer.Write((uint)0); //ib
+                    writer.Write((uint)indexOffset); //Draw range: index start
                     var indicesPerLod = lodIndices.Count;
-                    writer.Write(indicesPerLod);
+                    writer.Write((uint)indicesPerLod); //Draw range: index count
                     indexOffset += indicesPerLod;
                 }
             }
+            if (indexOffset != indexBuffer.Count)
+                throw new InvalidOperationException();
 
             var numMorphTargets = 0;
             writer.Write(numMorphTargets);

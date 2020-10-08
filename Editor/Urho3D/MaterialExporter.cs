@@ -30,16 +30,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }.OrderByDescending(_ => _.ExporterPriority).ToList();
         }
 
-        public string EvaluateMaterialName(Material material)
+        public string EvaluateMaterialName(Material material, PrefabContext prefabContext)
         {
             if (material == null)
                 return null;
 
             foreach (var materialExporter in _exporters)
                 if (materialExporter.CanExportMaterial(material))
-                    return materialExporter.EvaluateMaterialName(material);
+                    return materialExporter.EvaluateMaterialName(material, prefabContext);
 
-            return _defaultExporter.EvaluateMaterialName(material);
+            return _defaultExporter.EvaluateMaterialName(material, prefabContext);
         }
 
         public void ExportMaterial(Material material, PrefabContext prefabContext)
@@ -57,7 +57,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _defaultExporter.ExportMaterial(material, prefabContext);
         }
 
-        public string TryGetSkyboxCubemap(Material skyboxMaterial)
+        public string TryGetSkyboxCubemap(Material skyboxMaterial, PrefabContext prefabContext)
         {
             if (!_skyboxMaterialExporter.CanExportMaterial(skyboxMaterial))
                 return null;
@@ -67,7 +67,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var anyFace = arguments.BackTex ?? arguments.DownTex ?? arguments.FrontTex ??
                 arguments.LeftTex ?? arguments.RightTex ?? arguments.UpTex;
             if (anyFace != null)
-                return ExportUtils.ReplaceExtension(_engine.EvaluateMaterialName(skyboxMaterial), ".Cubemap.xml");
+                return ExportUtils.ReplaceExtension(_engine.EvaluateMaterialName(skyboxMaterial, prefabContext),
+                    ".Cubemap.xml");
 
             return null;
         }

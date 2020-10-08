@@ -10,6 +10,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         void ExportMaterial(Material material, PrefabContext prefabContext);
 
-        string EvaluateMaterialName(Material material);
+        string EvaluateMaterialName(Material material, PrefabContext prefabContext);
     }
 }
