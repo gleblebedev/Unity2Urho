@@ -81,8 +81,10 @@ namespace UnityToCustomEngineExporter.Editor
                     if (p.z > max.z) max.z = p.z;
                 }
 
-                var size = Vector3.Dot(max - min, new Vector3(1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f));
-                foreach (var lod in _lods) lod.SetSize(size);
+                var diag = max - min;
+                var unitySize = Math.Max(Math.Max(diag.x, diag.y), diag.z);
+                var urhoSize = Vector3.Dot(diag, new Vector3(1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f));
+                foreach (var lod in _lods) lod.SetSizeFactor(unitySize/(urhoSize+1e-6f));
             }
         }
 
@@ -263,7 +265,7 @@ namespace UnityToCustomEngineExporter.Editor
         private class Lod
         {
             private readonly LOD _lod;
-            private float _size = 1;
+            private float _sizeFactor = 1;
 
             public Lod(LOD lod)
             {
@@ -274,12 +276,12 @@ namespace UnityToCustomEngineExporter.Editor
 
             public float GetDistance()
             {
-                return _size / Math.Max(_lod.screenRelativeTransitionHeight, 1e-6f);
+                return _sizeFactor * 1.0f / Math.Max(_lod.screenRelativeTransitionHeight, 1e-6f);
             }
 
-            public void SetSize(float size)
+            public void SetSizeFactor(float size)
             {
-                _size = Math.Max(1e-6f, size);
+                _sizeFactor = Math.Max(1e-6f, size);
             }
         }
     }
