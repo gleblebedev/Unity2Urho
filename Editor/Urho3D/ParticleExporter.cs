@@ -37,7 +37,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteStartElement("particleeffect");
                 writer.WriteWhitespace(Environment.NewLine);
 
-                ExportMaterial(particleSystem, writer, prefabContext);
+                var renderer = particleSystem.GetComponent<Renderer>();
+
+                ExportMaterial(particleSystem, writer, prefabContext, renderer);
+                ExportCameraMode(particleSystem, writer, renderer);
                 ExportTimeToLive(particleSystem, writer);
                 ExportEmissionRate(particleSystem, writer);
                 ExportVelocity(particleSystem, writer);
@@ -74,6 +77,42 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                  */
                 writer.WriteEndElement();
             }
+        }
+
+        private void ExportCameraMode(ParticleSystem particleSystem, XmlWriter writer, Renderer renderer)
+        {
+            var mode = "None";
+            if (renderer is ParticleSystemRenderer particleSystemRenderer)
+            {
+                switch (particleSystemRenderer.renderMode)
+                {
+                    case ParticleSystemRenderMode.Billboard:
+                        mode = "Rotate XYZ";
+                        break;
+                    case ParticleSystemRenderMode.Stretch:
+                        mode = "None";
+                        break;
+                    case ParticleSystemRenderMode.HorizontalBillboard:
+                        mode = "Rotate XYZ";
+                        break;
+                    case ParticleSystemRenderMode.VerticalBillboard:
+                        mode = "LookAt Y";
+                        break;
+                    case ParticleSystemRenderMode.Mesh:
+                        mode = "None";
+                        break;
+                    case ParticleSystemRenderMode.None:
+                        mode = "None";
+                        break;
+                    default:
+                        mode = "None";
+                        break;
+                }
+            }
+            writer.WriteStartElement("faceCameraMode");
+            writer.WriteAttributeString("value", mode);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
         }
 
         private void ExportSize(ParticleSystem particleSystem, XmlWriter writer)
@@ -203,11 +242,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        private void ExportMaterial(ParticleSystem particleSystem, XmlWriter writer, PrefabContext prefabContext)
+        private void ExportMaterial(ParticleSystem particleSystem, XmlWriter writer, PrefabContext prefabContext,
+            Renderer renderer)
         {
-            var renderer = particleSystem.GetComponent<Renderer>();
             if (renderer == null)
                 return;
+
             var material = renderer.sharedMaterial;
             if (material == null)
                 return;

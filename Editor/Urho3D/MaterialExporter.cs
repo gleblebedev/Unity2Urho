@@ -20,6 +20,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _exporters = new IUrho3DMaterialExporter[]
             {
                 _defaultExporter,
+                new ParticleStandardUnlitMaterialExporter(_engine), 
                 new StandardMaterialExporter(_engine),
                 new StandardSpecularMaterialExporter(_engine),
                 new WaterMaterialExporter(_engine),
