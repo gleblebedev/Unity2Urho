@@ -113,6 +113,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
             bool parentEnabled, PrefabContext prefabContext)
         {
+            if (obj == null)
+                return;
             prefabContext = prefabContext.Retarget(obj);
 
             var isEnabled = obj.activeSelf && parentEnabled;

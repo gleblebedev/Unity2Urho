@@ -31,6 +31,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public PrefabContext Retarget(GameObject gameObject)
         {
+            if (gameObject == null) return this;
             var root = PrefabUtility.GetNearestPrefabInstanceRoot(gameObject);
             if (root == _prefabRoot) return this;
             if (root == null) return new PrefabContext(_engine, null, _defaultFolder);
