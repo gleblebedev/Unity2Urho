@@ -430,6 +430,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (asset is AnimationClip animationClip)
                 {
+                    if (!string.IsNullOrWhiteSpace(animationClip.name) && animationClip.name.StartsWith("__preview__"))
+                        continue;
                     EditorTaskScheduler.Default.ScheduleForegroundTask(
                         () => _animationExporter.ExportAnimation(animationClip, prefabContext),
                         animationClip.name + " from " + assetPath);
