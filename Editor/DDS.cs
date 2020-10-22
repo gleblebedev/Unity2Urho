@@ -13,7 +13,7 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 using (var binaryWriter = new BinaryWriter(fileStream))
                 {
-                    var compress = true;
+                    var compress = (0 == (texture.width % 4)) && (0 == (texture.height % 4));
                     if (compress)
                     {
                         WriteCompressedHeader(binaryWriter, texture.width, texture.height, texture.mipmapCount, false,
