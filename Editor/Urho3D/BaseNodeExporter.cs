@@ -336,6 +336,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         var enabled = true;
                         if (meshFilter == null && proBuilderMesh != null)
                             enabled = proBuilderMesh.enabled;
+                        else if (meshRenderer != null)
+                            enabled = meshRenderer.enabled;
                         StartComponent(writer, subPrefix, "StaticModel", enabled);
 
                         string meshPath;
