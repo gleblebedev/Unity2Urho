@@ -338,7 +338,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var assetGuid = bump.GetKey();
             if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
 
-            var tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap"));
+            Material tmpMaterial;
+            if (this._engine.Options.PackedNormal)
+            {
+                tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMapPackedNormal"));
+            }
+            else
+            {
+                tmpMaterial = new Material(Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap"));
+            }
             try
             {
                 var mainTexture = bump;

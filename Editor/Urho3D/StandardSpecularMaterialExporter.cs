@@ -115,6 +115,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             material.AlphaBlend = arguments.Transparent;
+            if (arguments.Bump != null && Engine.Options.PackedNormal) material.PixelShaderDefines.Add("PACKEDNORMAL");
             if (arguments.AlphaTest) material.PixelShaderDefines.Add("ALPHAMASK");
             if (arguments.Emission != null)
                 material.EmissiveColor = Color.white;

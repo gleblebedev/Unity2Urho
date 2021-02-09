@@ -30,6 +30,9 @@ namespace UnityToCustomEngineExporter.Editor
         private readonly BoolEditorProperty _exportTextures =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportTextures", "Export Textures", true);
 
+        private readonly BoolEditorProperty _packedNormal =
+            new BoolEditorProperty("UnityToCustomEngineExporter.PackedNormal", "Packed Normals", false);
+
         private readonly BoolEditorProperty _exportAnimations =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
 
@@ -71,6 +74,7 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportCameras,
                 _exportLights,
                 _exportTextures,
+                _packedNormal,
                 _exportAnimations,
                 _exportMeshes,
                 _exportParticles,
@@ -208,6 +212,7 @@ namespace UnityToCustomEngineExporter.Editor
             options.ExportCameras = _exportCameras.Value;
             options.ExportLights = _exportLights.Value;
             options.ExportTextures = _exportTextures.Value;
+            options.PackedNormal = _packedNormal.Value;
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
             options.ASCIIOnly = _exportAscii.Value;

@@ -88,6 +88,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var material = new UrhoPBRMaterial();
 
             material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
+            if (arguments.Bump != null && Engine.Options.PackedNormal) material.PixelShaderDefines.Add("PACKEDNORMAL");
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
             material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
             material.BaseColorTexture = Engine.EvaluateTextrueName(arguments.BaseColor);
