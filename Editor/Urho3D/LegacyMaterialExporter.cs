@@ -128,25 +128,39 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 flags.hasSpecular = arguments.Specular != null;
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
+                switch (material.shader.name)
                 {
-                    var bestTechnique = Techniques[0];
-                    var bestTechniqueDistance = bestTechnique.Material - flags;
-                    foreach (var technique in Techniques)
-                        if (technique.Material.Fits(flags))
-                        {
-                            var d = technique.Material - flags;
-                            if (d < bestTechniqueDistance)
+                    case "Mobile/Particles/Additive":
+                        WriteTechnique(writer, "Techniques/DiffAddAlpha.xml");
+                        break;
+                    case "Legacy Shaders/Particles/Multiply":
+                        WriteTechnique(writer, "Techniques/DiffMultiply.xml");
+                        break;
+                    default:
+                    {
+                        var bestTechnique = Techniques[0];
+                        var bestTechniqueDistance = bestTechnique.Material - flags;
+                        foreach (var technique in Techniques)
+                            if (technique.Material.Fits(flags))
                             {
-                                bestTechnique = technique;
-                                bestTechniqueDistance = d;
+                                var d = technique.Material - flags;
+                                if (d < bestTechniqueDistance)
+                                {
+                                    bestTechnique = technique;
+                                    bestTechniqueDistance = d;
+                                }
                             }
-                        }
 
-                    WriteTechnique(writer, "Techniques/" + bestTechnique.Name);
+                        WriteTechnique(writer, "Techniques/" + bestTechnique.Name);
+                        break;
+                    }
                 }
                 if (arguments.Diffuse != null) WriteTexture(arguments.Diffuse, writer, "diffuse", prefabContext);
                 if (arguments.Specular != null) WriteTexture(arguments.Specular, writer, "specular", prefabContext);
-                if (arguments.Bump != null) WriteTexture(arguments.Bump, writer, "normal", prefabContext);
+                if (arguments.Bump != null)
+                {
+                    WriteTexture(arguments.Bump, writer, "normal", prefabContext);
+                }
                 if (arguments.Emission != null) WriteTexture(arguments.Bump, writer, "emissive", prefabContext);
                 writer.WriteParameter("MatDiffColor", arguments.DiffColor);
                 if (arguments.HasEmission)

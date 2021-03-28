@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Xml;
 using UnityEngine;
 using UnityEngine.Video;
@@ -47,6 +49,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ExportNumParticles(particleSystem, writer);
                 ExportShape(particleSystem, writer);
                 ExportSize(particleSystem, writer);
+                ExportColor(particleSystem, writer);
 
                 //particleSystem.sizeOverLifetime
                 /*
@@ -77,6 +80,120 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                  */
                 writer.WriteEndElement();
             }
+        }
+
+        private void ExportColor(ParticleSystem particleSystem, XmlWriter writer)
+        {
+            if (particleSystem.colorOverLifetime.enabled)
+            {
+                switch (particleSystem.colorOverLifetime.color.mode)
+                {
+                    case ParticleSystemGradientMode.Color:
+                        break;
+                    case ParticleSystemGradientMode.Gradient:
+                    {
+                        ExportColorGradient(particleSystem.colorOverLifetime.color.gradient, writer);
+                        break;
+                    }
+                    case ParticleSystemGradientMode.TwoColors:
+                        break;
+                    case ParticleSystemGradientMode.TwoGradients:
+                    {
+                        ExportTwoColorGradient(particleSystem.colorOverLifetime.color.gradientMin, particleSystem.colorOverLifetime.color.gradientMax, writer);
+                        break;
+                    }
+                    case ParticleSystemGradientMode.RandomColor:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+
+        private void ExportTwoColorGradient(Gradient colorGradientMin, Gradient colorGradientMax, XmlWriter writer)
+        {
+            var minColors = colorGradientMin.colorKeys.OrderBy(_ => _.time).ToList();
+            var minAlphas = colorGradientMin.alphaKeys.OrderBy(_ => _.time).ToList();
+            var maxColors = colorGradientMax.colorKeys.OrderBy(_ => _.time).ToList();
+            var maxAlphas = colorGradientMax.alphaKeys.OrderBy(_ => _.time).ToList();
+
+            var keys = minColors.Select(_ => _.time)
+                .Concat(minAlphas.Select(_ => _.time))
+                .Concat(maxColors.Select(_ => _.time))
+                .Concat(maxAlphas.Select(_ => _.time))
+                .OrderBy(_ => _)
+                .Distinct()
+                .ToList();
+
+            foreach (var key in keys)
+            {
+                var mincolor = GetColorAt(key, minColors, minAlphas);
+                var maxcolor = GetColorAt(key, maxColors, maxAlphas);
+                writer.WriteStartElement("colorfade");
+                writer.WriteAttribute("color", Color.Lerp(mincolor, maxcolor, 0.5f));
+                writer.WriteAttribute("time", key);
+                writer.WriteEndElement();
+                writer.WriteWhitespace(Environment.NewLine);
+            }
+        }
+
+        private void ExportColorGradient(Gradient colorGradient, XmlWriter writer)
+        {
+            var colors = colorGradient.colorKeys.OrderBy(_ => _.time).ToList();
+            var alphas = colorGradient.alphaKeys.OrderBy(_ => _.time).ToList();
+
+            var keys = colors.Select(_ => _.time).Concat(alphas.Select(_ => _.time)).OrderBy(_ => _).Distinct()
+                .ToList();
+
+            foreach (var key in keys)
+            {
+                var color = GetColorAt(key, colors, alphas);
+                writer.WriteStartElement("colorfade");
+                writer.WriteAttribute("color", color);
+                writer.WriteAttribute("time", key);
+                writer.WriteEndElement();
+                writer.WriteWhitespace(Environment.NewLine);
+            }
+        }
+
+        private Color GetColorAt(float key, List<GradientColorKey> colors, List<GradientAlphaKey> alphas)
+        {
+            Color c = Vector4.one;
+            if (key <= colors[0].time)
+                c = colors[0].color;
+            else if (key >= colors[colors.Count-1].time)
+                c = colors[colors.Count - 1].color;
+            else
+            {
+                for (var index = 0; index < colors.Count-1; index++)
+                {
+                    var startTime = colors[index].time;
+                    var endTime = colors[index + 1].time;
+                    if (key >= startTime && key <= endTime)
+                    {
+                        c = Color.Lerp(colors[index].color, colors[index + 1].color, (key- startTime)/(endTime - startTime));
+                    }
+                }
+            }
+
+            if (key <= alphas[0].time)
+                c.a = alphas[0].alpha;
+            else if (key >= alphas[alphas.Count - 1].time)
+                c.a = alphas[alphas.Count - 1].alpha;
+            else
+            {
+                for (var index = 0; index < alphas.Count - 1; index++)
+                {
+                    var startTime = alphas[index].time;
+                    var endTime = alphas[index + 1].time;
+                    if (key >= startTime && key <= endTime)
+                    {
+                        c.a = alphas[index].alpha + (alphas[index + 1].alpha- alphas[index].alpha)*((key - startTime) / (endTime - startTime));
+                    }
+                }
+            }
+
+            return c;
         }
 
         private void ExportCameraMode(ParticleSystem particleSystem, XmlWriter writer, Renderer renderer)
@@ -130,11 +247,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (!particleSystem.shape.enabled)
             {
-                writer.WriteStartElement("direction");
-                writer.WriteAttribute("min", new Vector3(0,0,1));
-                writer.WriteAttribute("max", new Vector3(0, 0, 1));
-                writer.WriteEndElement();
-                writer.WriteWhitespace(Environment.NewLine);
+                WriteDirection(writer, new Vector3(0, 0, 1), new Vector3(0, 0, 1));
                 return;
             }
 
@@ -152,21 +265,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (particleSystem.shape.shapeType)
             {
                 case ParticleSystemShapeType.Sphere:
-                    writer.WriteStartElement("emittertype");
-                    writer.WriteAttributeString("value", "SphereVolume");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
-                    
-                    writer.WriteStartElement("emittersize");
-                    writer.WriteAttribute("value", new Vector3(particleSystem.shape.radius, particleSystem.shape.radius, particleSystem.shape.radius));
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
+                    WriteEmitterType(writer, "SphereVolume");
+                    WriteEmitterSize(writer, new Vector3(particleSystem.shape.radius, particleSystem.shape.radius, particleSystem.shape.radius));
                     break;
                 case ParticleSystemShapeType.SphereShell:
-                    writer.WriteStartElement("emittertype");
-                    writer.WriteAttributeString("value", "Sphere");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
+                    WriteEmitterType(writer, "Sphere");
 
                     writer.WriteStartElement("emittersize");
                     writer.WriteAttribute("value", new Vector3(particleSystem.shape.radius, particleSystem.shape.radius, particleSystem.shape.radius));
@@ -180,10 +283,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 case ParticleSystemShapeType.Cone:
                     break;
                 case ParticleSystemShapeType.Box:
-                    writer.WriteStartElement("emittertype");
-                    writer.WriteAttributeString("value", "Box");
-                    writer.WriteEndElement();
-                    writer.WriteWhitespace(Environment.NewLine);
+                    WriteEmitterType(writer, "Box");
                     break;
                 case ParticleSystemShapeType.Mesh:
                     break;
@@ -198,6 +298,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 case ParticleSystemShapeType.CircleEdge:
                     break;
                 case ParticleSystemShapeType.SingleSidedEdge:
+                    WriteEmitterType(writer, "Box");
+                    WriteEmitterSize(writer, new Vector3(particleSystem.shape.radius, 0, 0));
+                    WriteDirection(writer, new Vector3(0, 1, 0), new Vector3(0, 1, 0));
+
                     break;
                 case ParticleSystemShapeType.MeshRenderer:
                     break;
@@ -218,6 +322,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 default:
                     break;
             }
+        }
+
+        private static void WriteDirection(XmlWriter writer, Vector3 min, Vector3 max)
+        {
+            writer.WriteStartElement("direction");
+            writer.WriteAttribute("min", min);
+            writer.WriteAttribute("max", max);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        private static void WriteEmitterSize(XmlWriter writer, Vector3 vector3)
+        {
+            writer.WriteStartElement("emittersize");
+            writer.WriteAttribute("value", vector3);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+
+        private static void WriteEmitterType(XmlWriter writer, string localName)
+        {
+            writer.WriteStartElement("emittertype");
+            writer.WriteAttributeString("value", localName);
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
         }
 
 

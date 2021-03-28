@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -71,12 +73,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (urhoMaterial.PixelShaderDefines.Count != 0 || urhoMaterial.VertexShaderDefines.Count != 0)
             {
-                writer.WriteWhitespace("\t");
-                writer.WriteStartElement("shader");
-                writer.WriteAttributeString("psdefines", string.Join(" ", urhoMaterial.PixelShaderDefines));
-                writer.WriteAttributeString("vsdefines", string.Join(" ", urhoMaterial.VertexShaderDefines));
-                writer.WriteEndElement();
-                writer.WriteWhitespace(Environment.NewLine);
+                WriteShader(writer, urhoMaterial.PixelShaderDefines, urhoMaterial.VertexShaderDefines);
             }
 
             writer.WriteEndElement();
@@ -88,7 +85,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteStartElement("technique");
             writer.WriteAttributeString("name", name);
             writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
+            writer.WriteWhitespace(Environment.NewLine);
+        }
+        protected static void WriteShader(XmlWriter writer, IEnumerable<string> psdefines, IEnumerable<string> vsdefines)
+        {
+            writer.WriteWhitespace("\t");
+            writer.WriteStartElement("shader");
+            if (psdefines != null && psdefines.Any())
+                writer.WriteAttributeString("psdefines", string.Join(" ", psdefines));
+            if (vsdefines != null && vsdefines.Any())
+                writer.WriteAttributeString("vsdefines", string.Join(" ", vsdefines));
+            writer.WriteEndElement();
+            writer.WriteWhitespace(Environment.NewLine);
         }
 
         protected static bool WriteTexture(string urhoAssetName, XmlWriter writer, string name,
@@ -111,15 +119,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             PrefabContext prefabContext)
         {
             return WriteTexture(urhoAssetName, writer, unit.ToString(CultureInfo.InvariantCulture), prefabContext);
-        }
-
-        private static void WriteAlphaTest(XmlWriter writer)
-        {
-            writer.WriteWhitespace("\t");
-            writer.WriteStartElement("shader");
-            writer.WriteAttributeString("psdefines", "ALPHAMASK");
-            writer.WriteEndElement();
-            writer.WriteWhitespace("\n");
         }
 
         public abstract bool CanExportMaterial(Material material);
@@ -201,7 +200,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 arguments.MainTextureOffset.x));
             writer.WriteParameter("VOffset", new Vector4(0, arguments.MainTextureScale.y, 0,
                 arguments.MainTextureOffset.y));
-            if (arguments.AlphaTest) WriteAlphaTest(writer);
+            var psargs = new HashSet<string>();
+            if (Engine.Options.PackedNormal)
+                psargs.Add("PACKEDNORMAL");
+            if (arguments.AlphaTest)
+                psargs.Add("ALPHAMASK");
+            if (psargs.Any())
+                WriteShader(writer, psargs, null);
         }
 
         protected string BuildAOTextureName(Texture occlusion, float occlusionStrength)
