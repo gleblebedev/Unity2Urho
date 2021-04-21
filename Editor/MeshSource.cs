@@ -13,6 +13,27 @@ namespace UnityToCustomEngineExporter.Editor
         {
             _mesh = mesh;
             _skin = skin;
+
+            MorphTargets = new List<IMorphTarget>(mesh.blendShapeCount);
+            if (mesh.blendShapeCount > 0)
+            {
+                Debug.LogWarning(mesh.name+" has blendshapes");
+            }
+            for (int i=0; i<mesh.blendShapeCount; ++i)
+            {
+                var numFrames = mesh.GetBlendShapeFrameCount(i);
+                if (numFrames == 1)
+                {
+                    MorphTargets.Add(new MorphTarget(mesh.GetBlendShapeName(i), mesh, i, 0));
+                }
+                else
+                {
+                    for (int frame = 0; frame < numFrames; ++frame)
+                    {
+                        MorphTargets.Add(new MorphTarget(mesh.GetBlendShapeName(i) + "_" + frame, mesh, i, frame));
+                    }
+                }
+            }
         }
 
         public override int BonesCount
@@ -35,6 +56,7 @@ namespace UnityToCustomEngineExporter.Editor
         public override IList<Vector2> TexCoords1 => _mesh.uv2;
         public override IList<Vector2> TexCoords2 => _mesh.uv3;
         public override IList<Vector2> TexCoords3 => _mesh.uv4;
+        public override IList<IMorphTarget> MorphTargets { get; }
 
         public override int SubMeshCount => _mesh.subMeshCount;
 
@@ -71,6 +93,26 @@ namespace UnityToCustomEngineExporter.Editor
         {
             return new Geometry(_mesh, subMeshIndex);
         }
+        public class MorphTarget : IMorphTarget
+        {
+            public MorphTarget(string name, Mesh mesh, int targetIndex, int frameIndex)
+            {
+                Name = name;
+                var numVerts = mesh.vertices.Length;
+                var vertices = new Vector3[numVerts];
+                var normals = new Vector3[numVerts];
+                var tangents = new Vector3[numVerts];
+                mesh.GetBlendShapeFrameVertices(targetIndex, frameIndex, vertices, normals, tangents);
+                Vertices = vertices;
+                Normals = normals;
+                Tangents = tangents;
+            }
+
+            public string Name { get; set; }
+            public IList<Vector3> Vertices { get; }
+            public IList<Vector3> Normals { get; set; }
+            public IList<Vector3> Tangents { get; set; }
+        }
 
         private class Geometry : IMeshGeometry
         {
@@ -84,6 +126,8 @@ namespace UnityToCustomEngineExporter.Editor
             }
 
             public int NumLods => 1;
+
+            public MeshTopology Topology => _mesh.GetSubMesh(_submesh).topology;
 
             public IList<int> GetIndices(int lod)
             {

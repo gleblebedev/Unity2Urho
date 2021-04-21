@@ -21,7 +21,7 @@ namespace UnityToCustomEngineExporter.Editor
 
         public LODGroupSource(LODGroup lodGroup)
         {
-            var materialToSubmesh = new Dictionary<Material, int>();
+            var materialToSubmesh = new Dictionary<MaterialTopology, int>();
             var rendererToSubmeshMappings = new Dictionary<MeshInstanceKey, MeshMapping>();
             var worldToLocalMatrix = lodGroup.transform.worldToLocalMatrix;
 
@@ -31,13 +31,21 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 var lod = lods[lodIndex];
                 foreach (var renderer in lod.renderers)
-                foreach (var material in renderer.sharedMaterials)
-                    if (!materialToSubmesh.TryGetValue(material, out var matIndex))
+                {
+                    var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                    for (var submeshIndex = 0; submeshIndex < mesh.subMeshCount; submeshIndex++)
                     {
-                        matIndex = materialToSubmesh.Count;
-                        materialToSubmesh.Add(material, matIndex);
-                        _geometries.Add(new Geometry(material, _lods));
+                        var material = (renderer.sharedMaterials.Length > submeshIndex)? renderer.sharedMaterials[submeshIndex]: null;
+                        var topology = mesh.GetTopology(submeshIndex);
+                        var key = new MaterialTopology() {material = material, topology = topology};
+                        if (!materialToSubmesh.TryGetValue(key, out var matIndex))
+                        {
+                            matIndex = materialToSubmesh.Count;
+                            materialToSubmesh.Add(key, matIndex);
+                            _geometries.Add(new Geometry(material, _lods, topology));
+                        }
                     }
+                }
             }
 
             for (var lodIndex = 0; lodIndex < lods.Length; lodIndex++)
@@ -58,7 +66,10 @@ namespace UnityToCustomEngineExporter.Editor
 
                         for (var subIndex = 0; subIndex < mesh.subMeshCount; ++subIndex)
                         {
-                            var geometry = _geometries[materialToSubmesh[renderer.sharedMaterials[subIndex]]];
+                            var material = (renderer.sharedMaterials.Length > subIndex) ? renderer.sharedMaterials[subIndex] : null;
+                            var topology = mesh.GetTopology(subIndex);
+                            var submeshKey = new MaterialTopology() { material = material, topology = topology };
+                            var geometry = _geometries[materialToSubmesh[submeshKey]];
                             geometry.AddReference(lodIndex,
                                 new SubmeshReference {Mesh = meshMapping, Submesh = subIndex});
                         }
@@ -184,6 +195,11 @@ namespace UnityToCustomEngineExporter.Editor
             else
                 targetContainer.AddRange(sourceContainer);
         }
+        private struct MaterialTopology
+        {
+            public Material material;
+            public MeshTopology topology;
+        }
 
         private struct MeshInstanceKey
         {
@@ -223,11 +239,12 @@ namespace UnityToCustomEngineExporter.Editor
             private readonly List<Lod> _lods;
             private readonly List<List<int>> _refs;
 
-            public Geometry(Material material, List<Lod> lods)
+            public Geometry(Material material, List<Lod> lods, MeshTopology topology)
             {
                 _material = material;
                 _lods = lods;
                 _refs = lods.Select(_ => new List<int>()).ToList();
+                Topology = topology;
             }
 
             public int NumLods
@@ -241,6 +258,8 @@ namespace UnityToCustomEngineExporter.Editor
                     return _lods.Count + 1;
                 }
             }
+
+            public MeshTopology Topology {get; }
 
             public void AddReference(int lodIndex, SubmeshReference reference)
             {

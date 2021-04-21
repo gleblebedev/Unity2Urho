@@ -53,6 +53,8 @@ namespace UnityToCustomEngineExporter.Editor
 
             public int NumLods => 1;
 
+            public MeshTopology Topology => MeshTopology.Triangles;
+
             public void AddRange(IEnumerable<int> faceIndexes)
             {
                 _indices.AddRange(faceIndexes);

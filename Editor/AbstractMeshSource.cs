@@ -8,6 +8,7 @@ namespace UnityToCustomEngineExporter.Editor
     {
         public abstract IList<Vector3> Vertices { get; }
         public abstract int SubMeshCount { get; }
+        public virtual IList<IMorphTarget> MorphTargets => Array.Empty<IMorphTarget>();
 
         public virtual int BonesCount => 0;
 

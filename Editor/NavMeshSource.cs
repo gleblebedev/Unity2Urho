@@ -39,6 +39,8 @@ namespace UnityToCustomEngineExporter.Editor
                 _mesh = mesh;
             }
 
+            public MeshTopology Topology => MeshTopology.Triangles;
+
             public int NumLods => 1;
 
             public IList<int> GetIndices(int lod)

@@ -14,6 +14,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class MeshExporter : AbstractBinaryExpoerter
     {
+        private const int MASK_POSITION = 0x1;
+        private const int MASK_NORMAL = 0x2;
+        private const int MASK_COLOR = 0x4;
+        private const int MASK_TANGENT = 0x80;
+
+
         public const uint Magic2 = 0x32444d55;
 
         private readonly Urho3DEngine _engine;
@@ -227,53 +233,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.Write(numVertexBuffers);
                 for (var vbIndex = 0; vbIndex < numVertexBuffers; ++vbIndex)
                 {
-                    var normals = mesh.Normals;
-                    var colors = mesh.Colors;
-                    var tangents = mesh.Tangents;
-                    var boneWeights = mesh.BoneWeights;
-                    var uvs = mesh.TexCoords0;
-                    var uvs2 = mesh.TexCoords1;
-                    var uvs3 = mesh.TexCoords2;
-                    var uvs4 = mesh.TexCoords3;
-
-                    writer.Write(positions.Count);
-                    var elements = new List<MeshStreamWriter>();
-                    if (positions.Count > 0)
-                        elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
-                    if (normals.Count > 0)
-                        elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
-                    if (boneWeights.Length > 0)
-                    {
-                        var indices = new Vector4[boneWeights.Length];
-                        var weights = new Vector4[boneWeights.Length];
-                        for (var i = 0; i < boneWeights.Length; ++i)
-                        {
-                            indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
-                                boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
-                            weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
-                                boneWeights[i].weight2, boneWeights[i].weight3);
-                        }
-
-                        elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
-                        elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
-                    }
-
-                    if (colors.Count > 0) elements.Add(new MeshColor32Stream(colors, VertexElementSemantic.SEM_COLOR));
-                    if (tangents.Count > 0)
-                        elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
-                    if (uvs.Count > 0)
-                        elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
-                    if (uvs2.Count > 0)
-                        elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
-                    if (uvs3.Count > 0)
-                        elements.Add(new MeshUVStream(uvs3, VertexElementSemantic.SEM_TEXCOORD, 2));
-                    if (uvs4.Count > 0)
-                        elements.Add(new MeshUVStream(uvs4, VertexElementSemantic.SEM_TEXCOORD, 3));
-                    writer.Write(elements.Count);
-                    for (var i = 0; i < elements.Count; ++i)
-                        writer.Write(elements[i].Element);
+                    var elements = WriteVertexBufferHeader(writer, mesh, positions);
+                    
                     var morphableVertexRangeStartIndex = 0;
                     var morphableVertexCount = 0;
+                    if (mesh.MorphTargets.Count > 0)
+                    {
+                        morphableVertexCount = positions.Count;
+                    }
                     writer.Write(morphableVertexRangeStartIndex);
                     writer.Write(morphableVertexCount);
                     for (var index = 0; index < positions.Count; ++index)
@@ -346,7 +313,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     var lodIndices = geomtery.GetIndices(lodIndex);
                     writer.Write((float)geomtery.GetLodDistance(lodIndex));
-                    writer.Write((uint) PrimitiveType.TRIANGLE_LIST);
+                    switch (geomtery.Topology)
+                    {
+                        case MeshTopology.Lines:
+                            writer.Write((uint)PrimitiveType.LINE_LIST);
+                            break;
+                        case MeshTopology.LineStrip:
+                            writer.Write((uint)PrimitiveType.LINE_STRIP);
+                            break;
+                        case MeshTopology.Points:
+                            writer.Write((uint)PrimitiveType.POINT_LIST);
+                            break;
+                        default:
+                            writer.Write((uint)PrimitiveType.TRIANGLE_LIST);
+                            break;
+                    }
                     writer.Write((uint)0); //vb
                     writer.Write((uint)0); //ib
                     writer.Write((uint)indexOffset); //Draw range: index start
@@ -358,8 +339,64 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (indexOffset != indexBuffer.Count)
                 throw new InvalidOperationException();
 
-            var numMorphTargets = 0;
-            writer.Write(numMorphTargets);
+            var morphTargets = mesh.MorphTargets;
+            writer.Write(morphTargets.Count);
+            foreach (var morphTarget in morphTargets)
+            {
+                WriteStringSZ(writer, morphTarget.Name); // Name of morph
+
+                writer.Write(1); // Number of affected vertex buffers
+                
+                writer.Write(0); // Vertex buffer index, starting from 0
+
+                var mask = 0;
+                if (morphTarget.Vertices.Any(_ => _ != Vector3.zero))
+                    mask |= MASK_POSITION;
+                if (morphTarget.Normals.Any(_ => _ != Vector3.zero))
+                    mask |= MASK_NORMAL;
+                if (morphTarget.Tangents.Any(_ => _ != Vector3.zero))
+                    mask |= MASK_TANGENT;
+                writer.Write(mask); // Vertex element mask for morph data. Only positions, normals & tangents are supported.
+
+                var indices = new List<int>();
+                
+                for (var index = 0; index < morphTarget.Vertices.Count; index++)
+                {
+                    if (morphTarget.Vertices[index] != Vector3.zero)
+                    {
+                        indices.Add(index);
+                        continue;
+                    }
+                    if (morphTarget.Normals[index] != Vector3.zero)
+                    {
+                        indices.Add(index);
+                        continue;
+                    }
+                    if (morphTarget.Tangents[index] != Vector3.zero)
+                    {
+                        indices.Add(index);
+                        continue;
+                    }
+                }
+
+                writer.Write(indices.Count); // Vertex count
+                foreach (var index in indices)
+                {
+                    writer.Write(index);
+                    if (0 != (mask & MASK_POSITION))
+                    {
+                        Write(writer, morphTarget.Vertices[index]);
+                    }
+                    if (0 != (mask & MASK_NORMAL))
+                    {
+                        Write(writer, morphTarget.Normals[index]);
+                    }
+                    if (0 != (mask & MASK_TANGENT))
+                    {
+                        Write(writer, morphTarget.Tangents[index]);
+                    }
+                }
+            }
 
             var bones = BuildBones(mesh);
             var numOfBones = bones.Length;
@@ -430,6 +467,56 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.Write(maxX);
             writer.Write(maxY);
             writer.Write(maxZ);
+        }
+
+        private List<MeshStreamWriter> WriteVertexBufferHeader(BinaryWriter writer, IMeshSource mesh, IList<Vector3> positions)
+        {
+            var normals = mesh.Normals;
+            var colors = mesh.Colors;
+            var tangents = mesh.Tangents;
+            var boneWeights = mesh.BoneWeights;
+            var uvs = mesh.TexCoords0;
+            var uvs2 = mesh.TexCoords1;
+            var uvs3 = mesh.TexCoords2;
+            var uvs4 = mesh.TexCoords3;
+
+            writer.Write(positions.Count);
+            var elements = new List<MeshStreamWriter>();
+            if (positions.Count > 0)
+                elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
+            if (normals.Count > 0)
+                elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
+            if (boneWeights.Length > 0)
+            {
+                var indices = new Vector4[boneWeights.Length];
+                var weights = new Vector4[boneWeights.Length];
+                for (var i = 0; i < boneWeights.Length; ++i)
+                {
+                    indices[i] = new Vector4(boneWeights[i].boneIndex0, boneWeights[i].boneIndex1,
+                        boneWeights[i].boneIndex2, boneWeights[i].boneIndex3);
+                    weights[i] = new Vector4(boneWeights[i].weight0, boneWeights[i].weight1,
+                        boneWeights[i].weight2, boneWeights[i].weight3);
+                }
+
+                elements.Add(new MeshVector4Stream(weights, VertexElementSemantic.SEM_BLENDWEIGHTS));
+                elements.Add(new MeshUByte4Stream(indices, VertexElementSemantic.SEM_BLENDINDICES));
+            }
+
+            if (colors.Count > 0) elements.Add(new MeshColor32Stream(colors, VertexElementSemantic.SEM_COLOR));
+            if (tangents.Count > 0)
+                elements.Add(new MeshVector4Stream(FlipW(tangents), VertexElementSemantic.SEM_TANGENT));
+            if (uvs.Count > 0)
+                elements.Add(new MeshUVStream(uvs, VertexElementSemantic.SEM_TEXCOORD));
+            if (uvs2.Count > 0)
+                elements.Add(new MeshUVStream(uvs2, VertexElementSemantic.SEM_TEXCOORD, 1));
+            if (uvs3.Count > 0)
+                elements.Add(new MeshUVStream(uvs3, VertexElementSemantic.SEM_TEXCOORD, 2));
+            if (uvs4.Count > 0)
+                elements.Add(new MeshUVStream(uvs4, VertexElementSemantic.SEM_TEXCOORD, 3));
+            writer.Write(elements.Count);
+            for (var i = 0; i < elements.Count; ++i)
+                writer.Write(elements[i].Element);
+            return elements;
         }
 
         private Vector4[] FlipW(IList<Vector4> tangents)
