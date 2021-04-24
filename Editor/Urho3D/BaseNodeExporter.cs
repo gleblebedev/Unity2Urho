@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Xml;
 using UnityEditor;
@@ -60,7 +61,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             WriteAttribute(writer, prefix, name, string.Format(CultureInfo.InvariantCulture, "{0}", pos));
         }
-
+        
+        protected void WriteAttribute(XmlWriter writer, string prefix, string name, Vector2 pos)
+        {
+            WriteAttribute(writer, prefix, name,
+                string.Format(CultureInfo.InvariantCulture, "{0} {1}", pos.x, pos.y));
+        }
+        
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, Vector3 pos)
         {
             WriteAttribute(writer, prefix, name,
@@ -110,6 +117,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteWhitespace("\n");
         }
 
+        private readonly Dictionary<GameObject, int> _objectIds = new Dictionary<GameObject, int>();
         protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
             bool parentEnabled, PrefabContext prefabContext)
         {
@@ -121,7 +129,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (_engine.Options.SkipDisabled && !isEnabled) return;
 
             var localExcludeList = new HashSet<Renderer>(excludeList);
-            StartNode(writer, prefix);
+            var id = StartNode(writer, prefix);
+            _objectIds[obj] = id;
 
             var subPrefix = prefix + "\t";
             var subSubPrefix = subPrefix + "\t";
@@ -211,12 +220,30 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip terrain collider as the actual terrain is in another node
                 }
+                else if (component is CharacterJoint characterJoint)
+                {
+                    StartComponent(writer, subPrefix, "Constraint", isEnabled);
+                    WriteAttribute(writer, subSubPrefix, "Constraint Type", "Hinge");
+                    if (_objectIds.TryGetValue(characterJoint.connectedBody.gameObject, out var connectedId))
+                    {
+                        WriteAttribute(writer, subSubPrefix, "Other Body NodeID", connectedId);
+                    }
+                    WriteAttribute(writer, subSubPrefix, "Position", characterJoint.anchor);
+                    WriteAttribute(writer, subSubPrefix, "Rotation", Quaternion.FromToRotation(new Vector3(0, 0, 1), characterJoint.axis));
+                    WriteAttribute(writer, subSubPrefix, "Other Body Position", characterJoint.connectedAnchor);
+                    WriteAttribute(writer, subSubPrefix, "Other Body Rotation", Quaternion.FromToRotation(new Vector3(0, 0, 1), characterJoint.swingAxis));
+                    WriteAttribute(writer, subSubPrefix, "Disable Collision", true);
+                    WriteAttribute(writer, subSubPrefix, "High Limit", new Vector2(characterJoint.swing1Limit.limit*0.5f,0));
+                    WriteAttribute(writer, subSubPrefix, "Low Limit", new Vector2(-characterJoint.swing1Limit.limit * 0.5f, 0));
+                    EndElement(writer, subPrefix);
+                }
                 else if (component is SphereCollider sphereCollider)
                 {
                     StartComponent(writer, subPrefix, "CollisionShape", sphereCollider.enabled);
                     WriteCommonCollisionAttributes(writer, subSubPrefix, sphereCollider);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
+                    WriteAttribute(writer, subSubPrefix, "Size", new Vector3(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, sphereCollider.enabled);
                 }
@@ -231,6 +258,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     var d = capsuleCollider.radius * 2.0f;
                     WriteAttribute(writer, subSubPrefix, "Size", new Vector3(d, capsuleCollider.height, d));
                     WriteAttribute(writer, subSubPrefix, "Offset Position", capsuleCollider.center);
+                    switch (capsuleCollider.direction)
+                    {
+                        case 0:
+                            WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0, 0, -0.707107f, 0.707107f));
+                            break;
+                        case 2:
+                            WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion( 0.707107f, 0, 0, 0.707107f));
+                            break;
+                    } 
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, capsuleCollider.enabled);
                 }
@@ -504,13 +540,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             ExportZone(writer, subPrefix, size, texName, prefabContext, enabled);
         }
 
-        protected void StartNode(XmlWriter writer, string prefix)
+        protected int StartNode(XmlWriter writer, string prefix)
         {
             if (!string.IsNullOrEmpty(prefix))
                 writer.WriteWhitespace(prefix);
             writer.WriteStartElement("node");
-            writer.WriteAttributeString("id", (++_id).ToString(CultureInfo.InvariantCulture));
+            var id = ++_id;
+            writer.WriteAttributeString("id", id.ToString(CultureInfo.InvariantCulture));
             writer.WriteWhitespace(Environment.NewLine);
+            return id;
         }
 
         private bool CanExportAsLod(LODGroup lodGroup)
