@@ -11,8 +11,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public class AnimationExporter : AbstractBinaryExpoerter
     {
-        private readonly List<GameObject> _skeletons = new List<GameObject>();
-
         private readonly Urho3DEngine _engine;
 
         public AnimationExporter(Urho3DEngine engine)
@@ -82,9 +80,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var cloneRoot = trackBones[0].gameObject;
             ISampler sampler;
             if (!clipAnimation.isHumanMotion)
+            {
                 sampler = new LegacySampler(cloneRoot, clipAnimation);
+                FilterBoneTracks(trackBones, clipAnimation);
+            }
             else
+            {
                 sampler = new AnimatorSampler(cloneRoot, clipAnimation);
+            }
+
             using (sampler)
             {
                 var timeStep = 1.0f / clipAnimation.frameRate;
@@ -148,6 +152,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             //    bone.Reset();
             //}
             Object.DestroyImmediate(trackBones[0].gameObject);
+        }
+
+        private void FilterBoneTracks(List<BoneTrack> trackBones, AnimationClip clipAnimation)
+        {
+            var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
         }
 
         private void WriteTracksAsIs(AnimationClip clipAnimation, BinaryWriter writer)
@@ -285,8 +294,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void WriteGenericAnimation(AnimationClip clip, BinaryWriter writer)
         {
             var allBindings = AnimationUtility.GetCurveBindings(clip);
-            var rootBones =
-                new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
+            var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
             if (rootBones.Count != 1)
             {
                 Debug.LogWarning(clip.name + ": Multiple root bones found (" +
@@ -297,17 +305,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             else
             {
                 var rootBoneName = rootBones.First();
-                var rootGOs = _skeletons
-                    .Select(_ => _.name == rootBoneName ? _.transform : _.transform.Find(rootBoneName))
-                    .Where(_ => _ != null).ToList();
-                if (rootGOs.Count == 1)
+
+                var avatarPath = AssetDatabase.GetAssetPath(clip);
+                var skeleton = AssetDatabase.LoadAssetAtPath<GameObject>(avatarPath);
+
+                var rootBoneGO = skeleton.name == rootBoneName ? skeleton.transform : skeleton.transform.Find(rootBoneName);
+                rootBoneGO = null;
+                if (rootBoneGO != null)
                 {
-                    WriteSkelAnimation(clip, rootGOs.First().gameObject, writer);
+                    WriteSkelAnimation(clip, rootBoneGO.gameObject, writer);
                 }
                 else
                 {
-                    Debug.LogWarning(clip.name +
-                                     ": Multiple game objects found that match root bone name, falling back to curve export");
+                    Debug.LogWarning(clip.name + ": Multiple game objects found that match root bone name, falling back to curve export");
                     WriteTracksAsIs(clip, writer);
                 }
             }

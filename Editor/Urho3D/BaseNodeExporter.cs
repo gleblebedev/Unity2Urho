@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Xml;
 using UnityEditor;
@@ -222,19 +221,44 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is CharacterJoint characterJoint)
                 {
+                    var connectedObject = characterJoint.connectedBody?.gameObject;
+                    Vector3 axis = characterJoint.axis;
+                    Vector2 highLimit;
+                    Vector2 lowLimit;
+                    Quaternion rotation;
+                    Quaternion otherBodyRotation;
+                    string constraintType;
+                    if (Math.Abs(characterJoint.swing1Limit.limit * 2) >=
+                        Math.Abs(characterJoint.lowTwistLimit.limit - characterJoint.highTwistLimit.limit))
+                    {
+                        constraintType = "Hinge";
+                        highLimit = new Vector2(characterJoint.swing1Limit.limit, 0);
+                        lowLimit = new Vector2(-characterJoint.swing1Limit.limit, 0);
+                        rotation = GetHingeOrPointRotation(characterJoint.swingAxis);
+                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(characterJoint.swingAxis)));
+                    }
+                    else
+                    {
+                        constraintType = "Hinge";
+                        highLimit = new Vector2(characterJoint.highTwistLimit.limit, 0);
+                        lowLimit = new Vector2(-characterJoint.lowTwistLimit.limit, 0);
+                        rotation = GetHingeOrPointRotation(characterJoint.axis);
+                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(characterJoint.axis)));
+                    }
                     StartComponent(writer, subPrefix, "Constraint", isEnabled);
-                    WriteAttribute(writer, subSubPrefix, "Constraint Type", "Hinge");
-                    if (_objectIds.TryGetValue(characterJoint.connectedBody.gameObject, out var connectedId))
+                    WriteAttribute(writer, subSubPrefix, "Constraint Type", constraintType);
+                    WriteAttribute(writer, subSubPrefix, "Position", characterJoint.anchor);
+                    WriteAttribute(writer, subSubPrefix, "Rotation", rotation);
+                    if (_objectIds.TryGetValue(connectedObject, out var connectedId))
                     {
                         WriteAttribute(writer, subSubPrefix, "Other Body NodeID", connectedId);
+                        var connectedAxis = connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(axis));
                     }
-                    WriteAttribute(writer, subSubPrefix, "Position", characterJoint.anchor);
-                    WriteAttribute(writer, subSubPrefix, "Rotation", Quaternion.FromToRotation(new Vector3(0, 0, 1), characterJoint.axis));
                     WriteAttribute(writer, subSubPrefix, "Other Body Position", characterJoint.connectedAnchor);
-                    WriteAttribute(writer, subSubPrefix, "Other Body Rotation", Quaternion.FromToRotation(new Vector3(0, 0, 1), characterJoint.swingAxis));
+                    WriteAttribute(writer, subSubPrefix, "Other Body Rotation", otherBodyRotation);
                     WriteAttribute(writer, subSubPrefix, "Disable Collision", true);
-                    WriteAttribute(writer, subSubPrefix, "High Limit", new Vector2(characterJoint.swing1Limit.limit*0.5f,0));
-                    WriteAttribute(writer, subSubPrefix, "Low Limit", new Vector2(-characterJoint.swing1Limit.limit * 0.5f, 0));
+                    WriteAttribute(writer, subSubPrefix, "High Limit", highLimit);
+                    WriteAttribute(writer, subSubPrefix, "Low Limit", lowLimit);
                     EndElement(writer, subPrefix);
                 }
                 else if (component is SphereCollider sphereCollider)
@@ -452,6 +476,28 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private Quaternion GetRotationFromConstraintAxis(UrhoConstraint urhoConstraint, Vector3 axis)
+        {
+            switch (urhoConstraint)
+            {
+                case UrhoConstraint.Point:
+                case UrhoConstraint.Hinge:
+                    return GetHingeOrPointRotation(axis);
+                default:
+                    return GetSliderOrConeRotation(axis);
+            }
+        }
+
+        private Quaternion GetHingeOrPointRotation(Vector3 axis)
+        {
+            return Quaternion.FromToRotation(new Vector3(0, 0, 1), axis);
+        }
+
+        private Quaternion GetSliderOrConeRotation(Vector3 axis)
+        {
+            return Quaternion.FromToRotation(new Vector3(1, 0, 0), axis);
         }
 
         protected void WriteSkyboxComponent(XmlWriter writer, string subPrefix, Material skyboxMaterial,

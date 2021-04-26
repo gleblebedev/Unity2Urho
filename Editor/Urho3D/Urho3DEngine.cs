@@ -36,7 +36,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             Urho3DExportOptions options)
             : base(cancellationToken)
         {
-            _dataFolder = dataFolder;
+            _dataFolder = dataFolder.Trim();
 
             Options = options;
 
