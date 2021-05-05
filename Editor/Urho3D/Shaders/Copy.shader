@@ -47,7 +47,8 @@
             fixed4 frag(v2f i) : SV_Target
             {
                 float4 rgba = tex2D(_MainTex, i.uv);
-                return float4(ColorLinearToGamma(rgba.rgb), rgba.a);
+                return rgba;
+                //return float4(ColorLinearToGamma(rgba.rgb), rgba.a);
             }
             ENDCG
         }

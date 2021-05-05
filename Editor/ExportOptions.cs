@@ -33,6 +33,9 @@ namespace UnityToCustomEngineExporter.Editor
         private readonly BoolEditorProperty _packedNormal =
             new BoolEditorProperty("UnityToCustomEngineExporter.PackedNormal", "Packed Normals", false);
 
+        private readonly BoolEditorProperty _rbfx =
+            new BoolEditorProperty("UnityToCustomEngineExporter.RBFX", "RBFX", false);
+
         private readonly BoolEditorProperty _exportAnimations =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportAnimations", "Export Animations", true);
 
@@ -41,7 +44,10 @@ namespace UnityToCustomEngineExporter.Editor
 
         private readonly BoolEditorProperty _exportParticles =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportParticles", "Export Particles", true);
-
+        
+        private readonly BoolEditorProperty _eliminateRootMotion =
+            new BoolEditorProperty("UnityToCustomEngineExporter.EliminateRootMotion", "Eliminate Root Motion", true);
+        
         private readonly BoolEditorProperty _exportAscii =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportAscii", "Replace non-ASCII chars", false);
 
@@ -79,7 +85,9 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportMeshes,
                 _exportParticles,
                 _exportAscii,
-                _exportLods
+                _exportLods,
+                _eliminateRootMotion,
+                _rbfx
             };
         }
 
@@ -213,11 +221,13 @@ namespace UnityToCustomEngineExporter.Editor
             options.ExportLights = _exportLights.Value;
             options.ExportTextures = _exportTextures.Value;
             options.PackedNormal = _packedNormal.Value;
+            options.RBFX = _rbfx.Value;
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
             options.ASCIIOnly = _exportAscii.Value;
             options.ExportLODs = _exportLods.Value;
             options.ExportParticles = _exportParticles.Value;
+            options.EliminateRootMotion = _eliminateRootMotion.Value;
             return new Urho3DEngine(_exportFolder, _cancellationTokenSource.Token, options);
         }
 

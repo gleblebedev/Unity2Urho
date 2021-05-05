@@ -94,7 +94,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.BaseColorTexture = Engine.EvaluateTextrueName(arguments.BaseColor);
             var metalicGlossinesTexture = Engine.EvaluateTextrueName(arguments.MetallicGloss);
             var smoothnessTexture = Engine.EvaluateTextrueName(arguments.Smoothness);
-            var linearMetallic = new Color(arguments.Metallic, 0, 0, 1).linear.r;
+            var linearMetallic = Engine.FixMaterialColorSpace(new Color(arguments.Metallic, 0, 0, 1)).r;
             if (string.IsNullOrWhiteSpace(metalicGlossinesTexture) && string.IsNullOrWhiteSpace(smoothnessTexture))
             {
                 material.Metallic = linearMetallic;
@@ -131,12 +131,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 material.MetallicRoughnessTexture = texNameBuilder.ToString();
             }
 
-            material.BaseColor = arguments.BaseColorColor.linear;
+            material.BaseColor = Engine.FixMaterialColorSpace(arguments.BaseColorColor);
             material.AlphaBlend = arguments.Transparent;
             material.Cull = Urho3DCulling.ccw;
             material.ShadowCull = Urho3DCulling.ccw;
             if (arguments.AlphaTest) material.PixelShaderDefines.Add("ALPHAMASK");
-            if (arguments.HasEmission) material.EmissiveColor = arguments.EmissiveColor.linear;
+            if (arguments.HasEmission) material.EmissiveColor = Engine.FixMaterialColorSpace(arguments.EmissiveColor);
             material.MatSpecColor = new Color(1, 1, 1, 0);
             material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
             material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);

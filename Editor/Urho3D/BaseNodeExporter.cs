@@ -44,7 +44,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", pos.x, pos.y, pos.z, pos.w);
         }
-
+        
+        public static string Format(Vector3 pos)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", pos.x, pos.y, pos.z);
+        }
+        
         private static void WriteVariant(XmlWriter writer, string subSubPrefix, string type, string valueStr)
         {
             writer.WriteWhitespace(subSubPrefix);
@@ -536,11 +541,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             StartComponent(writer, subPrefix, "Zone", enabled);
 
             var subSubPrefix = subPrefix + "\t";
-            WriteAttribute(writer, subSubPrefix, "Ambient Color", RenderSettings.ambientLight.linear);
+            WriteAttribute(writer, subSubPrefix, "Ambient Color", _engine.FixMaterialColorSpace(RenderSettings.ambientLight));
             WriteAttribute(writer, subSubPrefix, "Override Mode", false);
             if (RenderSettings.fog)
             {
-                WriteAttribute(writer, subSubPrefix, "Fog Color", RenderSettings.fogColor.linear);
+                WriteAttribute(writer, subSubPrefix, "Fog Color", _engine.FixMaterialColorSpace(RenderSettings.fogColor));
                 WriteAttribute(writer, subSubPrefix, "Fog Start", RenderSettings.fogStartDistance);
                 WriteAttribute(writer, subSubPrefix, "Fog End", RenderSettings.fogEndDistance);
                 //switch (RenderSettings.fogMode)
@@ -853,7 +858,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Range", light.range);
                 }
 
-                WriteAttribute(writer, subSubPrefix, "Color", light.color.linear);
+                WriteAttribute(writer, subSubPrefix, "Color", _engine.FixMaterialColorSpace(light.color));
                 if (_engine.Options.UsePhysicalValues)
                 {
                     WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);

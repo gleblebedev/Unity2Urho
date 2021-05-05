@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -13,7 +14,10 @@ namespace UnityToCustomEngineExporter.Editor
         {
             ProcessAndSaveTexture(sourceTexture, Shader.Find(shaderName), fullOutputPath, hasAlpha);
         }
-
+        public void ProcessTexture(Texture sourceTexture, string shaderName, Action<Texture2D> callback)
+        {
+            ProcessTexture(sourceTexture, Shader.Find(shaderName), callback);
+        }
         public void ProcessAndSaveTexture(Texture sourceTexture, Shader shader, string fullOutputPath,
             bool hasAlpha = true)
         {
@@ -30,6 +34,21 @@ namespace UnityToCustomEngineExporter.Editor
             }
         }
 
+        public void ProcessTexture(Texture sourceTexture, Shader shader, Action<Texture2D> callback)
+        {
+            Material material = null;
+
+            try
+            {
+                material = new Material(shader);
+                ProcessTexture(sourceTexture, material, callback);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+        }
+        
         public void ProcessAndSaveTexture(Texture sourceTexture, Material material, string fullOutputPath,
             bool hasAlpha = true)
         {
@@ -37,8 +56,13 @@ namespace UnityToCustomEngineExporter.Editor
                 hasAlpha);
         }
 
-        public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material,
-            string fullOutputPath, bool hasAlpha = true)
+        public void ProcessTexture(Texture sourceTexture, Material material, Action<Texture2D> callback)
+        {
+            ProcessTexture(sourceTexture, sourceTexture.width, sourceTexture.height, material, callback);
+        }
+
+        public void ProcessTexture(Texture sourceTexture, int width, int height, Material material,
+            Action<Texture2D> callback)
         {
             RenderTexture renderTex = null;
             Texture2D texture = null;
@@ -60,9 +84,8 @@ namespace UnityToCustomEngineExporter.Editor
                     sRGB = false,
                     useMipMap = false,
                     volumeDepth = 1,
-                    msaaSamples = 1
+                    msaaSamples = 1,
                 };
-
                 renderTex = RenderTexture.GetTemporary(descriptor);
                 Graphics.Blit(sourceTexture, renderTex, material);
 
@@ -71,7 +94,7 @@ namespace UnityToCustomEngineExporter.Editor
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, mips);
                 texture.Apply();
 
-                SaveTexture(texture, fullOutputPath, hasAlpha);
+                callback(texture);
             }
             finally
             {
@@ -83,6 +106,13 @@ namespace UnityToCustomEngineExporter.Editor
                 if (material != null)
                     Object.DestroyImmediate(material);
             }
+        }
+
+        public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material,
+            string fullOutputPath, bool hasAlpha = true)
+        {
+            ProcessTexture(sourceTexture, width, height, material,
+                texture => SaveTexture(texture, fullOutputPath, hasAlpha));
         }
 
         private void SaveTexture(Texture2D texture, string fullOutputPath, bool hasAlpha = true)

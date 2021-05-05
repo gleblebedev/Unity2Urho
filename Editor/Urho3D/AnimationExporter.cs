@@ -37,26 +37,85 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var aniFilePath = EvaluateAnimationName(clip, prefabContext);
 
-            ExportMetadata(ExportUtils.ReplaceExtension(aniFilePath, ".xml"), clip, prefabContext);
-
             using (var file = _engine.TryCreate(clip.GetKey(), aniFilePath,
                 ExportUtils.GetLastWriteTimeUtc(clip)))
             {
-                if (file == null)
-                    return;
-                using (var writer = new BinaryWriter(file))
+                if (file != null)
                 {
-                    writer.Write(new byte[] {0x55, 0x41, 0x4e, 0x49});
-                    WriteStringSZ(writer, _engine.DecorateName(ExportUtils.GetName(clip)));
-                    writer.Write(clip.length);
-
+                    UrhoAnimationFile tracks;
+                    
                     // Legacy animation
                     if (clip.legacy)
-                        WriteTracksAsIs(clip, writer);
+                        tracks = WriteTracksAsIs(clip);
                     else if (clip.isHumanMotion)
-                        WriteHumanoidAnimation(clip, writer);
+                        tracks = WriteHumanoidAnimation(clip);
                     else
-                        WriteGenericAnimation(clip, writer);
+                        tracks = WriteGenericAnimation(clip);
+                    
+                    if (_engine.Options.EliminateRootMotion)
+                    {
+                        var rootTrack = tracks.Tracks.FirstOrDefault(_ => _.BoneName == tracks.RootBone);
+                        if (rootTrack?.Positions != null)
+                        {
+                            var lastKey = rootTrack.Keyframes.Count - 1;
+                            var startPos = rootTrack.Positions[0];
+                            var posDelta = rootTrack.Positions[lastKey] - startPos;
+                            if (posDelta.sqrMagnitude > 1e-6f)
+                            {
+                                var startTime = rootTrack.Keyframes[0];
+                                var dt = rootTrack.Keyframes[lastKey] - startTime;
+                                var vel = posDelta * (1.0f/dt);
+                                tracks.LinearVelocity = vel;
+                                for (var index = 0; index < rootTrack.Positions.Count; index++)
+                                {
+                                    rootTrack.Positions[index] = rootTrack.Positions[index] - vel*(rootTrack.Keyframes[index]-startTime);
+                                }
+                            }
+                        }
+                    }
+                    
+                    using (var writer = new BinaryWriter(file))
+                    {
+                        writer.Write(new byte[] {0x55, 0x41, 0x4e, 0x49});
+                        WriteStringSZ(writer, _engine.DecorateName(ExportUtils.GetName(clip)));
+                        writer.Write(clip.length);
+
+                        writer.Write(tracks.Tracks.Count);
+                        foreach (var track in tracks.Tracks)
+                        {
+                            WriteStringSZ(writer, track.BoneName);
+                            byte trackMask = 0;
+                            if (track.Positions != null)
+                                trackMask |= 1;
+                            if (track.Rotations != null)
+                                trackMask |= 2;
+                            if (track.Scales != null)
+                                trackMask |= 4;
+                            writer.Write(trackMask);
+                            writer.Write(track.Keyframes.Count);
+                            for (var index = 0; index < track.Keyframes.Count; index++)
+                            {
+                                writer.Write(track.Keyframes[index]);
+
+                                if (track.Positions != null)
+                                {
+                                    Write(writer, track.Positions[index]);
+                                }
+
+                                if (track.Rotations != null)
+                                {
+                                    Write(writer, track.Rotations[index]);
+                                }
+
+                                if (track.Scales != null)
+                                {
+                                    Write(writer, track.Scales[index]);
+                                }
+                            }
+                        }
+                    }
+
+                    ExportMetadata(ExportUtils.ReplaceExtension(aniFilePath, ".xml"), clip, prefabContext, tracks);
                 }
             }
         }
@@ -74,8 +133,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(clip))) + ".ani");
         }
 
-        private void WriteSkelAnimation(AnimationClip clipAnimation, GameObject root, BinaryWriter writer)
+        private UrhoAnimationFile WriteSkelAnimation(AnimationClip clipAnimation, GameObject root)
         {
+            var animationFile = new UrhoAnimationFile();
             var trackBones = CloneTree(root).Select(_ => new BoneTrack(_)).ToList();
             var cloneRoot = trackBones[0].gameObject;
             ISampler sampler;
@@ -107,43 +167,35 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            writer.Write(trackBones.Count);
             foreach (var bone in trackBones) bone.Optimize();
             foreach (var bone in trackBones)
             {
-                var mask = 0;
-                var hasTranslation = false;
-                var hasRotation = false;
-                var hasScale = false;
+                var track = new UrhoAnimationTrack() { BoneName = _engine.DecorateName(bone.gameObject.name) };
+                animationFile.Tracks.Add(track);
+   
                 if (bone.translation != null && bone.translation.Count > 0)
                 {
-                    mask |= 1;
-                    hasTranslation = true;
+                    track.Positions = new List<Vector3>(bone.keys.Count);
                 }
 
                 if (bone.rotation != null && bone.rotation.Count > 0)
                 {
-                    mask |= 2;
-                    hasRotation = true;
+                    track.Rotations = new List<Quaternion>(bone.keys.Count);
                 }
 
                 if (bone.scale != null && bone.scale.Count > 0)
                 {
-                    mask |= 4;
-                    hasScale = true;
+                    track.Scales = new List<Vector3>(bone.keys.Count);
                 }
 
-                if (mask == 0)
-                    continue;
-                WriteStringSZ(writer, _engine.DecorateName(bone.gameObject.name));
-                writer.Write((byte) mask);
-                writer.Write(bone.keys.Count);
+                animationFile.Tracks.Add(track);
+                track.Keyframes = new List<float>(bone.keys.Count);
                 for (var frame = 0; frame < bone.keys.Count; ++frame)
                 {
-                    writer.Write(bone.keys[frame]);
-                    if (hasTranslation) Write(writer, bone.translation[frame]);
-                    if (hasRotation) Write(writer, bone.rotation[frame]);
-                    if (hasScale) Write(writer, bone.scale[frame]);
+                    track.Keyframes.Add(bone.keys[frame]);
+                    track.Positions?.Add(bone.translation[frame]);
+                    track.Rotations?.Add(bone.rotation[frame]);
+                    track.Scales?.Add(bone.scale[frame]);
                 }
             }
 
@@ -152,6 +204,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             //    bone.Reset();
             //}
             Object.DestroyImmediate(trackBones[0].gameObject);
+
+            return animationFile;
         }
 
         private void FilterBoneTracks(List<BoneTrack> trackBones, AnimationClip clipAnimation)
@@ -159,7 +213,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var allBindings = AnimationUtility.GetCurveBindings(clipAnimation);
         }
 
-        private void WriteTracksAsIs(AnimationClip clipAnimation, BinaryWriter writer)
+        private UrhoAnimationFile WriteTracksAsIs(AnimationClip clipAnimation)
         {
             var positionAdapter = new Vector3AnimationCurveAdapter("m_LocalPosition", Vector3.zero);
             var rotationAdapter = new QuaternionAnimationCurveAdapter("m_LocalRotation");
@@ -176,14 +230,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var numKeyFrames = 1 + (int) (clipAnimation.length * clipAnimation.frameRate);
 
             var numTracks = (uint) bindingGroups.Length;
-            writer.Write(numTracks);
+            var animationFile = new UrhoAnimationFile();
+
+            var possibleRootNodes = bindingGroups.Select(_ => (_.Key.IndexOf('/') < 0) ? _.Key : _.Key.Substring(0, _.Key.IndexOf('/')))
+                .Distinct().ToList();
+
+            if (possibleRootNodes.Count == 1)
+            {
+                animationFile.RootBone = possibleRootNodes[0];
+            }
+                
+                
             foreach (var group in bindingGroups)
             {
                 foreach (var adapter in allAdapters) adapter.PickTracks(clipAnimation, group);
 
+                var track = new UrhoAnimationTrack();
+                animationFile.Tracks.Add(track);
                 var boneName = group.Key;
                 boneName = boneName.Substring(boneName.LastIndexOf('/') + 1);
-                WriteStringSZ(writer, boneName);
+                track.BoneName = boneName;
 
                 IAnimationCurveAdapter<Vector3> position = null;
                 if (positionAdapter.HasTracks)
@@ -197,39 +263,36 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (scaleAdapter.HasTracks)
                     scale = scaleAdapter;
 
-                byte trackMask = 0;
+                track.Keyframes = new List<float>(numKeyFrames);
                 if (position != null)
-                    trackMask |= 1;
+                {
+                    track.Positions = new List<Vector3>(numKeyFrames);
+                }
+
                 if (rotation != null)
-                    trackMask |= 2;
+                {
+                    track.Rotations = new List<Quaternion>(numKeyFrames);
+                }
+
                 if (scale != null)
-                    trackMask |= 4;
-                writer.Write(trackMask);
-                writer.Write(numKeyFrames);
+                {
+                    track.Scales = new List<Vector3>(numKeyFrames);
+                }
                 for (var frame = 0; frame < numKeyFrames; ++frame)
                 {
                     var t = frame * timeStep;
-                    writer.Write(t);
+                    track.Keyframes.Add(t);
 
-                    if ((trackMask & 1) != 0)
-                    {
-                        var pos = position.Evaluate(t);
-                        Write(writer, pos);
-                    }
 
-                    if ((trackMask & 2) != 0)
-                    {
-                        var rot = rotation.Evaluate(t);
-                        Write(writer, rot);
-                    }
+                    track.Positions?.Add(position.Evaluate(t));
 
-                    if ((trackMask & 4) != 0)
-                    {
-                        var scaleV = scale.Evaluate(t);
-                        Write(writer, scaleV);
-                    }
+                    track.Rotations?.Add(rotation.Evaluate(t));
+
+                    track.Scales?.Add(scale.Evaluate(t));
                 }
             }
+
+            return animationFile;
         }
 
         private string GetRootBoneName(EditorCurveBinding editorCurveBinding)
@@ -243,7 +306,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _engine.DecorateName(path.Substring(0, slash));
         }
 
-        private void ExportMetadata(string metadataFileName, AnimationClip clip, PrefabContext prefabContext)
+        private void ExportMetadata(string metadataFileName, AnimationClip clip, PrefabContext prefabContext, UrhoAnimationFile animation)
         {
             using (var file =
                 _engine.TryCreateXml(clip.GetKey(), metadataFileName, ExportUtils.GetLastWriteTimeUtc(clip)))
@@ -264,34 +327,41 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     file.WriteWhitespace(Environment.NewLine);
                 }
 
+                if (animation.LinearVelocity.HasValue)
+                {
+                    file.WriteWhitespace("\t");
+                    file.WriteStartElement("metadata");
+                    file.WriteAttributeString("name", "LinearVelocity");
+                    file.WriteAttributeString("type", "Vector3");
+                    file.WriteAttributeString("value", BaseNodeExporter.Format(animation.LinearVelocity.Value));
+                    file.WriteEndElement();
+                    file.WriteWhitespace(Environment.NewLine);
+                }
                 file.WriteEndElement();
                 file.WriteWhitespace(Environment.NewLine);
             }
         }
 
-        private void WriteHumanoidAnimation(AnimationClip clip, BinaryWriter writer)
+        private UrhoAnimationFile WriteHumanoidAnimation(AnimationClip clip)
         {
             var avatar = GetAvatar(clip);
             if (avatar != null)
-                if (WriteHumanoidAnimation(clip, avatar, writer))
-                    return;
+                return WriteHumanoidAnimation(clip, avatar);
             Debug.Log("Failed to export " + clip.name + ". Try to change it to Generic or Legacy setup.");
-            var numTracks = (uint) 0;
-            writer.Write(numTracks);
+            return new UrhoAnimationFile();
         }
 
-        private bool WriteHumanoidAnimation(AnimationClip clip, Avatar avatar, BinaryWriter writer)
+        private UrhoAnimationFile WriteHumanoidAnimation(AnimationClip clip, Avatar avatar)
         {
             var avatarPath = AssetDatabase.GetAssetPath(avatar);
             var prefabRoot = AssetDatabase.LoadAssetAtPath(avatarPath, typeof(GameObject)) as GameObject;
             if (prefabRoot == null)
-                return false;
+                return new UrhoAnimationFile();
 
-            WriteSkelAnimation(clip, prefabRoot, writer);
-            return true;
+            return WriteSkelAnimation(clip, prefabRoot);
         }
 
-        private void WriteGenericAnimation(AnimationClip clip, BinaryWriter writer)
+        private UrhoAnimationFile WriteGenericAnimation(AnimationClip clip)
         {
             var allBindings = AnimationUtility.GetCurveBindings(clip);
             var rootBones = new HashSet<string>(allBindings.Select(_ => GetRootBoneName(_)).Where(_ => _ != null));
@@ -300,7 +370,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 Debug.LogWarning(clip.name + ": Multiple root bones found (" +
                                  string.Join(", ", rootBones.ToArray()) +
                                  "), falling back to curve export");
-                WriteTracksAsIs(clip, writer);
+                return WriteTracksAsIs(clip);
             }
             else
             {
@@ -313,12 +383,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 rootBoneGO = null;
                 if (rootBoneGO != null)
                 {
-                    WriteSkelAnimation(clip, rootBoneGO.gameObject, writer);
+                    return WriteSkelAnimation(clip, rootBoneGO.gameObject);
                 }
                 else
                 {
                     Debug.LogWarning(clip.name + ": Multiple game objects found that match root bone name, falling back to curve export");
-                    WriteTracksAsIs(clip, writer);
+                    return WriteTracksAsIs(clip);
                 }
             }
         }

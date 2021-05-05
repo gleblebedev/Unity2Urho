@@ -2,6 +2,8 @@
 {
     public class Urho3DExportOptions
     {
+        public bool RBFX { get; set; } = true;
+
         public Urho3DExportOptions(string subfolder,
             bool exportUpdatedOnly,
             bool exportSceneAsPrefab, bool skipDisabled, bool usePhysicalValues)
@@ -37,5 +39,6 @@
 
         public bool ExportLODs { get; set; } = false;
         public bool ExportParticles { get; set; } = true;
+        public bool EliminateRootMotion { get; set; } = true;
     }
 }

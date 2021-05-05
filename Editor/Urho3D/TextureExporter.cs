@@ -186,7 +186,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     new TextureProcessor().ProcessAndSaveTexture(texture,
                         "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName),
                         textureOptions.textureImporterFormat != TextureImporterFormat.DXT1);
-                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc, textureOptions.WithSRGB(true));
+                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc, textureOptions.WithSRGB(tImporter.sRGBTexture));
                     break;
             }
         }

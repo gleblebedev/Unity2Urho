@@ -495,5 +495,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             return false;
         }
+
+        public Color FixMaterialColorSpace(Color color)
+        {
+            if (Options.RBFX)
+            {
+                return color;
+            }
+
+            return color.linear;
+        }
     }
 }
