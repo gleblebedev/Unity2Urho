@@ -859,14 +859,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 WriteAttribute(writer, subSubPrefix, "Color", _engine.FixMaterialColorSpace(light.color));
+                var lightIntensity = light.intensity;
+                if (!_engine.Options.RBFX)
+                {
+                    lightIntensity *= Mathf.PI * 2.0f;
+                }
+
                 if (_engine.Options.UsePhysicalValues)
                 {
-                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * 981.75f);
+                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", lightIntensity * 156.25f);
                     WriteAttribute(writer, subSubPrefix, "Use Physical Values", "true");
                 }
                 else
                 {
-                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", light.intensity * Mathf.PI * 2.0f);
+                    WriteAttribute(writer, subSubPrefix, "Brightness Multiplier", lightIntensity);
                     WriteAttribute(writer, subSubPrefix, "Use Physical Values", "false");
                 }
 
