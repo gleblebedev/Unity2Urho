@@ -63,8 +63,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void WriteCubemap(Cubemap texture, string resourceName, XmlWriter writer)
         {
             var ddsName = resourceName.Replace(".xml", ".dds");
-            var srgb = true;
-            DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), srgb);
+
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+
+            var srgb = tImporter?.sRGBTexture ?? false;
+            DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), false);
             writer.WriteStartElement("cubemap");
             writer.WriteWhitespace(Environment.NewLine);
             writer.WriteStartElement("srgb");

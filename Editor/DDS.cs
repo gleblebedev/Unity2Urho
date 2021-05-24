@@ -32,8 +32,7 @@ namespace UnityToCustomEngineExporter.Editor
                     {
                         WriteHeader(binaryWriter, texture.width, texture.height, texture.mipmapCount, false);
                         for (var mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
-                            WriteAsIs(binaryWriter, texture.GetPixels32(mipIndex),
-                                Math.Max(1, texture.width / (1 << mipIndex)));
+                            WriteAsIs(binaryWriter, texture.GetPixels32(mipIndex), Math.Max(1, texture.width / (1 << mipIndex)), true);
                     }
                 }
             }
@@ -67,13 +66,11 @@ namespace UnityToCustomEngineExporter.Editor
                         for (var mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
                         {
                             var pixels = texture.GetPixels(cubemapFace, mipIndex);
-                            var buf = new Color32[pixels.Length];
-                            for (var index = 0; index < pixels.Length; index++) buf[index] = pixels[index];
 
                             if (convertToSRGB)
-                                WriteLinearAsSRGB(binaryWriter, buf, Math.Max(1, texture.width / (1 << mipIndex)));
+                                WriteLinearAsSRGB(binaryWriter, pixels, Math.Max(1, texture.width / (1 << mipIndex)));
                             else
-                                WriteAsIs(binaryWriter, buf, Math.Max(1, texture.width / (1 << mipIndex)));
+                                WriteAsIs(binaryWriter, pixels, Math.Max(1, texture.width / (1 << mipIndex)), false);
                         }
                 }
             }
@@ -195,7 +192,19 @@ namespace UnityToCustomEngineExporter.Editor
             binaryWriter.Write(0); // Caps4
             binaryWriter.Write(0); // Reserved
         }
-
+        private static Color LinearToSRGB(Color rgb)
+        {
+            Color RGB = rgb;
+            var S1 = new Color(Mathf.Sqrt(RGB.r), Mathf.Sqrt(RGB.g), Mathf.Sqrt(RGB.b), RGB.a);
+            var S2 = new Color(Mathf.Sqrt(S1.r), Mathf.Sqrt(S1.g), Mathf.Sqrt(S1.b), RGB.a);
+            var S3 = new Color(Mathf.Sqrt(S2.r), Mathf.Sqrt(S2.g), Mathf.Sqrt(S2.b), RGB.a);
+            var k1 = new Color(0.662002687f, 0.662002687f, 0.662002687f, 1);
+            var k2 = new Color(0.684122060f, 0.684122060f, 0.684122060f, 1);
+            var k3 = new Color(0.323583601f, 0.323583601f, 0.323583601f, 1);
+            var k4 = new Color(0.0225411470f, 0.0225411470f, 0.0225411470f, 1);
+            var res = k1 * S1 + k2 * S2 - k3 * S3 - k4 * RGB;
+            return new Color(res.r, res.g, res.b, RGB.a);
+        }
 
         private static Color32 LinearToSRGB(Color32 rgb)
         {
@@ -207,32 +216,80 @@ namespace UnityToCustomEngineExporter.Editor
             var k2 = new Color(0.684122060f, 0.684122060f, 0.684122060f, 1);
             var k3 = new Color(0.323583601f, 0.323583601f, 0.323583601f, 1);
             var k4 = new Color(0.0225411470f, 0.0225411470f, 0.0225411470f, 1);
-            return k1 * S1 + k2 * S2 - k3 * S3 - k4 * RGB;
+            var res = k1 * S1 + k2 * S2 - k3 * S3 - k4 * RGB;
+            return new Color(res.r, res.g, res.b, RGB.a);
         }
 
-        private static void WriteLinearAsSRGB(BinaryWriter binaryWriter, Color32[] getPixels, int textureWidth)
+        private static void WriteLinearAsSRGB(BinaryWriter binaryWriter, Color[] getPixels, int textureWidth)
         {
             foreach (var c in getPixels)
             {
-                var rgb = LinearToSRGB(c);
+                Color32 rgb = LinearToSRGB(c);
                 binaryWriter.Write(rgb.r);
                 binaryWriter.Write(rgb.g);
                 binaryWriter.Write(rgb.b);
-                binaryWriter.Write(c.a);
+                binaryWriter.Write(rgb.a);
             }
         }
 
-        private static void WriteAsIs(BinaryWriter binaryWriter, Color32[] getPixels32, int width)
+        private static void WriteAsIs(BinaryWriter binaryWriter, Color32[] getPixels32, int width, bool flipVertically)
         {
-            var height = getPixels32.Length / width;
-            for (var y = height - 1; y >= 0; y--)
-            for (var x = 0; x < width; x++)
+            if (flipVertically)
             {
-                var index = x + y * width;
-                binaryWriter.Write(getPixels32[index].r);
-                binaryWriter.Write(getPixels32[index].g);
-                binaryWriter.Write(getPixels32[index].b);
-                binaryWriter.Write(getPixels32[index].a);
+                var height = getPixels32.Length / width;
+                for (var y = height - 1; y >= 0; y--)
+                {
+                    for (var x = 0; x < width; x++)
+                    {
+                        var index = x + y * width;
+                        var color32 = getPixels32[index];
+                        binaryWriter.Write(color32.r);
+                        binaryWriter.Write(color32.g);
+                        binaryWriter.Write(color32.b);
+                        binaryWriter.Write(color32.a);
+                    }
+                }
+            }
+            else
+            {
+                foreach (var c in getPixels32)
+                {
+                    Color32 rgb = c;
+                    binaryWriter.Write(rgb.r);
+                    binaryWriter.Write(rgb.g);
+                    binaryWriter.Write(rgb.b);
+                    binaryWriter.Write(rgb.a);
+                }
+            }
+        }
+        private static void WriteAsIs(BinaryWriter binaryWriter, Color[] getPixels32, int width, bool flipVertically)
+        {
+            if (flipVertically)
+            {
+                var height = getPixels32.Length / width;
+                for (var y = height - 1; y >= 0; y--)
+                {
+                    for (var x = 0; x < width; x++)
+                    {
+                        var index = x + y * width;
+                        Color32 color32 = getPixels32[index];
+                        binaryWriter.Write(color32.r);
+                        binaryWriter.Write(color32.g);
+                        binaryWriter.Write(color32.b);
+                        binaryWriter.Write(color32.a);
+                    }
+                }
+            }
+            else
+            {
+                foreach (var c in getPixels32)
+                {
+                    Color32 rgb = c;
+                    binaryWriter.Write(rgb.r);
+                    binaryWriter.Write(rgb.g);
+                    binaryWriter.Write(rgb.b);
+                    binaryWriter.Write(rgb.a);
+                }
             }
         }
     }
