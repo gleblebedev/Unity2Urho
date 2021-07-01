@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -185,8 +186,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 default:
                     new TextureProcessor().ProcessAndSaveTexture(texture,
                         "Hidden/UnityToCustomEngineExporter/Urho3D/Copy", _engine.GetTargetFilePath(outputAssetName),
-                        textureOptions.textureImporterFormat != TextureImporterFormat.DXT1);
-                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc, textureOptions.WithSRGB(tImporter.sRGBTexture));
+                        textureOptions.textureImporterFormat != TextureImporterFormat.DXT1, new Dictionary<string, float>
+                        {
+                            {"_GammaInput",( PlayerSettings.colorSpace == ColorSpace.Linear)?0.0f:1.0f},
+                            {"_GammaOutput",1.0f},
+                        });
+                    WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc,
+                        textureOptions.WithSRGB(tImporter.sRGBTexture));
                     break;
             }
         }

@@ -53,7 +53,6 @@
                 float smoothness = tex2D(_Smoothness, i.uv).a;
                 float r = 1.0 - (_SmoothnessRemapMin + smoothness * (_SmoothnessRemapMax - _SmoothnessRemapMin));
                 return fixed4(r, metGloss.r * _MetallicScale, 0, 1);
-
             }
             ENDCG
         }

@@ -3,6 +3,8 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        [Toggle] _GammaInput("GammaInput", Float) = 1
+        [Toggle] _GammaOutput("GammaOutput", Float) = 1
     }
     SubShader
     {
@@ -33,6 +35,10 @@
             {
                 return float3(LinearToGammaSpaceExact(value.r), LinearToGammaSpaceExact(value.g), LinearToGammaSpaceExact(value.b));
             }
+            inline float3 ColorGammaToLinear(float3 value)
+            {
+                return float3(GammaToLinearSpaceExact(value.r), GammaToLinearSpaceExact(value.g), GammaToLinearSpaceExact(value.b));
+            }
 
             v2f vert (appdata v)
             {
@@ -43,12 +49,17 @@
             }
 
             sampler2D _MainTex;
+            float _GammaInput;
+            float _GammaOutput;
 
             fixed4 frag(v2f i) : SV_Target
             {
                 float4 rgba = tex2D(_MainTex, i.uv);
-                return rgba;
-                //return float4(ColorLinearToGamma(rgba.rgb), rgba.a);
+                if (_GammaInput == _GammaOutput)
+                    return rgba;
+                if (_GammaInput < _GammaOutput)
+                    return float4(ColorLinearToGamma(rgba.rgb), rgba.a);
+                return float4(ColorGammaToLinear(rgba.rgb), rgba.a);
             }
             ENDCG
         }

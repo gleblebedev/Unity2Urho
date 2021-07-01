@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -13,7 +14,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override bool CanExportMaterial(Material material)
         {
-            return material.shader.name == "HDRP/Lit";
+            switch (material.shader.name)
+            {
+                case "HDRP/Lit":
+                case "HDRP/LayeredLit":
+                    return true;
+            }
+            return false;
         }
 
         protected override void ParseColor(string propertyName, Color color,
@@ -22,6 +29,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (propertyName)
             {
                 case "_BaseColor":
+                case "_BaseColor0":
                     arguments.BaseColorColor = color;
                     break;
                 case "_EmissiveColor":
@@ -61,12 +69,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (propertyName)
             {
                 case "_BaseColorMap":
+                case "_BaseColorMap0":
                     arguments.BaseColor = texture;
                     break;
                 case "_MaskMap":
+                case "_MaskMap0":
                     arguments.MetallicGloss = texture;
                     break;
                 case "_NormalMap":
+                case "_NormalMap0":
                     arguments.Bump = texture;
                     break;
                 case "_EmissiveColorMap":
@@ -97,26 +108,35 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             switch (propertyName)
             {
                 case "_NormalScale":
+                case "_NormalScale0":
                     arguments.BumpScale = value;
                     break;
                 case "_Cutoff":
                     arguments.Cutoff = value;
                     break;
                 case "_SmoothnessRemapMin":
+                case "_SmoothnessRemapMin0":
                     arguments.SmoothnessRemapMin = value;
                     break;
                 case "_SmoothnessRemapMax":
+                case "_SmoothnessRemapMax0":
                     arguments.SmoothnessRemapMax = value;
                     break;
                 case "_Smoothness":
+                case "_Smoothness0":
                     arguments.Glossiness = value;
                     break;
                 case "_Metallic":
+                case "_Metallic0":
                     arguments.Metallic = 0;
                     arguments.MetallicScale = value;
                     break;
                 case "_AORemapMax":
+                case "_AORemapMax0":
                     arguments.OcclusionStrength = value;
+                    break;
+                case "_SurfaceType":
+                    arguments.Transparent = (int) value == 1;
                     break;
             }
         }

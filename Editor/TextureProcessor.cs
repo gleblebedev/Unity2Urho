@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -10,22 +11,32 @@ namespace UnityToCustomEngineExporter.Editor
     public class TextureProcessor
     {
         public void ProcessAndSaveTexture(Texture sourceTexture, string shaderName, string fullOutputPath,
-            bool hasAlpha = true)
+            bool hasAlpha = true, Dictionary<string, float> shaderArgs = null)
         {
-            ProcessAndSaveTexture(sourceTexture, Shader.Find(shaderName), fullOutputPath, hasAlpha);
+            ProcessAndSaveTexture(sourceTexture, Shader.Find(shaderName), fullOutputPath, hasAlpha, shaderArgs);
         }
         public void ProcessTexture(Texture sourceTexture, string shaderName, Action<Texture2D> callback)
         {
             ProcessTexture(sourceTexture, Shader.Find(shaderName), callback);
         }
         public void ProcessAndSaveTexture(Texture sourceTexture, Shader shader, string fullOutputPath,
-            bool hasAlpha = true)
+            bool hasAlpha = true, Dictionary<string,float> shaderArgs = null)
         {
             Material material = null;
 
             try
             {
                 material = new Material(shader);
+                if (shaderArgs != null)
+                {
+                    foreach (var arg in shaderArgs)
+                    {
+                        if (material.HasProperty(arg.Key))
+                        {
+                            material.SetFloat(arg.Key, arg.Value);
+                        }
+                    }
+                }
                 ProcessAndSaveTexture(sourceTexture, material, fullOutputPath, hasAlpha);
             }
             finally
@@ -88,6 +99,7 @@ namespace UnityToCustomEngineExporter.Editor
                 };
                 renderTex = RenderTexture.GetTemporary(descriptor);
                 Graphics.Blit(sourceTexture, renderTex, material);
+
 
                 RenderTexture.active = renderTex;
                 texture = new Texture2D(width, height, TextureFormat.ARGB32, mips /* mipmap */, false);
