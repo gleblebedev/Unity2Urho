@@ -137,7 +137,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var lods = lodGroup.GetLODs();
             if (lods.Length == 0)
                 return null;
-            var firstMesh = lods[0].renderers.FirstOrDefault();
+            var firstMesh = lods[0].renderers.FirstOrDefault(_ => _ != null);
             if (firstMesh == null)
                 return null;
             var folder =
@@ -485,7 +485,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (positions.Count > 0)
                 elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
             if (normals.Count > 0)
+            {
+                //var n = new Vector3[normals.Count];
+                //for (var index = 0; index < normals.Count; index++)
+                //{
+                //    n[index] = normals[index].normalized;
+                //}
+                //elements.Add(new MeshVector3Stream(n, VertexElementSemantic.SEM_NORMAL));
                 elements.Add(new MeshVector3Stream(normals, VertexElementSemantic.SEM_NORMAL));
+            }
+
             if (boneWeights.Length > 0)
             {
                 var indices = new Vector4[boneWeights.Length];

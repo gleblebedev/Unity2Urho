@@ -16,7 +16,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine = engine;
         }
 
-        private static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
+        public static void WriteTgaHeader(BinaryWriter binaryWriter, int bitsPerPixel, int w, int h)
         {
             binaryWriter.Write((byte) 0);
             binaryWriter.Write((byte) 0);
@@ -190,11 +190,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private void WriteHeightMap(TerrainData terrain, PrefabContext prefabContext)
         {
+            using (var imageFile = _engine.TryCreate(terrain.GetKey(), EvaluateHeightMap(terrain), DateTime.MaxValue))
+            {
+                if (imageFile != null) SerializeHeightmapAsTga(imageFile, terrain);
+            }
+        }
+
+        public static void SerializeHeightmapAsTga(Stream imageFile, TerrainData terrain)
+        {
             var w = terrain.heightmapResolution;
             var h = terrain.heightmapResolution;
+            var heights = terrain.GetHeights(0, 0, w, h);
+
             var max = float.MinValue;
             var min = float.MaxValue;
-            var heights = terrain.GetHeights(0, 0, w, h);
+
             foreach (var height in heights)
             {
                 if (height > max) max = height;
@@ -210,25 +220,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 max = min + 0.1f;
             }
-
-            using (var imageFile = _engine.TryCreate(terrain.GetKey(), EvaluateHeightMap(terrain), DateTime.MaxValue))
+            using (var binaryWriter = new BinaryWriter(imageFile))
             {
-                if (imageFile != null)
-                    using (var binaryWriter = new BinaryWriter(imageFile))
-                    {
-                        WriteTgaHeader(binaryWriter, 32, w, h);
-                        for (var y = h - 1; y >= 0; --y)
-                        for (var x = 0; x < w; ++x)
-                        {
-                            var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
-                            var msb = (byte) height;
-                            var lsb = (byte) ((height - msb) * 255.0f);
-                            binaryWriter.Write((byte) 0); //B - none
-                            binaryWriter.Write(lsb); //G - LSB
-                            binaryWriter.Write(msb); //R - MSB
-                            binaryWriter.Write((byte) 255); //A - none
-                        }
-                    }
+                WriteTgaHeader(binaryWriter, 32, w, h);
+                for (var y = h - 1; y >= 0; --y)
+                for (var x = 0; x < w; ++x)
+                {
+                    var height = (heights[h - y - 1, x] - min) / (max - min) * 255.0f;
+                    var msb = (byte) height;
+                    var lsb = (byte) ((height - msb) * 255.0f);
+                    binaryWriter.Write((byte) 0); //B - none
+                    binaryWriter.Write(lsb); //G - LSB
+                    binaryWriter.Write(msb); //R - MSB
+                    binaryWriter.Write((byte) 255); //A - none
+                }
             }
         }
 

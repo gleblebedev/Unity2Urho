@@ -9,6 +9,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.ProBuilder;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -218,7 +219,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 texture.name + " from " + AssetDatabase.GetAssetPath(texture));
         }
 
-        public string EvaluateCubemapName(Cubemap cubemap)
+        public string EvaluateCubemapName(Texture cubemap)
         {
             return _cubemapExporter.EvaluateCubemapName(cubemap);
         }
@@ -229,6 +230,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return null;
 
             if (texture is Cubemap cubemap) return EvaluateCubemapName(cubemap);
+            if (texture.dimension == TextureDimension.Cube) return EvaluateCubemapName(texture);
 
             return _textureExporter.EvaluateTextureName(texture);
         }

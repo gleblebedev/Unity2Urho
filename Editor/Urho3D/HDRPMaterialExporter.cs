@@ -54,7 +54,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     //arguments.TransmittanceColor = color;
                     break;
                 default:
-                    Debug.Log("Color " + propertyName + " = " + color);
+                    //Debug.Log("Color " + propertyName + " = " + color);
                     break;
             }
         }

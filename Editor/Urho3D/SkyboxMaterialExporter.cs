@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -88,8 +89,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
                     else
                     {
+                        if (arguments.Skybox.dimension != TextureDimension.Cube)
+                        {
+                            technique = "Techniques/DiffSkydome.xml";
+                        }
                         name = Engine.EvaluateTextrueName(arguments.Skybox);
-                        technique = "Techniques/DiffSkydome.xml";
                     }
 
                     if (!string.IsNullOrWhiteSpace(name)) WriteTexture(name, writer, "diffuse", prefabContext);

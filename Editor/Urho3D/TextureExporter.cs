@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -57,7 +58,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return null;
 
             var newExt = Path.GetExtension(assetPath);
-            if (texture is Cubemap)
+            if (texture is Cubemap || texture.dimension == TextureDimension.Cube)
                 newExt = ".xml";
             else
                 switch (newExt.ToLower())
@@ -160,6 +161,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
             else
             {
+                if (_engine.Options.PackedNormal)
+                {
+                    var tImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
+                    var texType = tImporter?.textureType ?? TextureImporterType.Default;
+                    if (texType == TextureImporterType.NormalMap)
+                    {
+                        CopyTextureAndSaveAs(texture);
+                        return;
+                    }
+                }
                 _engine.TryCopyFile(AssetDatabase.GetAssetPath(texture), newName);
                 WriteOptions(texture.GetKey(), newName, ExportUtils.GetLastWriteTimeUtc(texture),
                     ExportUtils.GetTextureOptions(texture));
@@ -180,7 +191,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 case TextureImporterType.NormalMap:
                     new TextureProcessor().ProcessAndSaveTexture(texture,
-                        "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap",
+                        _engine.Options.PackedNormal
+                            ? "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMapPackedNormal"
+                            : "Hidden/UnityToCustomEngineExporter/Urho3D/DecodeNormalMap",
                         _engine.GetTargetFilePath(outputAssetName));
                     break;
                 default:

@@ -352,7 +352,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     _engine.ScheduleLODGroup(lodGroup, prefabContext);
                     var lods = lodGroup.GetLODs();
-                    var renderers = lods.SelectMany(_ => _.renderers).ToList();
+                    var renderers = lods.SelectMany(_ => _.renderers.Where(_1 => _1 != null)).ToList();
 
                     StartComponent(writer, subPrefix, "StaticModel", lodGroup.enabled);
                     var meshPath = _engine.EvaluateMeshName(lodGroup, prefabContext);
@@ -361,15 +361,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                     var materials = new StringBuilder("Material");
                     var visitedMaterials = new HashSet<Material>();
-                    foreach (var renderer in renderers)
-                    foreach (var material in renderer.sharedMaterials)
-                        if (visitedMaterials.Add(material))
-                        {
-                            _engine.ScheduleAssetExport(material, prefabContext);
-                            var path = _engine.EvaluateMaterialName(material, prefabContext);
-                            materials.Append(";");
-                            materials.Append(path);
-                        }
+                    foreach (var renderer in renderers.Where(_ => _ != null))
+                        foreach (var material in renderer.sharedMaterials)
+                            if (visitedMaterials.Add(material))
+                            {
+                                _engine.ScheduleAssetExport(material, prefabContext);
+                                var path = _engine.EvaluateMaterialName(material, prefabContext);
+                                materials.Append(";");
+                                materials.Append(path);
+                            }
 
                     WriteAttribute(writer, subSubPrefix, "Material", materials.ToString());
 
@@ -381,14 +381,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     EndElement(writer, subPrefix);
 
                     foreach (var lod in lods.Skip(0))
-                    foreach (var renderer in lod.renderers)
+                    foreach (var renderer in lod.renderers.Where(_ => _ != null))
                         localExcludeList.Add(renderer);
                 }
                 else
                 {
                     var lods = lodGroup.GetLODs();
                     foreach (var lod in lods.Skip(1))
-                    foreach (var renderer in lod.renderers)
+                    foreach (var renderer in lod.renderers.Where(_ => _ != null))
                         localExcludeList.Add(renderer);
                 }
             }
@@ -606,7 +606,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (!_engine.Options.ExportLODs)
                 return false;
-            if (lodGroup.GetLODs().SelectMany(_ => _.renderers).Any(_ => _ is SkinnedMeshRenderer))
+            if (lodGroup.GetLODs().SelectMany(_ => _.renderers.Where(_1 => _1 != null)).Any(_ => _ is SkinnedMeshRenderer))
                 return false;
             return true;
         }
@@ -852,6 +852,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 else if (light.type == LightType.Spot)
                 {
                     WriteAttribute(writer, subSubPrefix, "Light Type", "Spot");
+                    WriteAttribute(writer, subSubPrefix, "Spot FOV", light.spotAngle);
+                    WriteAttribute(writer, subSubPrefix, "Range", light.range);
                 }
                 else if (light.type == LightType.Point)
                 {

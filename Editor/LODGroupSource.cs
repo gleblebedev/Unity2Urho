@@ -30,7 +30,7 @@ namespace UnityToCustomEngineExporter.Editor
             for (var lodIndex = 0; lodIndex < lods.Length; lodIndex++)
             {
                 var lod = lods[lodIndex];
-                foreach (var renderer in lod.renderers)
+                foreach (var renderer in lod.renderers.Where(_=>_!=null))
                 {
                     var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
                     for (var submeshIndex = 0; submeshIndex < mesh.subMeshCount; submeshIndex++)
@@ -51,7 +51,7 @@ namespace UnityToCustomEngineExporter.Editor
             for (var lodIndex = 0; lodIndex < lods.Length; lodIndex++)
             {
                 var lod = lods[lodIndex];
-                foreach (var renderer in lod.renderers)
+                foreach (var renderer in lod.renderers.Where(_ => _ != null))
                 {
                     var transform = renderer.localToWorldMatrix * worldToLocalMatrix;
                     var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
