@@ -205,7 +205,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             {"_GammaOutput",1.0f},
                         });
                     WriteOptions(assetGuid, outputAssetName, sourceFileTimestampUtc,
-                        textureOptions.WithSRGB(tImporter.sRGBTexture));
+                        textureOptions.WithSRGB(tImporter?.sRGBTexture ?? true));
                     break;
             }
         }

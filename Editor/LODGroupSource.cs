@@ -33,16 +33,21 @@ namespace UnityToCustomEngineExporter.Editor
                 foreach (var renderer in lod.renderers.Where(_=>_!=null))
                 {
                     var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
-                    for (var submeshIndex = 0; submeshIndex < mesh.subMeshCount; submeshIndex++)
+                    if (mesh != null)
                     {
-                        var material = (renderer.sharedMaterials.Length > submeshIndex)? renderer.sharedMaterials[submeshIndex]: null;
-                        var topology = mesh.GetTopology(submeshIndex);
-                        var key = new MaterialTopology() {material = material, topology = topology};
-                        if (!materialToSubmesh.TryGetValue(key, out var matIndex))
+                        for (var submeshIndex = 0; submeshIndex < mesh.subMeshCount; submeshIndex++)
                         {
-                            matIndex = materialToSubmesh.Count;
-                            materialToSubmesh.Add(key, matIndex);
-                            _geometries.Add(new Geometry(material, _lods, topology));
+                            var material = (renderer.sharedMaterials.Length > submeshIndex)
+                                ? renderer.sharedMaterials[submeshIndex]
+                                : null;
+                            var topology = mesh.GetTopology(submeshIndex);
+                            var key = new MaterialTopology() {material = material, topology = topology};
+                            if (!materialToSubmesh.TryGetValue(key, out var matIndex))
+                            {
+                                matIndex = materialToSubmesh.Count;
+                                materialToSubmesh.Add(key, matIndex);
+                                _geometries.Add(new Geometry(material, _lods, topology));
+                            }
                         }
                     }
                 }
