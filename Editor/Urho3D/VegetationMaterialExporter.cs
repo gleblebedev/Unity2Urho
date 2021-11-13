@@ -34,7 +34,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var windStemAxis = new Vector3(_WindStemAxisX, _WindStemAxisY, _WindStemAxisZ);
             material.ExtraParameters.Add("WindStemAxis", windStemAxis);
             material.ExtraParameters.Add("WindPeriod", _WindPeriod);
-            material.ExtraParameters.Add("WindWorldSpacingX", new Vector2(_WindWorldSpacingX, _WindWorldSpacingY));
+            material.ExtraParameters.Add("WindWorldSpacing", new Vector2(_WindWorldSpacingX, _WindWorldSpacingY));
 
             var cull = (CullMode) mat.GetFloat("_Cull");
             switch (cull)
