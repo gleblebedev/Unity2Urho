@@ -193,9 +193,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var bone = new Urho3DBone();
                 var unityBone = skinnedMeshRenderer.GetBoneTransform(index);
                 var parentIndex = skinnedMeshRenderer.GetBoneParent(index);
-                if (parentIndex.HasValue) bone.parent = parentIndex.Value;
-
-                bone.name = unityBone.name ?? "bone" + index;
+                if (parentIndex.HasValue) 
+                    bone.parent = parentIndex.Value;
+                else
+                    bone.parent = index;
+                bone.name = string.IsNullOrWhiteSpace(unityBone.name)? "bone" + index : unityBone.name;
                 //if (bone.parent != 0)
                 //{
                 bone.actualPos = unityBone.localPosition;
