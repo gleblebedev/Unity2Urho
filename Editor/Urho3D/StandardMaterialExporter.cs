@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -90,7 +91,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
             if (arguments.Bump != null && Engine.Options.PackedNormal) material.PixelShaderDefines.Add("PACKEDNORMAL");
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            if (!Engine.Options.RBFX)
+            {
+                material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            }
+
             material.BaseColorTexture = Engine.EvaluateTextrueName(arguments.BaseColor);
             var metalicGlossinesTexture = Engine.EvaluateTextrueName(arguments.MetallicGloss);
             var smoothnessTexture = Engine.EvaluateTextrueName(arguments.Smoothness);
@@ -102,6 +107,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
             else
             {
+                if (Engine.Options.RBFX)
+                {
+                    material.Metallic = 1.0f;
+                    material.Roughness = 1.0f;
+                }
+
                 var texNameBuilder = new StringBuilder();
                 if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
                     texNameBuilder.Append(Path.GetDirectoryName(metalicGlossinesTexture).FixAssetSeparator());

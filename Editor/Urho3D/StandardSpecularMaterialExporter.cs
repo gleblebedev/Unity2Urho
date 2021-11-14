@@ -21,7 +21,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var material = new UrhoPBRMaterial();
             material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
-            material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            if (!Engine.Options.RBFX)
+            {
+                material.AOTexture = BuildAOTextureName(arguments.Occlusion, arguments.OcclusionStrength);
+            }
+
             var diffuseTextrueName = Engine.EvaluateTextrueName(arguments.Diffuse);
             var specularTexture = Engine.EvaluateTextrueName(arguments.PBRSpecular.Texture);
             string smoothnessTexture;
@@ -45,6 +49,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
             else
             {
+                if (Engine.Options.RBFX)
+                {
+                    material.Metallic = 1.0f;
+                    material.Roughness = 1.0f;
+                }
                 {
                     var baseColorTextureNameBuilder = new StringBuilder();
                     if (!string.IsNullOrWhiteSpace(diffuseTextrueName))

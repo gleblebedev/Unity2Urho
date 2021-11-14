@@ -252,6 +252,8 @@ namespace UnityToCustomEngineExporter.Editor
                 Topology = topology;
             }
 
+            public Bounds? Bounds => null;
+
             public int NumLods
             {
                 get

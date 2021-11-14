@@ -566,6 +566,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             public Quaternion actualRot = Quaternion.identity;
             public Vector3 actualScale = Vector3.one;
             public Matrix4x4 binding = Matrix4x4.identity;
+
+            public override string ToString()
+            {
+                return name + " (Parent: "+parent+")";
+            }
         }
 
         internal abstract class MeshStreamWriter

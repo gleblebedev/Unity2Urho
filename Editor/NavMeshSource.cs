@@ -39,6 +39,8 @@ namespace UnityToCustomEngineExporter.Editor
                 _mesh = mesh;
             }
 
+            public Bounds? Bounds => null;
+
             public MeshTopology Topology => MeshTopology.Triangles;
 
             public int NumLods => 1;

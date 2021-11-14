@@ -5,6 +5,8 @@
         _MainTex ("Texture", 2D) = "white" {}
         _SpecGlossMap("Specular", 2D) = "black" {}
         _Smoothness("Smoothness", 2D) = "white" {}
+        _Occlusion("Occlusion", 2D) = "white" {}
+        _OcclusionStrength("OcclusionStrength", Float) = 1.0
         _SmoothnessScale("Smoothness Factor", Range(0.0, 1.0)) = 1
     }
     SubShader
@@ -119,7 +121,9 @@
             sampler2D _MainTex;
             sampler2D _SpecGlossMap;
             sampler2D _Smoothness;
+            sampler2D _Occlusion;
             float _SmoothnessScale;
+            float _OcclusionStrength;
 
             fixed4 frag(v2f i) : SV_Target
             {
@@ -130,7 +134,8 @@
                 specularGlossiness.opacity = diffSample.a;
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
-                return fixed4(metallicRoughness.roughness, metallicRoughness.metallic, 0, 1);
+                float occlusion = dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)) * _OcclusionStrength;
+                return fixed4(metallicRoughness.roughness, metallicRoughness.metallic, 0, occlusion);
             }
             ENDCG
         }

@@ -4,6 +4,8 @@
     {
         _MainTex("Texture", 2D) = "white" {}
         _Smoothness("Smoothness", 2D) = "white" {}
+        _Occlusion("Occlusion", 2D) = "white" {}
+        _OcclusionStrength("OcclusionStrength", Float) = 1.0
         _MetallicScale("MetallicScale", Float) = 1.0
         _SmoothnessRemapMin("SmoothnessRemapMin", Float) = 0.0
         _SmoothnessRemapMax("SmoothnessRemapMax", Float) = 1.0
@@ -45,14 +47,17 @@
             sampler2D _Smoothness;
             float _SmoothnessRemapMin;
             float _SmoothnessRemapMax;
+            sampler2D _Occlusion;
             float _MetallicScale;
+            float _OcclusionStrength;
 
             fixed4 frag (v2f i) : SV_Target
             {
                 float4 metGloss = tex2D(_MainTex, i.uv);
                 float smoothness = tex2D(_Smoothness, i.uv).a;
                 float r = 1.0 - (_SmoothnessRemapMin + smoothness * (_SmoothnessRemapMax - _SmoothnessRemapMin));
-                return fixed4(r, metGloss.r * _MetallicScale, 0, 1);
+                float occlusion = dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)) * _OcclusionStrength;
+                return fixed4(r, metGloss.r * _MetallicScale, 0, occlusion);
             }
             ENDCG
         }

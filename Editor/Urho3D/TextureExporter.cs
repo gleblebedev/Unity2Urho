@@ -287,6 +287,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 tmpMaterial.SetFloat("_SmoothnessRemapMin", arguments.SmoothnessRemapMin);
                 tmpMaterial.SetFloat("_SmoothnessRemapMax", arguments.SmoothnessRemapMax);
                 tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
+                if (_engine.Options.RBFX)
+                {
+                    tmpMaterial.SetTexture("_Occlusion", arguments.Occlusion);
+                    tmpMaterial.SetFloat("_OcclusionStrength", arguments.OcclusionStrength);
+                }
                 new TextureProcessor().ProcessAndSaveTexture(mainTexture, width, height, tmpMaterial,
                     _engine.GetTargetFilePath(baseColorName));
                 WriteOptions(assetGuid, baseColorName, sourceFileTimestampUtc,
@@ -323,6 +328,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var (width, height) = MaxTexutreSize(mainTexture, specularTexture, smoothnessTexture);
                 tmpMaterial.SetTexture("_MainTex", mainTexture);
                 tmpMaterial.SetTexture("_SpecGlossMap", specularTexture);
+                if (_engine.Options.RBFX)
+                {
+                    tmpMaterial.SetTexture("_Occlusion", arguments.Occlusion);
+                    tmpMaterial.SetFloat("_OcclusionStrength", arguments.OcclusionStrength);
+                }
                 tmpMaterial.SetFloat("_SmoothnessScale",
                     arguments.GlossinessTextureScale *
                     (arguments.Smoothness.Texture != null ? 1.0f : arguments.Glossiness));

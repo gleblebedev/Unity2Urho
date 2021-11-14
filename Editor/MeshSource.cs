@@ -123,7 +123,10 @@ namespace UnityToCustomEngineExporter.Editor
             {
                 _mesh = mesh;
                 _submesh = submesh;
+                Bounds = _mesh.GetSubMesh(_submesh).bounds;
             }
+
+            public Bounds? Bounds { get; }
 
             public int NumLods => 1;
 

@@ -55,6 +55,8 @@ namespace UnityToCustomEngineExporter.Editor
 
             public MeshTopology Topology => MeshTopology.Triangles;
 
+            public Bounds? Bounds => null;
+
             public void AddRange(IEnumerable<int> faceIndexes)
             {
                 _indices.AddRange(faceIndexes);
