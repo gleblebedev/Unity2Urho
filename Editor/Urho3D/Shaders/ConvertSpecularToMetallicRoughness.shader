@@ -134,7 +134,7 @@
                 specularGlossiness.opacity = diffSample.a;
                 specularGlossiness.glossiness = tex2D(_Smoothness, i.uv).a * _SmoothnessScale;
                 MetallicRoughness metallicRoughness = ConvertToMetallicRoughness(specularGlossiness);
-                float occlusion = dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)) * _OcclusionStrength;
+                float occlusion = lerp(1.0 - _OcclusionStrength, 1.0, dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)));
                 return fixed4(metallicRoughness.roughness, metallicRoughness.metallic, 0, occlusion);
             }
             ENDCG

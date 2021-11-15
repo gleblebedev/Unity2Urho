@@ -56,7 +56,7 @@
                 float4 metGloss = tex2D(_MainTex, i.uv);
                 float smoothness = tex2D(_Smoothness, i.uv).a;
                 float r = 1.0 - (_SmoothnessRemapMin + smoothness * (_SmoothnessRemapMax - _SmoothnessRemapMin));
-                float occlusion = dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)) * _OcclusionStrength;
+                float occlusion = lerp(1.0 - _OcclusionStrength, 1.0, dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)));
                 return fixed4(r, metGloss.r * _MetallicScale, 0, occlusion);
             }
             ENDCG
