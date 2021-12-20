@@ -68,7 +68,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
 
             var srgb = tImporter?.sRGBTexture ?? false;
-            DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), false);
+            DDS.SaveAsRgbaDds(texture, _engine.GetTargetFilePath(ddsName), PlayerSettings.colorSpace == ColorSpace.Linear);
             writer.WriteStartElement("cubemap");
             writer.WriteWhitespace(Environment.NewLine);
             writer.WriteStartElement("srgb");

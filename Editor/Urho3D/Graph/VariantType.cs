@@ -1,0 +1,35 @@
+﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
+{
+    public enum VariantType
+    {
+        None,
+        Int,
+        Bool,
+        Float,
+        Vector2,
+        Vector3,
+        Vector4,
+        Quaternion,
+        Color,
+        String,
+        Buffer,
+        VoidPtr,
+        ResourceRef,
+        ResourceRefList,
+        VariantVector,
+        VariantMap,
+        IntRect,
+        IntVector2,
+        Ptr,
+        Matrix3,
+        Matrix3x4,
+        Matrix4,
+        Double,
+        StringVector,
+        Rect,
+        IntVector3,
+        Int64,
+        Custom,
+        VariantCurve
+    }
+}

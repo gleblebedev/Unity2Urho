@@ -23,6 +23,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly CubemapExporter _cubemapExporter;
         private readonly MeshExporter _meshExporter;
         private readonly ParticleExporter _particleExporter;
+        private readonly ParticleGraphExporter _particleGraphExporter;
         private readonly AnimationExporter _animationExporter;
         private readonly AnimationControllerExporter _animationControllerExporter;
         private readonly MaterialExporter _materialExporter;
@@ -47,6 +48,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _cubemapExporter = new CubemapExporter(this);
             _meshExporter = new MeshExporter(this);
             _particleExporter = new ParticleExporter(this);
+            _particleGraphExporter = new ParticleGraphExporter(this);
             _materialExporter = new MaterialExporter(this);
             _sceneExporter = new SceneExporter(this);
             _prefabExporter = new PrefabExporter(this);
@@ -315,9 +317,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (particleSystem == null)
                 return null;
-            var name = _particleExporter.EvaluateName(particleSystem, prefabContext);
-            EditorTaskScheduler.Default.ScheduleForegroundTask(
-                () => _particleExporter.ExportEffect(particleSystem, prefabContext), "ParticleEffect " + name);
+            string name;
+            if (Options.RBFX)
+            {
+                name = _particleGraphExporter.EvaluateName(particleSystem, prefabContext);
+                EditorTaskScheduler.Default.ScheduleForegroundTask(
+                    () => _particleGraphExporter.ExportEffect(particleSystem, prefabContext), "ParticleEffect " + name);
+            }
+            else
+            {
+                name = _particleExporter.EvaluateName(particleSystem, prefabContext);
+                EditorTaskScheduler.Default.ScheduleForegroundTask(
+                    () => _particleExporter.ExportEffect(particleSystem, prefabContext), "ParticleEffect " + name);
+
+            }
             return name;
         }
 
@@ -471,7 +484,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             if (asset is ParticleSystem particleSystem)
             {
-                _particleExporter.ExportEffect(particleSystem, prefabContext);
+                if (Options.RBFX)
+                    _particleGraphExporter.ExportEffect(particleSystem, prefabContext);
+                else
+                    _particleExporter.ExportEffect(particleSystem, prefabContext);
                 yield break;
             }
 

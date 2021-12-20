@@ -1,0 +1,60 @@
+﻿using System;
+using System.Linq;
+using System.Xml;
+
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
+{
+    public class GraphInPin: GraphPin
+    {
+        public GraphInPin(string name, VariantType type = VariantType.None) : base(name)
+        {
+            Type = type;
+        }
+
+        public GraphInPin(string name, GraphOutPin pin) : base(name)
+        {
+            TargetPin = pin;
+        }
+
+        public GraphInPin(string name, VariantType type, GraphNode target) : base(name)
+        {
+            Type = type;
+            Connect(target);
+        }
+
+        public GraphInPin(string name, GraphNode target) : base(name)
+        {
+            Connect(target);
+        }
+
+        public GraphOutPin TargetPin { get; set; }
+        public VariantType Type { get; set; }
+
+        public string Value { get; set; }
+        public override void WriteAttributes(XmlWriter writer)
+        {
+            if (Type != VariantType.None)
+            {
+                writer.WriteAttributeString("type", Type.ToString());
+            }
+            if (TargetPin != null)
+            {
+                writer.WriteAttributeString("node", TargetPin.Node.Name);
+                writer.WriteAttributeString("pin", TargetPin.Name);
+            }
+            if (!string.IsNullOrWhiteSpace(Value))
+            {
+                writer.WriteAttributeString("value", Value);
+            }
+        }
+
+        public void Connect(GraphNode target)
+        {
+            TargetPin = target.Out.FirstOrDefault();
+            if (TargetPin == null)
+            {
+                throw new ArgumentException($"No output pins in {target.Name}");
+            }
+        }
+    }
+}
