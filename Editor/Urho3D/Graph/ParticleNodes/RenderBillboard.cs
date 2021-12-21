@@ -22,11 +22,11 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             In.Add(Rotation);
         }
 
-        public GraphInPin Pos => new GraphInPin("pos", VariantType.Vector3);
-        public GraphInPin Size => new GraphInPin("size", VariantType.Vector2);
-        public GraphInPin Frame => new GraphInPin("frame", VariantType.Float);
-        public GraphInPin Color => new GraphInPin("color", VariantType.Color);
-        public GraphInPin Rotation => new GraphInPin("rotation", VariantType.Float);
+        public GraphInPin Pos => new GraphInPin("pos", VariantType.Vector3) { Value = "0 0 0" };
+        public GraphInPin Size => new GraphInPin("size", VariantType.Vector2) { Value = "1 1" };
+        public GraphInPin Frame => new GraphInPin("frame", VariantType.Float) { Value = "0" };
+        public GraphInPin Color => new GraphInPin("color", VariantType.Color) { Value = "1 1 1 1" };
+        public GraphInPin Rotation => new GraphInPin("rotation", VariantType.Float) { Value = "0" };
 
         public string Material
         {

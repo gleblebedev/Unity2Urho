@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Xml;
 
@@ -39,7 +40,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             if (TargetPin != null)
             {
-                writer.WriteAttributeString("node", TargetPin.Node.Name);
+                writer.WriteAttributeString("node", TargetPin.Node.Id.ToString(CultureInfo.InvariantCulture));
                 writer.WriteAttributeString("pin", TargetPin.Name);
             }
             if (!string.IsNullOrWhiteSpace(Value))

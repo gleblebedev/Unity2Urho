@@ -895,9 +895,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             PrefabContext prefabContext, bool enabled)
         {
             var subSubPrefix = subPrefix + "\t";
-            StartComponent(writer, subPrefix, "ParticleEmitter", true);
             var name = _engine.ScheduleParticleEffect(particleSystem, prefabContext);
-            WriteAttribute(writer, subSubPrefix, "Effect", "Texture2D;" + name);
+            if (_engine.Options.RBFX)
+            {
+                StartComponent(writer, subPrefix, "ParticleGraphEmitter", true);
+                WriteAttribute(writer, subSubPrefix, "Effect", "ParticleGraphEffect;" + name);
+            }
+            else
+            {
+                StartComponent(writer, subPrefix, "ParticleEmitter", true);
+                WriteAttribute(writer, subSubPrefix, "Effect", "ParticleEffect;" + name);
+            }
             WriteAttribute(writer, subSubPrefix, "Animation LOD Bias", 0);
             EndElement(writer, subPrefix);
         }
