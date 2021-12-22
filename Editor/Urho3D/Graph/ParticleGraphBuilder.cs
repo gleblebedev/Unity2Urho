@@ -1,62 +1,82 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
     public class ParticleGraphBuilder
     {
-        private readonly Graph m_graph;
+        private readonly Graph _graph;
 
         public ParticleGraphBuilder(Graph mGraph)
         {
-            m_graph = mGraph;
+            _graph = mGraph;
         }
 
-        private Dictionary<float, GraphNode> m_constants = new Dictionary<float, GraphNode>();
+        private Dictionary<float, GraphNode> _constants = new Dictionary<float, GraphNode>();
+
         public GraphNode BuildConstant(float constant)
         {
-            if (m_constants.TryGetValue(constant, out var c))
+            if (_constants.TryGetValue(constant, out var c))
                 return c;
-            c = m_graph.Add(new GraphNode(GraphNodeType.Constant, new GraphNodeProperty("Value", constant),
+            c = _graph.Add(new GraphNode(GraphNodeType.Constant, new GraphNodeProperty("Value", constant),
                 new GraphOutPin("out", VariantType.Float)));
-            m_constants.Add(constant, c);
+            _constants.Add(constant, c);
             return c;
         }
 
-        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, float multiplier)
+        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, float multiplier, Func<GraphNode> t, Func<GraphNode> factor)
         {
             switch (curve.mode)
             {
                 case ParticleSystemCurveMode.Constant:
                     return BuildConstant(curve.constant);
                 case ParticleSystemCurveMode.Curve:
-                    return Build(GraphNodeType.Curve,
-                        new GraphNodeProperty("Curve", curve.curve, curve.curveMultiplier* multiplier),
-                        new GraphInPin("t", VariantType.Float, BuildConstant(0.0f)),
-                        new GraphOutPin("out", VariantType.Float));
+                {
+                    return BuildCurve(curve.curve, curve.curveMultiplier * multiplier, t);
+                }
                 case ParticleSystemCurveMode.TwoCurves:
-                    return Build(GraphNodeType.LerpCurves,
-                        new GraphNodeProperty("CurveMin", curve.curveMin, curve.curveMultiplier * multiplier),
-                        new GraphNodeProperty("CurveMax", curve.curveMax, curve.curveMultiplier * multiplier),
-                        new GraphInPin("factor", VariantType.Float, BuildConstant(0.0f)),
-                        new GraphInPin("t", VariantType.Float, BuildConstant(0.0f)),
+                {
+                    var min = BuildCurve(curve.curveMin, curve.curveMultiplier * multiplier, t);
+                    var max = BuildCurve(curve.curveMax, curve.curveMultiplier * multiplier, t);
+                    return Build(GraphNodeType.Lerp,
+                        new GraphInPin("x", VariantType.Float, min),
+                        new GraphInPin("y", VariantType.Float, max),
+                        new GraphInPin("t", VariantType.Float, factor()),
                         new GraphOutPin("out", VariantType.Float));
+                }
                 case ParticleSystemCurveMode.TwoConstants:
-                    return Build(GraphNodeType.Random, 
-                        new GraphNodeProperty("Min", curve.constantMin),
-                        new GraphNodeProperty("Max", curve.constantMax),
+                {
+                    var f = factor();
+                    if (curve.constantMin == 0.0f && Math.Abs(curve.constantMax - 1.0f) < 1e-6f)
+                    {
+                        return f;
+                    }
+                    return Build(GraphNodeType.Lerp,
+                        new GraphInPin("x", VariantType.Float) {Value = curve.constantMin.ToString(CultureInfo.InvariantCulture) },
+                        new GraphInPin("y", VariantType.Float) { Value = curve.constantMax.ToString(CultureInfo.InvariantCulture) },
+                        new GraphInPin("t", VariantType.Float, f),
                         new GraphOutPin("out", VariantType.Float));
+                }
             }
 
             throw new ArgumentOutOfRangeException(curve.mode.ToString());
         }
 
-
-        public GraphNode BuildBurst(ParticleSystem.Burst burst)
+        private GraphNode BuildCurve(AnimationCurve curve, float multiplier, Func<GraphNode> t)
         {
-            var count = BuildMinMaxCurve(burst.count, 1.0f);
-            return m_graph.Add(new GraphNode(GraphNodeType.BurstTimer,
+            return Build(GraphNodeType.Curve,
+                new GraphNodeProperty("Curve", curve, multiplier),
+                new GraphInPin("t", VariantType.Float, t()),
+                new GraphOutPin("out", VariantType.Float));
+        }
+
+
+        public GraphNode BuildBurst(ParticleSystem.Burst burst, Func<GraphNode> t, Func<GraphNode> factor)
+        {
+            var count = BuildMinMaxCurve(burst.count, 1.0f, t, factor);
+            return _graph.Add(new GraphNode(GraphNodeType.BurstTimer,
                 new GraphNodeProperty("Delay", burst.time),
                 new GraphNodeProperty("Interval", burst.repeatInterval),
                 new GraphNodeProperty("Cycles", burst.cycleCount),
@@ -66,12 +86,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         public GraphNode Build(string name, params IGraphElement[] pins)
         {
-            return m_graph.Add(new GraphNode(name, pins));
+            return _graph.Add(new GraphNode(name, pins));
         }
 
         public GraphNode Add(GraphNode node)
         {
-            m_graph.Add(node);
+            _graph.Add(node);
             return node;
         }
     }

@@ -2,7 +2,6 @@
 
 namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
 {
-
     public class BinaryOperator : GraphNode
     {
         public BinaryOperator(string name) : base(name)

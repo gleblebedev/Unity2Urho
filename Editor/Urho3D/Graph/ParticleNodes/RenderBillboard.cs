@@ -3,7 +3,6 @@ using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
 
 namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
 {
-
     public class RenderBillboard : GraphNode
     {
         private GraphNodeProperty m_material = new GraphNodeProperty("Material", VariantType.ResourceRef);
