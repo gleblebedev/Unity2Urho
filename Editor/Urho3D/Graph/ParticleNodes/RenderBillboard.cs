@@ -10,7 +10,7 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
         private GraphNodeProperty m_columns = new GraphNodeProperty("Columns", 1);
         private GraphNodeProperty m_rows = new GraphNodeProperty("Rows", 1);
 
-        public RenderBillboard() : base("RenderBillboard")
+        public RenderBillboard() : base(GraphNodeType.RenderBillboard)
         {
             Properties.Add(m_material);
             Properties.Add(m_columns);
@@ -22,11 +22,11 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             In.Add(Rotation);
         }
 
-        public GraphInPin Pos => new GraphInPin("pos", VariantType.Vector3) { Value = "0 0 0" };
-        public GraphInPin Size => new GraphInPin("size", VariantType.Vector2) { Value = "1 1" };
-        public GraphInPin Frame => new GraphInPin("frame", VariantType.Float) { Value = "0" };
-        public GraphInPin Color => new GraphInPin("color", VariantType.Color) { Value = "1 1 1 1" };
-        public GraphInPin Rotation => new GraphInPin("rotation", VariantType.Float) { Value = "0" };
+        public GraphInPin Pos { get; } = new GraphInPin("pos", VariantType.Vector3) { Value = "0 0 0" };
+        public GraphInPin Size { get; } = new GraphInPin("size", VariantType.Vector2) { Value = "1 1" };
+        public GraphInPin Frame { get; } = new GraphInPin("frame", VariantType.Float) { Value = "0" };
+        public GraphInPin Color { get; } = new GraphInPin("color", VariantType.Color) { Value = "1 1 1 1" };
+        public GraphInPin Rotation { get; } = new GraphInPin("rotation", VariantType.Float) { Value = "0" };
 
         public string Material
         {

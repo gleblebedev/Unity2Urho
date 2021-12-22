@@ -29,14 +29,32 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         private void BuildUpdate(ParticleSystem particleSystem)
         {
             _capacity = particleSystem.main.maxParticles;
+            var init = new ParticleGraphBuilder(m_init);
             var update = new ParticleGraphBuilder(m_update);
+            VariantType sizeType;
+            //if (particleSystem.main.startSize3D)
+            //{
+            //    var startSize = init.BuildMinMaxCurve(particleSystem.main.startSizeX, particleSystem.main.startSizeY, particleSystem.main.startSizeZ);
+
+            //}
+            //else
+            {
+                var startSize = init.BuildMinMaxCurve(particleSystem.main.startSize, particleSystem.main.startSizeMultiplier);
+                init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Float, startSize),
+                    new GraphOutPin("size", VariantType.Float));
+                sizeType = VariantType.Float;
+            }
+
+            var updateSize = update.Build(GraphNodeType.GetAttribute,
+                new GraphOutPin("size", sizeType));
 
             if (particleSystem.sizeOverLifetime.enabled)
             {
                 var size = particleSystem.sizeOverLifetime;
                 if (!size.separateAxes)
                 {
-                    update.BuildMinMaxCurve(size.size);
+                    var sizeScale = update.BuildMinMaxCurve(size.size, size.sizeMultiplier);
+                    updateSize = update.Add(new Multiply(updateSize, sizeScale));
                 }
             }
 
@@ -44,6 +62,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
             {
                 var render = new RenderBillboard();
+                if (sizeType == VariantType.Float)
+                {
+                    render.Size.Connect(update.Add(new MakeVec2(updateSize, updateSize)));
+                }
                 render.Material = "Material;" + _engine.EvaluateMaterialName(renderer.sharedMaterial, _prefabContext);
                 _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
                 update.Add(render);
@@ -57,7 +79,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (particleSystem.emission.rateOverTime.mode != ParticleSystemCurveMode.Constant ||
                 particleSystem.emission.rateOverTime.constant > 0)
             {
-                var rate = emit.BuildMinMaxCurve(particleSystem.emission.rateOverTime);
+                var rate = emit.BuildMinMaxCurve(particleSystem.emission.rateOverTime, particleSystem.emission.rateOverTimeMultiplier);
                 lastSum = emit.Build(GraphNodeType.TimeStepScale, new GraphInPin("x", rate), new GraphOutPin("out"));
             }
 

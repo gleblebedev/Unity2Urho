@@ -8,7 +8,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
     public class GraphNodeProperty: IGraphElement
     {
-        private AnimationCurve _curve;
+        private GraphCurve _curve;
         public GraphNodeProperty(string name, VariantType type)
         {
             Name = name;
@@ -17,7 +17,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         public GraphNodeProperty(string name, AnimationCurve value, float scale = 1.0f)
             : this(name, VariantType.VariantCurve)
         {
-            _curve = value;
+            _curve = new GraphCurve(value, scale);
         }
         public GraphNodeProperty(string name, float value)
             :this(name, VariantType.Float)
@@ -45,31 +45,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             writer.WriteAttributeString("type", string.Format(CultureInfo.InvariantCulture, "{0}", Type));
             if (_curve != null)
             {
-                writer.WriteWhitespace(Environment.NewLine);
-                writer.WriteWhitespace("\t\t\t\t\t");
-                writer.WriteStartElement("value");
-                writer.WriteAttributeString("name", Name);
-                writer.WriteAttributeString("type", VariantType.Float.ToString());
-                writer.WriteAttributeString("interpolation", "linear");
-                writer.WriteAttributeString("splineTension", "0.5");
-                {
-                    writer.WriteStartElement("keyframes");
-                    foreach (var key in _curve.keys)
-                    {
-                        writer.WriteWhitespace(Environment.NewLine);
-                        writer.WriteWhitespace("\t\t\t\t\t");
-                        writer.WriteStartElement("keyframe");
-                        writer.WriteAttributeString("time", string .Format(CultureInfo.InvariantCulture, "{0}",key.time));
-                        writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0}", key.value));
-                        writer.WriteEndElement();
-                    }
-                    writer.WriteEndElement();
-                }
-                writer.WriteWhitespace(Environment.NewLine);
-                writer.WriteWhitespace("\t\t\t\t\t");
-                writer.WriteEndElement();
-                writer.WriteWhitespace(Environment.NewLine);
-                writer.WriteWhitespace("\t\t\t\t");
+                _curve.Write(writer);
             }
             else
             {

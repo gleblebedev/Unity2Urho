@@ -12,8 +12,8 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             base.Out.Add(Result);
         }
 
-        public GraphInPin X => new GraphInPin("x");
-        public GraphInPin Y => new GraphInPin("y");
-        public GraphOutPin Result => new GraphOutPin("out");
+        public GraphInPin X { get; } = new GraphInPin("x");
+        public GraphInPin Y { get; } = new GraphInPin("y");
+        public GraphOutPin Result { get; } = new GraphOutPin("out");
     }
 }

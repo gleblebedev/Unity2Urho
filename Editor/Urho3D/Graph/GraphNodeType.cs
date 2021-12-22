@@ -16,5 +16,13 @@
         public static readonly string RenderBillboard = "RenderBillboard";
 
         public static readonly string Curve = "Curve";
+
+        public static readonly string LerpCurves = "LerpCurves";
+        
+        public static readonly string SetAttribute = "SetAttribute";
+
+        public static readonly string GetAttribute = "GetAttribute";
+
+        public static readonly string MakeVec2 = "MakeVec2";
     }
 }

@@ -7,15 +7,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
     public class GraphNode
     {
-        private readonly List<GraphInPin> m_in = new List<GraphInPin>();
-        private readonly List<GraphOutPin> m_out = new List<GraphOutPin>();
-        private readonly List<GraphEnterPin> m_enter = new List<GraphEnterPin>();
-        private readonly List<GraphExitPin> m_exit = new List<GraphExitPin>();
+        private readonly PinList<GraphInPin> m_in;
+        private readonly PinList<GraphOutPin> m_out;
+        private readonly PinList<GraphEnterPin> m_enter;
+        private readonly PinList<GraphExitPin> m_exit;
         private readonly List<GraphNodeProperty> m_properties = new List<GraphNodeProperty>();
 
         public GraphNode(string name, params IGraphElement[] pins)
         {
             Name = name;
+            m_exit = new PinList<GraphExitPin>(this);
+            m_enter = new PinList<GraphEnterPin>(this);
+            m_out = new PinList<GraphOutPin>(this);
+            m_in = new PinList<GraphInPin>(this);
             foreach (IGraphElement graphPin in pins)
             {
                 if (graphPin is GraphInPin inPin)
@@ -52,10 +56,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         public uint Id { get; set; }
         public string Name { get; set; }
 
-        public List<GraphInPin> In => m_in;
-        public List<GraphOutPin> Out => m_out;
-        public List<GraphEnterPin> Enter => m_enter;
-        public List<GraphExitPin> Exit => m_exit;
+        public PinList<GraphInPin> In => m_in;
+        public PinList<GraphOutPin> Out => m_out;
+        public PinList<GraphEnterPin> Enter => m_enter;
+        public PinList<GraphExitPin> Exit => m_exit;
         public List<GraphNodeProperty> Properties => m_properties;
         
         public void Write(XmlWriter writer)

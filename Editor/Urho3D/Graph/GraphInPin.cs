@@ -40,10 +40,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             if (TargetPin != null)
             {
+                if (TargetPin.Node == null)
+                {
+
+                }
                 writer.WriteAttributeString("node", TargetPin.Node.Id.ToString(CultureInfo.InvariantCulture));
                 writer.WriteAttributeString("pin", TargetPin.Name);
             }
-            if (!string.IsNullOrWhiteSpace(Value))
+            else if (!string.IsNullOrWhiteSpace(Value))
             {
                 writer.WriteAttributeString("value", Value);
             }
@@ -55,6 +59,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (TargetPin == null)
             {
                 throw new ArgumentException($"No output pins in {target.Name}");
+            }
+
+            if (TargetPin.Node != target)
+            {
+
             }
         }
     }
