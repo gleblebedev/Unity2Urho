@@ -5,9 +5,9 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
 {
     public class RenderBillboard : GraphNode
     {
-        private GraphNodeProperty m_material = new GraphNodeProperty("Material", VariantType.ResourceRef);
-        private GraphNodeProperty m_columns = new GraphNodeProperty("Columns", 1);
-        private GraphNodeProperty m_rows = new GraphNodeProperty("Rows", 1);
+        private GraphNodeProperty<ResourceRef> m_material = new GraphNodeProperty<ResourceRef>("Material", new ResourceRef("Material", ""));
+        private GraphNodeProperty<int> m_columns = new GraphNodeProperty<int>("Columns", 1);
+        private GraphNodeProperty<int> m_rows = new GraphNodeProperty<int>("Rows", 1);
 
         public RenderBillboard() : base(GraphNodeType.RenderBillboard)
         {
@@ -29,20 +29,20 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
 
         public string Material
         {
-            get => m_material.Value;
-            set => m_material.Value = value;
+            get => m_material.Value.Path;
+            set => m_material.Value = new ResourceRef("Material", value);
         }
 
         public int Columns
         {
-            get => int.Parse(m_columns.Value);
-            set => m_columns.Value = string.Format(CultureInfo.InvariantCulture, "{0}", value);
+            get => m_columns.Value;
+            set => m_columns.Value = value;
         }
 
         public int Rows
         {
-            get => int.Parse(m_rows.Value);
-            set => m_rows.Value = string.Format(CultureInfo.InvariantCulture, "{0}", value);
+            get => m_rows.Value;
+            set => m_rows.Value = value;
         }
     }
 }

@@ -27,5 +27,7 @@
 
         public static readonly string MakeVec2 = "MakeVec2";
         public static readonly string ParticleTime = "ParticleTime";
+        public static readonly string Cone = "Cone";
+
     }
 }

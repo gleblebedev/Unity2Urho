@@ -14,5 +14,10 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             X.Connect(x);
             Y.Connect(y);
         }
+        public Multiply(GraphOutPin x, GraphOutPin y) : this()
+        {
+            X.TargetPin = x;
+            Y.TargetPin = y;
+        }
     }
 }

@@ -10,8 +10,8 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
         public Random(VariantType type = VariantType.Float) : base(GraphNodeType.Random)
         {
             Result = new GraphOutPin("out", type);
-            Properties.Add(_min = new GraphNodeProperty("Min", type) {Value = "0"});
-            Properties.Add(_max = new GraphNodeProperty("Max", type) { Value = "1" });
+            Properties.Add(_min = GraphNodeProperty.Make("Min", 0.0f));
+            Properties.Add(_max = GraphNodeProperty.Make("Max", 1.0f));
             Out.Add(Result);
         }
 

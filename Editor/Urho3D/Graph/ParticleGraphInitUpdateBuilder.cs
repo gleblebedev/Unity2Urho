@@ -1,4 +1,6 @@
-﻿using Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes;
+﻿using System;
+using System.Linq;
+using Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes;
 using UnityEngine;
 using Random = Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes.Random;
 
@@ -23,6 +25,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         private GraphNode _updateRandom;
         private GraphNode _initTime;
         private GraphNode _initLifeTime;
+        private GraphNode _updatePos;
+        private GraphNode _updateVel;
 
         public ParticleGraphInitUpdateBuilder(Urho3DEngine engine, PrefabContext prefabContext, Graph init,
             Graph update)
@@ -40,8 +44,64 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             _initTime = _init.Add(new SetAttribute("time", VariantType.Float, _init.BuildConstant(0.0f)));
             _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, particleSystem.main.startLifetimeMultiplier, GetInitNormalizedDuration, GetInitRandom)));
 
-            _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
+            switch (particleSystem.shape.shapeType)
+            {
+                //case ParticleSystemShapeType.Sphere:
+                //    break;
+                //case ParticleSystemShapeType.SphereShell:
+                //    break;
+                //case ParticleSystemShapeType.Hemisphere:
+                //    break;
+                //case ParticleSystemShapeType.HemisphereShell:
+                //    break;
+                case ParticleSystemShapeType.Cone:
+                    BuildCone(EmitFrom.Base);
+                    break;
+                //case ParticleSystemShapeType.Box:
+                //    break;
+                //case ParticleSystemShapeType.Mesh:
+                //    break;
+                case ParticleSystemShapeType.ConeShell:
+                    BuildCone(EmitFrom.Surface);
+                    break;
+                case ParticleSystemShapeType.ConeVolume:
+                    BuildCone(EmitFrom.Volume);
+                    break;
+                //case ParticleSystemShapeType.ConeVolumeShell:
+                //    break;
+                //case ParticleSystemShapeType.Circle:
+                //    break;
+                //case ParticleSystemShapeType.CircleEdge:
+                //    break;
+                //case ParticleSystemShapeType.SingleSidedEdge:
+                //    break;
+                //case ParticleSystemShapeType.MeshRenderer:
+                //    break;
+                //case ParticleSystemShapeType.SkinnedMeshRenderer:
+                //    break;
+                //case ParticleSystemShapeType.BoxShell:
+                //    break;
+                //case ParticleSystemShapeType.BoxEdge:
+                //    break;
+                //case ParticleSystemShapeType.Donut:
+                //    break;
+                //case ParticleSystemShapeType.Rectangle:
+                //    break;
+                //case ParticleSystemShapeType.Sprite:
+                //    break;
+                //case ParticleSystemShapeType.SpriteRenderer:
+                //    break;
+                default:
+                {
+                    _init.Add(new SetAttribute("pos", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+                    _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+                    break;
+                }
+            }
 
+            _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
+            _updatePos = _update.Add(new GetAttribute("pos", VariantType.Vector3));
+            _updateVel = _update.Add(new GetAttribute("vel", VariantType.Vector3));
             var renderer = particleSystem.GetComponent<Renderer>();
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
             {
@@ -53,12 +113,32 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                         render.Size.Connect(_update.Add(new MakeVec2(size, size)));
                     else if (sizeType == VariantType.Vector2) render.Size.Connect(size);
                 }
-
-                render.Material = "Material;" +
-                                  _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
+                render.Pos.Connect(_updatePos);
+                render.Material = _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
                 _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
                 _update.Add(render);
             }
+        }
+
+        private void BuildCone(EmitFrom emitFrom)
+        {
+            var shape = _particleSystem.shape;
+            var cone = new Cone
+            {
+                Radius = shape.radius,
+                RadiusThickness = shape.radiusThickness,
+                Angle = shape.angle,
+                Rotation = Quaternion.Euler(shape.rotation),
+                Translation = Vector3.zero,
+                From = emitFrom,
+                Length = shape.length
+            };
+            _init.Add(cone);
+            _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+                GetInitNormalizedDuration, GetInitRandom);
+            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
+            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
         }
 
         private GraphNode GetInitNormalizedDuration()

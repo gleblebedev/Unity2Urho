@@ -9,21 +9,55 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
     {
         private readonly Graph _graph;
 
+        abstract class AbstractConstCollection
+        {
+            protected readonly ParticleGraphBuilder _builder;
+
+            public AbstractConstCollection(ParticleGraphBuilder builder)
+            {
+                _builder = builder;
+            }
+
+            public abstract GraphNode Get(object constant);
+        }
+        class ConstCollection<T>: AbstractConstCollection
+        {
+            private readonly Dictionary<T, GraphNode> _constants = new Dictionary<T, GraphNode>();
+            public ConstCollection(ParticleGraphBuilder builder) : base(builder)
+            {
+            }
+
+            public override GraphNode Get(object constant)
+            {
+                var val = (T)constant;
+
+                if (_constants.TryGetValue(val, out var c))
+                    return c;
+                c = _builder.Add(new GraphNode(GraphNodeType.Constant, new GraphNodeProperty<T>("Value", val),
+                    new GraphOutPin("out", VariantType.Float)));
+                _constants.Add(val, c);
+                return c;
+
+            }
+        }
+
         public ParticleGraphBuilder(Graph mGraph)
         {
             _graph = mGraph;
         }
 
-        private Dictionary<float, GraphNode> _constants = new Dictionary<float, GraphNode>();
+        private Dictionary<Type, AbstractConstCollection> _constCollections =
+            new Dictionary<Type, AbstractConstCollection>();
 
-        public GraphNode BuildConstant(float constant)
+        public GraphNode BuildConstant<T>(T constant)
         {
-            if (_constants.TryGetValue(constant, out var c))
-                return c;
-            c = _graph.Add(new GraphNode(GraphNodeType.Constant, new GraphNodeProperty("Value", constant),
-                new GraphOutPin("out", VariantType.Float)));
-            _constants.Add(constant, c);
-            return c;
+            if (!_constCollections.TryGetValue(typeof(T), out var collection))
+            {
+                collection = new ConstCollection<T>(this);
+                _constCollections.Add(typeof(T), collection);
+            }
+
+            return collection.Get(constant);
         }
 
         public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, float multiplier, Func<GraphNode> t, Func<GraphNode> factor)
@@ -67,7 +101,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         private GraphNode BuildCurve(AnimationCurve curve, float multiplier, Func<GraphNode> t)
         {
             return Build(GraphNodeType.Curve,
-                new GraphNodeProperty("Curve", curve, multiplier),
+                new GraphNodeProperty<GraphCurve>("Curve", new GraphCurve(curve, multiplier)),
                 new GraphInPin("t", VariantType.Float, t()),
                 new GraphOutPin("out", VariantType.Float));
         }
@@ -77,9 +111,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             var count = BuildMinMaxCurve(burst.count, 1.0f, t, factor);
             return _graph.Add(new GraphNode(GraphNodeType.BurstTimer,
-                new GraphNodeProperty("Delay", burst.time),
-                new GraphNodeProperty("Interval", burst.repeatInterval),
-                new GraphNodeProperty("Cycles", burst.cycleCount),
+                GraphNodeProperty.Make("Delay", burst.time),
+                GraphNodeProperty.Make("Interval", burst.repeatInterval),
+                GraphNodeProperty.Make("Cycles", burst.cycleCount),
                 new GraphInPin("count", VariantType.Float, count),
                 new GraphOutPin("out", VariantType.Float)));
         }
@@ -89,7 +123,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             return _graph.Add(new GraphNode(name, pins));
         }
 
-        public GraphNode Add(GraphNode node)
+        public T Add<T>(T node) where T: GraphNode
         {
             _graph.Add(node);
             return node;

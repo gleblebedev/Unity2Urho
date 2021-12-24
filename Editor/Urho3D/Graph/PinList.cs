@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
@@ -14,6 +15,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             base.Add(pin);
             pin.Node = _node;
+        }
+
+        public T this[string name]
+        {
+            get
+            {
+                foreach (var pin in this)
+                {
+                    if (pin.Name == name)
+                        return pin;
+                }
+
+                throw new KeyNotFoundException(name + " pin not found");
+            }
         }
     }
 }

@@ -61,7 +61,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         public PinList<GraphEnterPin> Enter => m_enter;
         public PinList<GraphExitPin> Exit => m_exit;
         public List<GraphNodeProperty> Properties => m_properties;
-        
+
         public void Write(XmlWriter writer)
         {
             writer.WriteWhitespace(Environment.NewLine);

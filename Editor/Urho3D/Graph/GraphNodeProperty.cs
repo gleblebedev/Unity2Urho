@@ -1,40 +1,43 @@
 ﻿using System;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Xml;
-using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
-    public class GraphNodeProperty: IGraphElement
+    public class GraphNodeProperty<T> : GraphNodeProperty
     {
-        private GraphCurve _curve;
+        public GraphNodeProperty(string name, T value = default(T))
+            : base(name, GetDefaultType())
+        {
+            Value = value;
+        }
+
+        private static VariantType GetDefaultType()
+        {
+            var f = ValueFormatter<T>.Default;
+            if (f == null)
+                throw new NotImplementedException($"Formatter is not implemented for type {typeof(T).Name}");
+            return f.Type;
+        }
+
+        public T Value { get; set; }
+        protected override void WriteValue(XmlWriter writer)
+        {
+            ValueFormatter<T>.Default.WriteValue(writer, Value);
+        }
+    }
+
+    public abstract class GraphNodeProperty: IGraphElement
+    {
         public GraphNodeProperty(string name, VariantType type)
         {
             Name = name;
             Type = type;
         }
-        public GraphNodeProperty(string name, AnimationCurve value, float scale = 1.0f)
-            : this(name, VariantType.VariantCurve)
-        {
-            _curve = new GraphCurve(value, scale);
-        }
-        public GraphNodeProperty(string name, float value)
-            :this(name, VariantType.Float)
-        {
-            Value = string.Format(CultureInfo.InvariantCulture, "{0}", value);
-        }
-        public GraphNodeProperty(string name, int value)
-            : this(name, VariantType.Int)
-        {
-            Value = string.Format(CultureInfo.InvariantCulture, "{0}", value);
-        }
 
         public string Name { get; }
 
         public VariantType Type { get; }
-
-        public string Value { get; set; }
 
         public void Write(XmlWriter writer)
         {
@@ -43,15 +46,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             writer.WriteStartElement("property");
             writer.WriteAttributeString("name", Name);
             writer.WriteAttributeString("type", string.Format(CultureInfo.InvariantCulture, "{0}", Type));
-            if (_curve != null)
-            {
-                _curve.Write(writer);
-            }
-            else
-            {
-                writer.WriteAttributeString("value", Value);
-            }
+            WriteValue(writer);
             writer.WriteEndElement();
+        }
+
+        protected abstract void WriteValue(XmlWriter writer);
+
+        public static GraphNodeProperty<T> Make<T>(string name, T value)
+        {
+            return new GraphNodeProperty<T>(name, value);
         }
     }
 }

@@ -22,7 +22,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             Type = type;
             Connect(target);
         }
-
+        public GraphInPin(string name, VariantType type, GraphOutPin target) : base(name)
+        {
+            Type = type;
+            TargetPin = target;
+        }
         public GraphInPin(string name, GraphNode target) : base(name)
         {
             Connect(target);
@@ -59,11 +63,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (TargetPin == null)
             {
                 throw new ArgumentException($"No output pins in {target.Name}");
-            }
-
-            if (TargetPin.Node != target)
-            {
-
             }
         }
     }
