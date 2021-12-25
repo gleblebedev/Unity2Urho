@@ -26,7 +26,13 @@
         public static readonly string GetAttribute = "GetAttribute";
 
         public static readonly string MakeVec2 = "MakeVec2";
+
+        public static readonly string MakeVec3 = "MakeVec3";
+
+        public static readonly string Move = "Move";
+
         public static readonly string ParticleTime = "ParticleTime";
+
         public static readonly string Cone = "Cone";
 
     }

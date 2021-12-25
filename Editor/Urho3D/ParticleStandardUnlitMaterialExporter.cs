@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEngine;
@@ -10,13 +11,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     {
         public ParticleStandardUnlitMaterialExporter(Urho3DEngine engine) : base(engine)
         {
+            _techniqueByShader["Particles/Standard Unlit"] = "Techniques/DiffAddAlpha.xml";
+            _techniqueByShader["Hovl/Particles/Blend_CenterGlow"] = "Techniques/UnlitTransparent.xml";
         }
 
         public override int ExporterPriority { get; }
 
+        private Dictionary<string, string> _techniqueByShader = new Dictionary<string, string>();
+
         public override bool CanExportMaterial(Material material)
         {
-            return material.shader.name == "Particles/Standard Unlit";
+            var shaderName = material.shader.name;
+            return _techniqueByShader.ContainsKey(shaderName);
         }
 
         public override void ExportMaterial(Material material, PrefabContext prefabContext)
@@ -34,7 +40,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteTexture(mainTex, writer, "diffuse", prefabContext);
                 }
                 writer.WriteParameter("MatDiffColor", material.GetColor("_Color"));
-                WriteTechnique(writer, "Techniques/DiffAddAlpha.xml");
+                WriteTechnique(writer, _techniqueByShader[material.shader.name]);
                 WriteTexture(mainTex, writer, "diffuse", prefabContext);
                 writer.WriteEndElement();
             }

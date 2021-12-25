@@ -102,6 +102,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
             _updatePos = _update.Add(new GetAttribute("pos", VariantType.Vector3));
             _updateVel = _update.Add(new GetAttribute("vel", VariantType.Vector3));
+
+            var velocityOptions = _particleSystem.velocityOverLifetime;
+            if (velocityOptions.enabled)
+            {
+                var linearX = _update.BuildMinMaxCurve(velocityOptions.x, velocityOptions.xMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                var linearY = _update.BuildMinMaxCurve(velocityOptions.y, velocityOptions.yMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                var linearZ = _update.BuildMinMaxCurve(velocityOptions.z, velocityOptions.zMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                _updateVel = _update.Add(new MakeVec3(linearX, linearY, linearZ));
+            }
+
+            _updatePos = _update.Add(new Move(_updatePos, _updateVel));
+            _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, _updatePos));
+
             var renderer = particleSystem.GetComponent<Renderer>();
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
             {
