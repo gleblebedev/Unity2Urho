@@ -1,6 +1,4 @@
-﻿using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
-
-namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
+﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public class BinaryOperator : GraphNode
     {
@@ -8,11 +6,11 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
         {
             In.Add(X);
             In.Add(Y);
-            base.Out.Add(Result);
+            Out.Add(Result);
         }
 
-        public GraphInPin X { get; } = new GraphInPin("x");
-        public GraphInPin Y { get; } = new GraphInPin("y");
-        public GraphOutPin Result { get; } = new GraphOutPin("out");
+        public GraphInPin X { get; } = new("x");
+        public GraphInPin Y { get; } = new("y");
+        public GraphOutPin Result { get; } = new("out");
     }
 }
