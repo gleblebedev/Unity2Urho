@@ -20,7 +20,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             In.Add(Color);
             In.Add(Rotation);
         }
-
         public GraphInPin Pos { get; } = new GraphInPin("pos", VariantType.Vector3) { Value = "0 0 0" };
         public GraphInPin Size { get; } = new GraphInPin("size", VariantType.Vector2) { Value = "1 1" };
         public GraphInPin Frame { get; } = new GraphInPin("frame", VariantType.Float) { Value = "0" };

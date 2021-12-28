@@ -6,11 +6,11 @@
         {
             In.Add(X);
             In.Add(Y);
-            Out.Add(Result);
+            base.Out.Add(Result);
         }
 
-        public GraphInPin X { get; } = new("x");
-        public GraphInPin Y { get; } = new("y");
-        public GraphOutPin Result { get; } = new("out");
+        public GraphInPin X { get; } = new GraphInPin("x");
+        public GraphInPin Y { get; } = new GraphInPin("y");
+        public GraphOutPin Result { get; } = new GraphOutPin("out");
     }
 }

@@ -71,8 +71,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 case ParticleSystemShapeType.ConeVolume:
                     BuildCone(EmitFrom.Volume);
                     break;
-                //case ParticleSystemShapeType.ConeVolumeShell:
-                //    break;
+                case ParticleSystemShapeType.ConeVolumeShell:
+                    BuildCone(EmitFrom.Surface);
+                    break;
                 //case ParticleSystemShapeType.Circle:
                 //    break;
                 //case ParticleSystemShapeType.CircleEdge:
@@ -106,17 +107,32 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
             _updatePos = _update.Add(new GetAttribute("pos", VariantType.Vector3));
             _updateVel = _update.Add(new GetAttribute("vel", VariantType.Vector3));
+            var getVel = _updateVel;
 
-            var velocityOptions = _particleSystem.velocityOverLifetime;
-            if (velocityOptions.enabled)
+            var velocityOverLifetime = _particleSystem.velocityOverLifetime;
+            if (velocityOverLifetime.enabled)
             {
-                var linearX = _update.BuildMinMaxCurve(velocityOptions.x, velocityOptions.xMultiplier, GetNormalizedTime,
+                var linearX = _update.BuildMinMaxCurve(velocityOverLifetime.x, velocityOverLifetime.xMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                var linearY = _update.BuildMinMaxCurve(velocityOptions.y, velocityOptions.yMultiplier, GetNormalizedTime,
+                var linearY = _update.BuildMinMaxCurve(velocityOverLifetime.y, velocityOverLifetime.yMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                var linearZ = _update.BuildMinMaxCurve(velocityOptions.z, velocityOptions.zMultiplier, GetNormalizedTime,
+                var linearZ = _update.BuildMinMaxCurve(velocityOverLifetime.z, velocityOverLifetime.zMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                _updateVel = _update.Add(new MakeVec3(linearX, linearY, linearZ));
+                _updateVel = new MakeVec3(linearX, linearY, linearZ);
+            }
+
+            var limitVelocityOverLifetime = _particleSystem.limitVelocityOverLifetime;
+            if (limitVelocityOverLifetime.enabled)
+            {
+                _updateVel = _update.Add(new LimitVelocity(_updateVel, _update.BuildMinMaxCurve(limitVelocityOverLifetime.limit, limitVelocityOverLifetime.limitMultiplier, GetNormalizedTime, GetUpdateRandom))
+                {
+                    Dampen = limitVelocityOverLifetime.dampen
+                });
+            }
+
+            if (getVel != _updateVel)
+            {
+                _updateVel = _update.Add(new SetAttribute("vel", VariantType.Vector3, _updateVel));
             }
 
             _updatePos = _update.Add(new Move(_updatePos, _updateVel));
