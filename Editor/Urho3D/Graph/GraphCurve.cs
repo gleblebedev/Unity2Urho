@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Xml;
 using UnityEngine;
 
@@ -44,7 +45,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             protected override void WriteValue(XmlWriter writer)
             {
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0}", _value));
+                ValueFormatter<float>.Default.WriteValue(writer, _value);
+            }
+        }
+        public class ColorKeyframe : Keyframe
+        {
+            private readonly Color32 _value;
+
+            public ColorKeyframe(float time, Color32 color) : base(time)
+            {
+                _value = color;
+            }
+
+            protected override void WriteValue(XmlWriter writer)
+            {
+                ValueFormatter<Color32>.Default.WriteValue(writer, _value);
             }
         }
         public VariantType Type { get; }
@@ -60,7 +75,32 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Keyframes.Add(new FloatKeyframe(keyframe, scale));
             }
         }
+        public GraphCurve(Gradient curve)
+        {
+            Type = VariantType.Float;
 
+            var t = -1.0f;
+            int colorIndex = 0;
+            int alphaIndex = 0;
+            var colorKeys = curve.colorKeys;
+            var alphaKeys = curve.alphaKeys;
+            Keyframes = new List<Keyframe>(colorKeys.Length + alphaKeys.Length);
+            for (;;)
+            {
+                var nextTime = float.MaxValue;
+                if (colorIndex < colorKeys.Length && colorKeys[colorIndex].time < nextTime)
+                    nextTime = colorKeys[colorIndex].time;
+                if (alphaIndex < alphaKeys.Length && alphaKeys[alphaIndex].time < nextTime)
+                    nextTime = alphaKeys[alphaIndex].time;
+                if (nextTime == float.MaxValue)
+                    break;
+                Keyframes.Add(new ColorKeyframe(nextTime, curve.Evaluate(nextTime)));
+                if (colorIndex < colorKeys.Length && colorKeys[colorIndex].time <= nextTime)
+                    ++colorIndex;
+                if (alphaIndex < alphaKeys.Length && alphaKeys[alphaIndex].time <= nextTime)
+                    ++alphaIndex;
+            }
+        }
         public void Write(XmlWriter writer)
         {
             writer.WriteWhitespace(Environment.NewLine);

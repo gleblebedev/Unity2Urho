@@ -33,8 +33,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
                 if (_constants.TryGetValue(val, out var c))
                     return c;
-                c = _builder.Add(new GraphNode(GraphNodeType.Constant, new GraphNodeProperty<T>("Value", val),
-                    new GraphOutPin("out", VariantType.Float)));
+                var property = new GraphNodeProperty<T>("Value", val);
+                c = _builder.Add(new GraphNode(GraphNodeType.Constant, property,
+                    new GraphOutPin("out", property.Type)));
                 _constants.Add(val, c);
                 return c;
 
@@ -58,6 +59,39 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
 
             return collection.Get(constant);
+        }
+
+        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxGradient curve, Func<GraphNode> t,
+            Func<GraphNode> factor)
+        {
+            switch (curve.mode)
+            {
+                case ParticleSystemGradientMode.Color:
+                    return BuildConstant(curve.color);
+                case ParticleSystemGradientMode.Gradient:
+                    return BuildGradient(curve.gradient, t);
+                case ParticleSystemGradientMode.TwoColors:
+                {
+                    var f = factor();
+                    return Build(GraphNodeType.Lerp,
+                        new GraphInPin("x", VariantType.Color) { Value = ValueFormatter<Color>.Default.ToString(curve.colorMin) },
+                        new GraphInPin("y", VariantType.Color) { Value = ValueFormatter<Color>.Default.ToString(curve.colorMax) },
+                        new GraphInPin("t", VariantType.Float, f),
+                        new GraphOutPin("out", VariantType.Color));
+                    }
+                case ParticleSystemGradientMode.TwoGradients:
+                    var min = BuildGradient(curve.gradientMin, t);
+                    var max = BuildGradient(curve.gradientMax, t);
+                    return Build(GraphNodeType.Lerp,
+                        new GraphInPin("x", VariantType.Color, min),
+                        new GraphInPin("y", VariantType.Color, max),
+                        new GraphInPin("t", VariantType.Float, factor()),
+                        new GraphOutPin("out", VariantType.Color));
+                case ParticleSystemGradientMode.RandomColor:
+                    //TODO: Generate color!
+                    return BuildConstant(curve.color);
+            }
+            throw new ArgumentOutOfRangeException(curve.mode.ToString());
         }
 
         public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, float multiplier, Func<GraphNode> t, Func<GraphNode> factor)
@@ -96,6 +130,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
 
             throw new ArgumentOutOfRangeException(curve.mode.ToString());
+        }
+        
+        private GraphNode BuildGradient(Gradient curve, Func<GraphNode> t)
+        {
+            return Build(GraphNodeType.Curve,
+                new GraphNodeProperty<GraphCurve>("Curve", new GraphCurve(curve)),
+                new GraphInPin("t", VariantType.Float, t()),
+                new GraphOutPin("out", VariantType.Color));
         }
 
         private GraphNode BuildCurve(AnimationCurve curve, float multiplier, Func<GraphNode> t)

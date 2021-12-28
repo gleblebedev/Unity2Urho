@@ -39,7 +39,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0}", val));
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
+                return string.Format(CultureInfo.InvariantCulture, "{0}", val);
             }
         }
         
@@ -49,8 +54,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
                 var Value = (ResourceRef)val;
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0};{1}", Value.Type, Value.Path));
+                return string.Format(CultureInfo.InvariantCulture, "{0};{1}", Value.Type, Value.Path);
             }
         }
        
@@ -60,8 +70,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
                 var Value = (Vector3)val;
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Value.x, Value.y, Value.z));
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Value.x, Value.y, Value.z);
             }
         }
         public class QuaternionFormatter : IValueFormatter
@@ -70,8 +85,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
                 var Value = (Quaternion)val;
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.w, Value.x, Value.y, Value.z));
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.w, Value.x, Value.y,
+                    Value.z);
             }
         }
         public class ColorFormatter : IValueFormatter
@@ -80,8 +101,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
                 var Value = (Color)val;
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.r, Value.g, Value.b, Value.a));
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.r, Value.g, Value.b, Value.a);
             }
         }
         public class Color32Formatter : IValueFormatter
@@ -90,8 +116,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public void WriteValue(XmlWriter writer, object val)
             {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
                 Color Value = ((Color32)val);
-                writer.WriteAttributeString("value", string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.r, Value.g, Value.b, Value.a));
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.r, Value.g, Value.b,
+                    Value.a);
             }
         }
         public class CurveFormatter : IValueFormatter
@@ -101,6 +133,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             public void WriteValue(XmlWriter writer, object val)
             {
                 ((GraphCurve)val).Write(writer);
+            }
+
+            public string ToString(object val)
+            {
+                throw new NotImplementedException();
             }
         }
 

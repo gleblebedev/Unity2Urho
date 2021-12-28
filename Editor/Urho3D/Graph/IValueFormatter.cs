@@ -6,5 +6,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
     {
         VariantType Type {get; }
         void WriteValue(XmlWriter writer, object val);
+
+        string ToString(object val);
     }
 }

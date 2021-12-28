@@ -34,6 +34,9 @@
         public static readonly string ParticleTime = "ParticleTime";
 
         public static readonly string Cone = "Cone";
+        public static readonly string Hemisphere = "Hemisphere";
+        public static readonly string Sphere = "Sphere";
+        
 
     }
 }

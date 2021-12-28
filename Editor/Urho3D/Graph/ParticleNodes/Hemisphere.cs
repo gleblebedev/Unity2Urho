@@ -3,29 +3,27 @@ using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
 
 namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
 {
-    public class Cone : GraphNode
+    public class Hemisphere : GraphNode
     {
         private readonly GraphNodeProperty<float> _radius;
-        private readonly GraphNodeProperty<float> _angle;
+        private readonly GraphNodeProperty<float> _radiusThickness;
+
         private readonly GraphNodeProperty<EmitFrom> _from;
         private readonly GraphNodeProperty<Quaternion> _rotation;
         private readonly GraphNodeProperty<Vector3> _position;
         private readonly GraphNodeProperty<Vector3> _scale;
-        private readonly GraphNodeProperty<float> _radiusThickness;
-        private readonly GraphNodeProperty<float> _length;
 
-        public Cone() : base(GraphNodeType.Cone)
+        public Hemisphere() : base(GraphNodeType.Hemisphere)
         {
             Position = new GraphOutPin("position", VariantType.Vector3);
             Velocity = new GraphOutPin("velocity", VariantType.Vector3);
             Properties.Add(_radius = new GraphNodeProperty<float>("Radius", 0.0f));
             Properties.Add(_radiusThickness = new GraphNodeProperty<float>("Radius Thickness", 0.0f));
-            Properties.Add(_angle = new GraphNodeProperty<float>("Angle", 45.0f));
-            Properties.Add(_length = new GraphNodeProperty<float>("Length", 1.0f));
             Properties.Add(_from = new GraphNodeProperty<EmitFrom>("From", EmitFrom.Base));
             Properties.Add(_rotation = GraphNodeProperty.Make("Rotation", Quaternion.identity));
             Properties.Add(_position = GraphNodeProperty.Make("Position", Vector3.zero));
             Properties.Add(_scale = GraphNodeProperty.Make("Scale", Vector3.one));
+
             Out.Add(Position);
             Out.Add(Velocity);
         }
@@ -38,21 +36,10 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             set => _radius.Value = value;
         }
 
-        public float Length
-        {
-            get => _length.Value;
-            set => _length.Value = value;
-        }
-
         public float RadiusThickness
         {
             get => _radiusThickness.Value;
             set => _radiusThickness.Value = value;
-        }
-        public float Angle
-        {
-            get => _angle.Value;
-            set => _angle.Value = value;
         }
 
         public Quaternion Rotation
@@ -66,11 +53,13 @@ namespace Assets.Unity2Urho.Editor.Urho3D.Graph.ParticleNodes
             get => _position.Value;
             set => _position.Value = value;
         }
+
         public Vector3 Scale
         {
             get => _scale.Value;
             set => _scale.Value = value;
         }
+
         public EmitFrom From
         {
             get => _from.Value;

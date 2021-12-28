@@ -46,14 +46,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             switch (particleSystem.shape.shapeType)
             {
-                //case ParticleSystemShapeType.Sphere:
-                //    break;
-                //case ParticleSystemShapeType.SphereShell:
-                //    break;
-                //case ParticleSystemShapeType.Hemisphere:
-                //    break;
-                //case ParticleSystemShapeType.HemisphereShell:
-                //    break;
+                case ParticleSystemShapeType.Sphere:
+                    BuildSphere(EmitFrom.Volume);
+                    break;
+                case ParticleSystemShapeType.SphereShell:
+                    BuildSphere(EmitFrom.Surface);
+                    break;
+                case ParticleSystemShapeType.Hemisphere:
+                    BuildHemisphere(EmitFrom.Volume);
+                    break;
+                case ParticleSystemShapeType.HemisphereShell:
+                    BuildHemisphere(EmitFrom.Surface);
+                    break;
                 case ParticleSystemShapeType.Cone:
                     BuildCone(EmitFrom.Base);
                     break;
@@ -122,6 +126,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
             {
                 var render = new RenderBillboard();
+                render.Color.Connect(BuildColor());
                 var size = BuildSize(out var sizeType);
                 if (size != null)
                 {
@@ -131,6 +136,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 }
                 render.Pos.Connect(_updatePos);
                 render.Material = _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
+                if (particleSystem.textureSheetAnimation.enabled)
+                {
+                    render.Rows = particleSystem.textureSheetAnimation.numTilesY;
+                    render.Columns = particleSystem.textureSheetAnimation.numTilesX;
+                }
+                else if (particleSystemRenderer.sharedMaterial.HasProperty("_TilingXY"))
+                {
+                    var v = particleSystemRenderer.sharedMaterial.GetVector("_TilingXY");
+                    render.Rows = (int)v.x;
+                    render.Columns = (int)v.y;
+                }
                 _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
                 _update.Add(render);
             }
@@ -145,7 +161,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 RadiusThickness = shape.radiusThickness,
                 Angle = shape.angle,
                 Rotation = Quaternion.Euler(shape.rotation),
-                Translation = Vector3.zero,
+                Translation = shape.position,
+                Scale = shape.scale,
                 From = emitFrom,
                 Length = shape.length
             };
@@ -156,7 +173,44 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
             _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
         }
-
+        private void BuildHemisphere(EmitFrom emitFrom)
+        {
+            var shape = _particleSystem.shape;
+            var cone = new Hemisphere()
+            {
+                Radius = shape.radius,
+                RadiusThickness = shape.radiusThickness,
+                Rotation = Quaternion.Euler(shape.rotation),
+                Translation = shape.position,
+                Scale = shape.scale,
+                From = emitFrom,
+            };
+            _init.Add(cone);
+            _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+                GetInitNormalizedDuration, GetInitRandom);
+            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
+            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
+        }
+        private void BuildSphere(EmitFrom emitFrom)
+        {
+            var shape = _particleSystem.shape;
+            var cone = new Sphere()
+            {
+                Radius = shape.radius,
+                RadiusThickness = shape.radiusThickness,
+                Rotation = Quaternion.Euler(shape.rotation),
+                Translation = shape.position,
+                Scale = shape.scale,
+                From = emitFrom,
+            };
+            _init.Add(cone);
+            _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+                GetInitNormalizedDuration, GetInitRandom);
+            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
+            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
+        }
         private GraphNode GetInitNormalizedDuration()
         {
             if (_initNormalizedDuration != null) return _initNormalizedDuration;
@@ -166,6 +220,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             return _initNormalizedDuration;
         }
 
+        private GraphNode _updateColor;
+        private GraphNode BuildColor()
+        {
+            if (_updateColor != null)
+                return _updateColor;
+
+            _init.Add(new SetAttribute("color", VariantType.Color, _init.BuildMinMaxCurve(_particleSystem.main.startColor, GetInitNormalizedDuration, GetInitRandom) ));
+
+            _updateColor = _update.Add(new GetAttribute("color", VariantType.Color));
+
+            if (_particleSystem.colorOverLifetime.enabled)
+            {
+                var modulation = _update.BuildMinMaxCurve(_particleSystem.colorOverLifetime.color, GetNormalizedTime, GetUpdateRandom);
+                _updateColor = _update.Add(new Multiply(_updateColor, modulation));
+            }
+            return _updateColor;
+        }
         private GraphNode BuildSize(out VariantType sizeType)
         {
             //if (particleSystem.main.startSize3D)
