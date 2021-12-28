@@ -77,7 +77,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         }
         public GraphCurve(Gradient curve)
         {
-            Type = VariantType.Float;
+            Type = VariantType.Color;
 
             var t = -1.0f;
             int colorIndex = 0;

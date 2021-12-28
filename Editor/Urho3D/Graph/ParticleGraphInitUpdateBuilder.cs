@@ -150,6 +150,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
                 _update.Add(render);
             }
+            else if (renderer is MeshRenderer meshRenderer)
+            {
+                //var render = new RenderMesh();
+            }
         }
 
         private void BuildCone(EmitFrom emitFrom)
