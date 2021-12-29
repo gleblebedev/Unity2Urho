@@ -6,9 +6,10 @@
 
         public LimitVelocity() : base("LimitVelocity")
         {
-            In.Add(Velocity);
-            In.Add(Limit);
+            base.In.Add(Velocity);
+            base.In.Add(Limit);
             base.Out.Add(Out);
+            base.Properties.Add(_dampen);
         }
 
         public LimitVelocity(GraphNode velocity, GraphNode limit) : this()
