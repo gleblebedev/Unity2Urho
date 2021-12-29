@@ -43,7 +43,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             _initTime = _init.Add(new SetAttribute("time", VariantType.Float, _init.BuildConstant(0.0f)));
             _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, particleSystem.main.startLifetimeMultiplier, GetInitNormalizedDuration, GetInitRandom)));
-
+            _initRotation = _init.Add(new SetAttribute("rotation", VariantType.Float, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, _particleSystem.main.startRotationMultiplier, GetInitNormalizedDuration, GetInitRandom)));
             switch (particleSystem.shape.shapeType)
             {
                 case ParticleSystemShapeType.Sphere:
@@ -163,6 +163,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     render.Rows = (int)v.x;
                     render.Columns = (int)v.y;
                 }
+                render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(), _update.BuildConstant<float>(render.Rows* render.Columns))));
+                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
                 _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
                 _update.Add(render);
             }
@@ -241,6 +243,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         }
 
         private GraphNode _updateColor;
+        private SetAttribute _initRotation;
+
         private GraphNode BuildColor()
         {
             if (_updateColor != null)
