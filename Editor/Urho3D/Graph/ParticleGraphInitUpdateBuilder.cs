@@ -143,13 +143,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 _updateVel = _update.Add(new ApplyForce(_updateVel, force));
             }
             
-            if (getVel != _updateVel)
+            if (_particleSystem.collision.enabled)
             {
-                _updateVel = _update.Add(new SetAttribute("vel", VariantType.Vector3, _updateVel));
+                var bounce = _update.Add(new Bounce(_updatePos, _updateVel));
+                _updatePos = bounce;
+                _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, bounce.NewPosition));
+                _updateVel = _update.Add(new SetAttribute("vel", VariantType.Vector3, bounce.NewVelocity));
+            }
+            else
+            {
+                if (getVel != _updateVel)
+                {
+                    _updateVel = _update.Add(new SetAttribute("vel", VariantType.Vector3, _updateVel));
+                }
+                _updatePos = _update.Add(new Move(_updatePos, _updateVel));
+                _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, _updatePos));
             }
 
-            _updatePos = _update.Add(new Move(_updatePos, _updateVel));
-            _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, _updatePos));
 
             var renderer = particleSystem.GetComponent<Renderer>();
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
