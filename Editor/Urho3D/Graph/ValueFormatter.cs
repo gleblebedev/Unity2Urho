@@ -63,7 +63,36 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 return string.Format(CultureInfo.InvariantCulture, "{0};{1}", Value.Type, Value.Path);
             }
         }
-       
+        public class ResourceRefListFormatter : IValueFormatter
+        {
+            public VariantType Type => VariantType.ResourceRefList;
+
+            public void WriteValue(XmlWriter writer, object val)
+            {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
+                var Value = (ResourceRefList)val;
+                return string.Format(CultureInfo.InvariantCulture, "{0};{1}", Value.Type, string.Join(";", Value.Path));
+            }
+        }
+        public class Vec2Formatter : IValueFormatter
+        {
+            public VariantType Type => VariantType.Vector2;
+
+            public void WriteValue(XmlWriter writer, object val)
+            {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
+                var Value = (Vector2)val;
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1}", Value.x, Value.y);
+            }
+        }
         public class Vec3Formatter : IValueFormatter
         {
             public VariantType Type => VariantType.Vector3;
@@ -77,6 +106,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 var Value = (Vector3)val;
                 return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Value.x, Value.y, Value.z);
+            }
+        }
+        public class Vec4Formatter : IValueFormatter
+        {
+            public VariantType Type => VariantType.Vector4;
+
+            public void WriteValue(XmlWriter writer, object val)
+            {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
+                var Value = (Vector4)val;
+                return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", Value.x, Value.y, Value.z, Value.w);
             }
         }
         public class QuaternionFormatter : IValueFormatter
@@ -148,11 +192,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             ValueFormatter<int>.Default = new SimpleFormatter(VariantType.Int);
             ValueFormatter<uint>.Default = new SimpleFormatter(VariantType.Int);
             ValueFormatter<bool>.Default = new SimpleFormatter(VariantType.Bool);
+            ValueFormatter<Vector2>.Default = new Vec2Formatter();
             ValueFormatter<Vector3>.Default = new Vec3Formatter();
+            ValueFormatter<Vector4>.Default = new Vec4Formatter();
             ValueFormatter<Quaternion>.Default = new QuaternionFormatter();
             ValueFormatter<Color>.Default = new ColorFormatter();
             ValueFormatter<Color32>.Default = new Color32Formatter();
             ValueFormatter<ResourceRef>.Default = new ResourceRefFormatter();
+            ValueFormatter<ResourceRefList>.Default = new ResourceRefListFormatter();
             ValueFormatter<GraphCurve>.Default = new CurveFormatter();
             return true;
         }

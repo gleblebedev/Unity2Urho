@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 using UnityEngine;
 using Random = UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes.Random;
@@ -118,7 +119,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     GetUpdateRandom);
                 var linearZ = _update.BuildMinMaxCurve(velocityOverLifetime.z, velocityOverLifetime.zMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                _updateVel = new MakeVec3(linearX, linearY, linearZ);
+                _updateVel = _update.Add(new MakeVec3(linearX, linearY, linearZ));
             }
 
             var limitVelocityOverLifetime = _particleSystem.limitVelocityOverLifetime;
@@ -129,7 +130,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     Dampen = limitVelocityOverLifetime.dampen
                 });
             }
-
+            var forceOverLifetime = _particleSystem.forceOverLifetime;
+            if (forceOverLifetime.enabled)
+            {
+                var x = _update.BuildMinMaxCurve(forceOverLifetime.x, forceOverLifetime.xMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                var y = _update.BuildMinMaxCurve(forceOverLifetime.y, forceOverLifetime.yMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                var z = _update.BuildMinMaxCurve(forceOverLifetime.z, forceOverLifetime.zMultiplier, GetNormalizedTime,
+                    GetUpdateRandom);
+                var force = _update.Add(new MakeVec3(x, y, z));
+                _updateVel = _update.Add(new ApplyForce(_updateVel, force));
+            }
+            
             if (getVel != _updateVel)
             {
                 _updateVel = _update.Add(new SetAttribute("vel", VariantType.Vector3, _updateVel));
@@ -141,37 +154,102 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             var renderer = particleSystem.GetComponent<Renderer>();
             if (renderer is ParticleSystemRenderer particleSystemRenderer)
             {
-                var render = new RenderBillboard();
-                render.Color.Connect(BuildColor());
-                var size = BuildSize(out var sizeType);
-                if (size != null)
+                switch (particleSystemRenderer.renderMode)
                 {
-                    if (sizeType == VariantType.Float)
-                        render.Size.Connect(_update.Add(new MakeVec2(size, size)));
-                    else if (sizeType == VariantType.Vector2) render.Size.Connect(size);
+                    case ParticleSystemRenderMode.Billboard:
+                        AddRenderBillboard(particleSystemRenderer);
+                        break;
+                    case ParticleSystemRenderMode.Stretch:
+                        AddRenderBillboard(particleSystemRenderer);
+                        break;
+                    case ParticleSystemRenderMode.HorizontalBillboard:
+                        AddRenderBillboard(particleSystemRenderer);
+                        break;
+                    case ParticleSystemRenderMode.VerticalBillboard:
+                        AddRenderBillboard(particleSystemRenderer);
+                        break;
+                    case ParticleSystemRenderMode.Mesh:
+                        AddRenderMesh(particleSystemRenderer);
+                        break;
                 }
-                render.Pos.Connect(_updatePos);
-                render.Material = _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
-                if (particleSystem.textureSheetAnimation.enabled)
-                {
-                    render.Rows = particleSystem.textureSheetAnimation.numTilesY;
-                    render.Columns = particleSystem.textureSheetAnimation.numTilesX;
-                }
-                else if (particleSystemRenderer.sharedMaterial.HasProperty("_TilingXY"))
-                {
-                    var v = particleSystemRenderer.sharedMaterial.GetVector("_TilingXY");
-                    render.Rows = (int)v.x;
-                    render.Columns = (int)v.y;
-                }
-                render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(), _update.BuildConstant<float>(render.Rows* render.Columns))));
-                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
-                _engine.ScheduleAssetExport(renderer.sharedMaterial, _prefabContext);
-                _update.Add(render);
             }
-            else if (renderer is MeshRenderer meshRenderer)
+        }
+
+        private void AddRenderMesh(ParticleSystemRenderer particleSystemRenderer)
+        {
+            var size = BuildSize(out var sizeType);
+            GraphNode scale = null;
+            if (size != null)
             {
-                //var render = new RenderMesh();
+                if (sizeType == VariantType.Float)
+                {
+                    scale = _update.Add(new MakeVec3(size, size, size));
+                }
+                else if (sizeType == VariantType.Vector3)
+                {
+                    scale = size;
+                }
             }
+
+            if (scale == null)
+            {
+                scale = _update.BuildConstant(Vector3.one);
+            }
+            var transform = _update.Add(new MakeMatrix3x4(_updatePos, _update.BuildConstant(Quaternion.identity), scale));
+            var render = _update.Add(new RenderMesh(transform));
+            render.Model = new ResourceRef("Model", _engine.EvaluateMeshName(particleSystemRenderer.mesh, _prefabContext));
+            _engine.ScheduleAssetExport(particleSystemRenderer.mesh, _prefabContext);
+            var materials = new ResourceRefList("Material");
+            foreach (var sharedMaterial in particleSystemRenderer.sharedMaterials)
+            {
+                materials.Path.Add(_engine.EvaluateMaterialName(sharedMaterial, _prefabContext));
+                _engine.ScheduleAssetExport(sharedMaterial, _prefabContext);
+            }
+
+            render.Material = materials;
+        }
+
+        private void AddRenderBillboard(ParticleSystemRenderer particleSystemRenderer)
+        {
+            var render = new RenderBillboard();
+            render.Color.Connect(BuildColor());
+            var size = BuildSize(out var sizeType);
+            if (size != null)
+            {
+                if (sizeType == VariantType.Float)
+                {
+                    render.Size.Connect(_update.Add(new MakeVec2(size, size)));
+                }
+                else if (sizeType == VariantType.Vector3)
+                {
+                    var b = _update.Add(new BreakVector3(size));
+                    render.Size.Connect(_update.Add(new MakeVec2(b.X, b.Y)));
+                }
+                else if (sizeType == VariantType.Vector2)
+                {
+                    render.Size.Connect(size);
+                }
+            }
+
+            render.Pos.Connect(_updatePos);
+            render.Material = _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
+            if (_particleSystem.textureSheetAnimation.enabled)
+            {
+                render.Rows = _particleSystem.textureSheetAnimation.numTilesY;
+                render.Columns = _particleSystem.textureSheetAnimation.numTilesX;
+            }
+            else if (particleSystemRenderer.sharedMaterial.HasProperty("_TilingXY"))
+            {
+                var v = particleSystemRenderer.sharedMaterial.GetVector("_TilingXY");
+                render.Rows = (int)v.x;
+                render.Columns = (int)v.y;
+            }
+
+            render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(),
+                _update.BuildConstant<float>(render.Rows * render.Columns))));
+            render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+            _engine.ScheduleAssetExport(particleSystemRenderer.sharedMaterial, _prefabContext);
+            _update.Add(render);
         }
 
         private void BuildCone(EmitFrom emitFrom)
@@ -263,12 +341,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         }
         private GraphNode BuildSize(out VariantType sizeType)
         {
-            //if (particleSystem.main.startSize3D)
-            //{
-            //    var startSize = init.BuildMinMaxCurve(particleSystem.main.startSizeX, particleSystem.main.startSizeY, particleSystem.main.startSizeZ);
-
-            //}
-            //else
+            if (_particleSystem.main.startSize3D)
+            {
+                var startSizeX = _init.BuildMinMaxCurve(_particleSystem.main.startSizeX,
+                    _particleSystem.main.startSizeXMultiplier, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeY = _init.BuildMinMaxCurve(_particleSystem.main.startSizeY,
+                    _particleSystem.main.startSizeYMultiplier, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ,
+                    _particleSystem.main.startSizeZMultiplier, GetInitNormalizedDuration, GetInitRandom);
+                var startSize = _init.Add(new MakeVec3(startSizeX, startSizeY, startSizeZ));
+                _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Vector3, startSize),
+                    new GraphOutPin("size", VariantType.Vector3));
+                sizeType = VariantType.Vector3;
+            }
+            else
             {
                 var startSize = _init.BuildMinMaxCurve(_particleSystem.main.startSize,
                     _particleSystem.main.startSizeMultiplier, GetInitNormalizedDuration, GetInitRandom);

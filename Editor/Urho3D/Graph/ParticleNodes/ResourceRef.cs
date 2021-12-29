@@ -1,4 +1,6 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+﻿using System.Collections;
+
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public struct ResourceRef
     {

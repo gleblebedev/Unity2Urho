@@ -30,10 +30,10 @@
             set => _dampen.Value = value;
         }
 
-        public GraphInPin Velocity { get; } = new GraphInPin("velocity");
+        public GraphInPin Velocity { get; } = new GraphInPin("velocity", VariantType.Vector3);
 
-        public GraphInPin Limit { get; } = new GraphInPin("limit");
+        public GraphInPin Limit { get; } = new GraphInPin("limit", VariantType.Float);
 
-        public GraphOutPin Out { get; } = new GraphOutPin("out");
+        public GraphOutPin Out { get; } = new GraphOutPin("out", VariantType.Vector3);
     }
 }
