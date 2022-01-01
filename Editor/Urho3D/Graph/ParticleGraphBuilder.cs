@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
+using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
@@ -152,12 +153,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         public GraphNode BuildBurst(ParticleSystem.Burst burst, Func<GraphNode> t, Func<GraphNode> factor)
         {
             var count = BuildMinMaxCurve(burst.count, 1.0f, t, factor);
-            return _graph.Add(new GraphNode(GraphNodeType.BurstTimer,
-                GraphNodeProperty.Make("Delay", burst.time),
-                GraphNodeProperty.Make("Interval", burst.repeatInterval),
-                GraphNodeProperty.Make("Cycles", burst.cycleCount),
-                new GraphInPin("count", VariantType.Float, count),
-                new GraphOutPin("out", VariantType.Float)));
+            return _graph.Add(
+                new BurstTimer(count)
+                {
+                    Cycles = burst.cycleCount,
+                    Delay = burst.time,
+                    Interval = burst.repeatInterval
+                });
         }
 
         public GraphNode Build(string name, params IGraphElement[] pins)

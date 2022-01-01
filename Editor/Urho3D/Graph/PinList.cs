@@ -11,10 +11,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             _node = node;
         }
-        public new void Add(T pin)
+        public new T Add(T pin)
         {
             base.Add(pin);
             pin.Node = _node;
+            return pin;
         }
 
         public T this[string name]

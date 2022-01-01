@@ -5,8 +5,6 @@
     {
         public static readonly string Constant = "Constant";
 
-        public static readonly string BurstTimer = "BurstTimer";
-
         public static readonly string TimeStepScale = "TimeStepScale";
 
         public static readonly string Random = "Random";
@@ -24,10 +22,6 @@
         public static readonly string SetAttribute = "SetAttribute";
 
         public static readonly string GetAttribute = "GetAttribute";
-
-        public static readonly string MakeVec2 = "MakeVec2";
-
-        public static readonly string MakeVec3 = "MakeVec3";
 
         public static readonly string Move = "Move";
 

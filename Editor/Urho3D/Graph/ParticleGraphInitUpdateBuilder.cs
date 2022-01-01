@@ -119,7 +119,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     GetUpdateRandom);
                 var linearZ = _update.BuildMinMaxCurve(velocityOverLifetime.z, velocityOverLifetime.zMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                _updateVel = _update.Add(new MakeVec3(linearX, linearY, linearZ));
+                _updateVel = _update.Add(Make.Make_x_y_z_out(linearX, linearY, linearZ));
             }
 
             var limitVelocityOverLifetime = _particleSystem.limitVelocityOverLifetime;
@@ -139,7 +139,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     GetUpdateRandom);
                 var z = _update.BuildMinMaxCurve(forceOverLifetime.z, forceOverLifetime.zMultiplier, GetNormalizedTime,
                     GetUpdateRandom);
-                var force = _update.Add(new MakeVec3(x, y, z));
+                var force = _update.Add(Make.Make_x_y_z_out(x, y, z));
                 _updateVel = _update.Add(new ApplyForce(_updateVel, force));
             }
             
@@ -193,7 +193,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 if (sizeType == VariantType.Float)
                 {
-                    scale = _update.Add(new MakeVec3(size, size, size));
+                    scale = _update.Add(Make.Make_x_y_z_out(size, size, size));
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
@@ -205,7 +205,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 scale = _update.BuildConstant(Vector3.one);
             }
-            var transform = _update.Add(new MakeMatrix3x4(_updatePos, _update.BuildConstant(Quaternion.identity), scale));
+            var transform = _update.Add(Make.Make_translation_rotation_scale_out(_updatePos, _update.BuildConstant(Quaternion.identity), scale));
             var render = _update.Add(new RenderMesh(transform));
             render.Model = new ResourceRef("Model", _engine.EvaluateMeshName(particleSystemRenderer.mesh, _prefabContext));
             _engine.ScheduleAssetExport(particleSystemRenderer.mesh, _prefabContext);
@@ -228,12 +228,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 if (sizeType == VariantType.Float)
                 {
-                    render.Size.Connect(_update.Add(new MakeVec2(size, size)));
+                    render.Size.Connect(_update.Add(Make.Make_x_y_out(size, size)));
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
                     var b = _update.Add(new BreakVector3(size));
-                    render.Size.Connect(_update.Add(new MakeVec2(b.X, b.Y)));
+                    render.Size.Connect(_update.Add(Make.Make_x_y_out(b.X, b.Y)));
                 }
                 else if (sizeType == VariantType.Vector2)
                 {
@@ -359,7 +359,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     _particleSystem.main.startSizeYMultiplier, GetInitNormalizedDuration, GetInitRandom);
                 var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ,
                     _particleSystem.main.startSizeZMultiplier, GetInitNormalizedDuration, GetInitRandom);
-                var startSize = _init.Add(new MakeVec3(startSizeX, startSizeY, startSizeZ));
+                var startSize = _init.Add(Make.Make_x_y_z_out(startSizeX, startSizeY, startSizeZ));
                 _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Vector3, startSize),
                     new GraphOutPin("size", VariantType.Vector3));
                 sizeType = VariantType.Vector3;
