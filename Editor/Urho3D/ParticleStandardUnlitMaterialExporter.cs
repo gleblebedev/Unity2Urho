@@ -13,6 +13,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             _techniqueByShader["Particles/Standard Unlit"] = "Techniques/DiffAddAlpha.xml";
             _techniqueByShader["Hovl/Particles/Blend_CenterGlow"] = "Techniques/UnlitTransparent.xml";
+            _techniqueByShader["Hovl/Particles/Add_CenterGlow"] = "Techniques/DiffAdd.xml";
         }
 
         public override int ExporterPriority { get; }
