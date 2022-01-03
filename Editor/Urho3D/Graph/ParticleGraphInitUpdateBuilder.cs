@@ -45,65 +45,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             _initTime = _init.Add(new SetAttribute("time", VariantType.Float, _init.BuildConstant(0.0f)));
             _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, particleSystem.main.startLifetimeMultiplier, GetInitNormalizedDuration, GetInitRandom)));
             _initRotation = _init.Add(new SetAttribute("rotation", VariantType.Float, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, _particleSystem.main.startRotationMultiplier, GetInitNormalizedDuration, GetInitRandom)));
-            switch (particleSystem.shape.shapeType)
-            {
-                case ParticleSystemShapeType.Sphere:
-                    BuildSphere(EmitFrom.Volume);
-                    break;
-                case ParticleSystemShapeType.SphereShell:
-                    BuildSphere(EmitFrom.Surface);
-                    break;
-                case ParticleSystemShapeType.Hemisphere:
-                    BuildHemisphere(EmitFrom.Volume);
-                    break;
-                case ParticleSystemShapeType.HemisphereShell:
-                    BuildHemisphere(EmitFrom.Surface);
-                    break;
-                case ParticleSystemShapeType.Cone:
-                    BuildCone(EmitFrom.Base);
-                    break;
-                //case ParticleSystemShapeType.Box:
-                //    break;
-                //case ParticleSystemShapeType.Mesh:
-                //    break;
-                case ParticleSystemShapeType.ConeShell:
-                    BuildCone(EmitFrom.Surface);
-                    break;
-                case ParticleSystemShapeType.ConeVolume:
-                    BuildCone(EmitFrom.Volume);
-                    break;
-                case ParticleSystemShapeType.ConeVolumeShell:
-                    BuildCone(EmitFrom.Surface);
-                    break;
-                //case ParticleSystemShapeType.Circle:
-                //    break;
-                //case ParticleSystemShapeType.CircleEdge:
-                //    break;
-                //case ParticleSystemShapeType.SingleSidedEdge:
-                //    break;
-                //case ParticleSystemShapeType.MeshRenderer:
-                //    break;
-                //case ParticleSystemShapeType.SkinnedMeshRenderer:
-                //    break;
-                //case ParticleSystemShapeType.BoxShell:
-                //    break;
-                //case ParticleSystemShapeType.BoxEdge:
-                //    break;
-                //case ParticleSystemShapeType.Donut:
-                //    break;
-                //case ParticleSystemShapeType.Rectangle:
-                //    break;
-                //case ParticleSystemShapeType.Sprite:
-                //    break;
-                //case ParticleSystemShapeType.SpriteRenderer:
-                //    break;
-                default:
-                {
-                    _init.Add(new SetAttribute("pos", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
-                    _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
-                    break;
-                }
-            }
+            BuildShape(particleSystem);
 
             _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
             _updatePos = _update.Add(new GetAttribute("pos", VariantType.Vector3));
@@ -183,6 +125,68 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                         break;
                 }
             }
+        }
+
+        private void BuildShape(ParticleSystem particleSystem)
+        {
+            if (particleSystem.shape.enabled)
+            {
+                switch (particleSystem.shape.shapeType)
+                {
+                    case ParticleSystemShapeType.Sphere:
+                        BuildSphere(EmitFrom.Volume);
+                        return;
+                    case ParticleSystemShapeType.SphereShell:
+                        BuildSphere(EmitFrom.Surface);
+                        return;
+                    case ParticleSystemShapeType.Hemisphere:
+                        BuildHemisphere(EmitFrom.Volume);
+                        return;
+                    case ParticleSystemShapeType.HemisphereShell:
+                        BuildHemisphere(EmitFrom.Surface);
+                        return;
+                    case ParticleSystemShapeType.Cone:
+                        BuildCone(EmitFrom.Base);
+                        return;
+                    //case ParticleSystemShapeType.Box:
+                    //    break;
+                    //case ParticleSystemShapeType.Mesh:
+                    //    break;
+                    case ParticleSystemShapeType.ConeShell:
+                        BuildCone(EmitFrom.Surface);
+                        return;
+                    case ParticleSystemShapeType.ConeVolume:
+                        BuildCone(EmitFrom.Volume);
+                        return;
+                    case ParticleSystemShapeType.ConeVolumeShell:
+                        BuildCone(EmitFrom.Surface);
+                        return;
+                    //case ParticleSystemShapeType.Circle:
+                    //    break;
+                    //case ParticleSystemShapeType.CircleEdge:
+                    //    break;
+                    //case ParticleSystemShapeType.SingleSidedEdge:
+                    //    break;
+                    //case ParticleSystemShapeType.MeshRenderer:
+                    //    break;
+                    //case ParticleSystemShapeType.SkinnedMeshRenderer:
+                    //    break;
+                    //case ParticleSystemShapeType.BoxShell:
+                    //    break;
+                    //case ParticleSystemShapeType.BoxEdge:
+                    //    break;
+                    //case ParticleSystemShapeType.Donut:
+                    //    break;
+                    //case ParticleSystemShapeType.Rectangle:
+                    //    break;
+                    //case ParticleSystemShapeType.Sprite:
+                    //    break;
+                    //case ParticleSystemShapeType.SpriteRenderer:
+                    //    break;
+                }
+            }
+            _init.Add(new SetAttribute("pos", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+            _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
         }
 
         private void AddRenderMesh(ParticleSystemRenderer particleSystemRenderer)
