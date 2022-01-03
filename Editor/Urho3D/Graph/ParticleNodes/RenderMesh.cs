@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class RenderMesh : GraphNode
@@ -6,11 +8,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 
         private readonly GraphNodeProperty<ResourceRefList> _material = new GraphNodeProperty<ResourceRefList>("Material");
 
+        private readonly GraphNodeProperty<bool> _isWorldspace = new GraphNodeProperty<bool>("Is Worldspace");
+
         public RenderMesh() : base("RenderMesh")
         {
             base.In.Add(Transform);
             base.Properties.Add(_model);
             base.Properties.Add(_material);
+            base.Properties.Add(_isWorldspace);
         }
 
         public RenderMesh(GraphNode transform): this()
@@ -31,6 +36,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
         public ResourceRefList Material {
             get => _material.Value;
             set => _material.Value = value;
+        }
+
+        public bool IsWorldspace {
+            get => _isWorldspace.Value;
+            set => _isWorldspace.Value = value;
         }
 
         public GraphInPin Transform { get; } = new GraphInPin("transform", VariantType.Matrix3x4);

@@ -30,6 +30,7 @@
         IntVector3,
         Int64,
         Custom,
-        VariantCurve
+        VariantCurve,
+        EmitFrom
     }
 }

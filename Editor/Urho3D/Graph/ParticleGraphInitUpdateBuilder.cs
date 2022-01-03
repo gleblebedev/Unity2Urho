@@ -206,7 +206,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 scale = _update.BuildConstant(Vector3.one);
             }
             var transform = _update.Add(Make.Make_translation_rotation_scale_out(_updatePos, _update.BuildConstant(Quaternion.identity), scale));
-            var render = _update.Add(new RenderMesh(transform));
+            var render = _update.Add(new RenderMesh(transform) { IsWorldspace = false });
             render.Model = new ResourceRef("Model", _engine.EvaluateMeshName(particleSystemRenderer.mesh, _prefabContext));
             _engine.ScheduleAssetExport(particleSystemRenderer.mesh, _prefabContext);
             var materials = new ResourceRefList("Material");
@@ -273,7 +273,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = (int)emitFrom,
+                From = emitFrom,
                 Length = shape.length
             };
             _init.Add(cone);
@@ -293,7 +293,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = (int)emitFrom,
+                From = emitFrom,
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
@@ -312,7 +312,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = (int)emitFrom,
+                From = emitFrom,
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));

@@ -8,13 +8,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 
         private readonly GraphNodeProperty<float> _radiusThickness = new GraphNodeProperty<float>("Radius Thickness");
 
-        private readonly GraphNodeProperty<Vector3> _position = new GraphNodeProperty<Vector3>("Position");
+        private readonly GraphNodeProperty<Vector3> _translation = new GraphNodeProperty<Vector3>("Translation");
 
         private readonly GraphNodeProperty<Quaternion> _rotation = new GraphNodeProperty<Quaternion>("Rotation");
 
         private readonly GraphNodeProperty<Vector3> _scale = new GraphNodeProperty<Vector3>("Scale");
 
-        private readonly GraphNodeProperty<int> _from = new GraphNodeProperty<int>("From");
+        private readonly GraphNodeProperty<EmitFrom> _from = new GraphNodeProperty<EmitFrom>("From");
 
         public Hemisphere() : base("Hemisphere")
         {
@@ -22,11 +22,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             base.Out.Add(Velocity);
             base.Properties.Add(_radius);
             base.Properties.Add(_radiusThickness);
-            base.Properties.Add(_position);
+            base.Properties.Add(_translation);
             base.Properties.Add(_rotation);
             base.Properties.Add(_scale);
             base.Properties.Add(_from);
         }
+
 
         public float Radius {
             get => _radius.Value;
@@ -39,8 +40,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
         }
 
         public Vector3 Translation {
-            get => _position.Value;
-            set => _position.Value = value;
+            get => _translation.Value;
+            set => _translation.Value = value;
         }
 
         public Quaternion Rotation {
@@ -53,7 +54,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             set => _scale.Value = value;
         }
 
-        public int From {
+        public EmitFrom From {
             get => _from.Value;
             set => _from.Value = value;
         }

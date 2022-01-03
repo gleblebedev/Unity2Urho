@@ -78,6 +78,21 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 return string.Format(CultureInfo.InvariantCulture, "{0};{1}", Value.Type, string.Join(";", Value.Path));
             }
         }
+        public class EmitFromFormatter : IValueFormatter
+        {
+            public VariantType Type => VariantType.EmitFrom;
+
+            public void WriteValue(XmlWriter writer, object val)
+            {
+                writer.WriteAttributeString("value", ToString(val));
+            }
+
+            public string ToString(object val)
+            {
+                var Value = (EmitFrom)val;
+                return string.Format(CultureInfo.InvariantCulture, "{0}", Value);
+            }
+        }
         public class Vec2Formatter : IValueFormatter
         {
             public VariantType Type => VariantType.Vector2;
@@ -201,6 +216,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             ValueFormatter<ResourceRef>.Default = new ResourceRefFormatter();
             ValueFormatter<ResourceRefList>.Default = new ResourceRefListFormatter();
             ValueFormatter<GraphCurve>.Default = new CurveFormatter();
+            ValueFormatter<EmitFrom>.Default = new EmitFromFormatter();
             return true;
         }
     }
