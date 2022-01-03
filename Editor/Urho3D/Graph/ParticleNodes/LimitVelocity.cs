@@ -1,4 +1,4 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class LimitVelocity : GraphNode
     {
@@ -12,20 +12,19 @@
             base.Properties.Add(_dampen);
         }
 
-        public LimitVelocity(GraphNode velocity, GraphNode limit) : this()
+        public LimitVelocity(GraphNode velocity, GraphNode limit): this()
         {
             Velocity.Connect(velocity);
             Limit.Connect(limit);
         }
 
-        public LimitVelocity(GraphOutPin velocity, GraphOutPin limit) : this()
+        public LimitVelocity(GraphOutPin velocity, GraphOutPin limit): this()
         {
             Velocity.TargetPin = velocity;
             Limit.TargetPin = limit;
         }
 
-        public float Dampen
-        {
+        public float Dampen {
             get => _dampen.Value;
             set => _dampen.Value = value;
         }

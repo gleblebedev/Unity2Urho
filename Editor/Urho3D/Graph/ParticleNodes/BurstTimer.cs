@@ -1,4 +1,4 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class BurstTimer : GraphNode
     {
@@ -17,30 +17,27 @@
             base.Properties.Add(_cycles);
         }
 
-        public BurstTimer(GraphNode count) : this()
+        public BurstTimer(GraphNode count): this()
         {
             Count.Connect(count);
         }
 
-        public BurstTimer(GraphOutPin count) : this()
+        public BurstTimer(GraphOutPin count): this()
         {
             Count.TargetPin = count;
         }
 
-        public float Delay
-        {
+        public float Delay {
             get => _delay.Value;
             set => _delay.Value = value;
         }
 
-        public float Interval
-        {
+        public float Interval {
             get => _interval.Value;
             set => _interval.Value = value;
         }
 
-        public int Cycles
-        {
+        public int Cycles {
             get => _cycles.Value;
             set => _cycles.Value = value;
         }

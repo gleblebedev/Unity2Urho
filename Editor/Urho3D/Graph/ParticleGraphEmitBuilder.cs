@@ -28,7 +28,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 particleSystem.emission.rateOverTime.constant > 0)
             {
                 var rate = _emit.BuildMinMaxCurve(particleSystem.emission.rateOverTime, particleSystem.emission.rateOverTimeMultiplier, ParticleEffectTime, GetRandom);
-                lastSum = _emit.Build(GraphNodeType.TimeStepScale, new GraphInPin("x", rate), new GraphOutPin("out"));
+                lastSum = _emit.Add(new TimeStepScale(rate));
             }
 
             for (int i = 0; i < particleSystem.emission.burstCount; ++i)
@@ -46,7 +46,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             if (lastSum != null)
             {
-                _emit.Add(new GraphNode(GraphNodeType.Emit, new GraphInPin("count", lastSum)));
+                _emit.Add(new Emit(lastSum));
             }
         }
 
@@ -57,7 +57,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         private GraphNode ParticleEffectTime()
         {
-            return _normalizedEffectTime ?? (_normalizedEffectTime = _emit.Build(GraphNodeType.NormalizedEffectTime));
+            return _normalizedEffectTime ?? (_normalizedEffectTime = _emit.Add(new NormalizedEffectTime()));
         }
     }
 }

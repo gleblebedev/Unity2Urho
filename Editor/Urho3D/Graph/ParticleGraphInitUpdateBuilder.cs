@@ -242,7 +242,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
 
             render.Pos.Connect(_updatePos);
-            render.Material = _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext);
+            render.Material = new ResourceRef("Material",  _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext));
             if (_particleSystem.textureSheetAnimation.enabled)
             {
                 render.Rows = _particleSystem.textureSheetAnimation.numTilesY;
@@ -273,7 +273,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = emitFrom,
+                From = (int)emitFrom,
                 Length = shape.length
             };
             _init.Add(cone);
@@ -293,7 +293,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = emitFrom,
+                From = (int)emitFrom,
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
@@ -312,7 +312,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 Rotation = Quaternion.Euler(shape.rotation),
                 Translation = shape.position,
                 Scale = shape.scale,
-                From = emitFrom,
+                From = (int)emitFrom,
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
@@ -326,7 +326,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (_initNormalizedDuration != null) return _initNormalizedDuration;
 
             _initNormalizedDuration =
-                _init.Build(GraphNodeType.NormalizedEffectTime, new GraphOutPin("out", VariantType.Float));
+                _init.Add(new NormalizedEffectTime());
             return _initNormalizedDuration;
         }
 
@@ -409,8 +409,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         private GraphNode GetTime()
         {
-            return _updateTime ?? (_updateTime =
-                _update.Build(GraphNodeType.ParticleTime, new GraphOutPin("time", VariantType.Float)));
+            if (_updateTime != null)
+                return _updateTime;
+            GraphNode getTime = _update.Add(new GetAttribute("time", VariantType.Float));
+            getTime = _update.Add(new Add(getTime, _update.Add(new TimeStep())));
+            _updateTime = _update.Add(new SetAttribute("time", VariantType.Float, getTime));
+            return _updateTime;
         }
 
         private GraphNode GetLifeTime()

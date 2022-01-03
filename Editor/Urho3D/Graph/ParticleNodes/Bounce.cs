@@ -1,4 +1,4 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class Bounce : GraphNode
     {
@@ -16,26 +16,24 @@
             base.Properties.Add(_bounceFactor);
         }
 
-        public Bounce(GraphNode position, GraphNode velocity) : this()
+        public Bounce(GraphNode position, GraphNode velocity): this()
         {
             Position.Connect(position);
             Velocity.Connect(velocity);
         }
 
-        public Bounce(GraphOutPin position, GraphOutPin velocity) : this()
+        public Bounce(GraphOutPin position, GraphOutPin velocity): this()
         {
             Position.TargetPin = position;
             Velocity.TargetPin = velocity;
         }
 
-        public float Dampen
-        {
+        public float Dampen {
             get => _dampen.Value;
             set => _dampen.Value = value;
         }
 
-        public float BounceFactor
-        {
+        public float BounceFactor {
             get => _bounceFactor.Value;
             set => _bounceFactor.Value = value;
         }

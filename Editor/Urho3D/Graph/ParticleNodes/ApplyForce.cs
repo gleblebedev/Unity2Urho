@@ -1,4 +1,4 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class ApplyForce : GraphNode
     {
@@ -9,13 +9,13 @@
             base.Out.Add(Out);
         }
 
-        public ApplyForce(GraphNode velocity, GraphNode force) : this()
+        public ApplyForce(GraphNode velocity, GraphNode force): this()
         {
             Velocity.Connect(velocity);
             Force.Connect(force);
         }
 
-        public ApplyForce(GraphOutPin velocity, GraphOutPin force) : this()
+        public ApplyForce(GraphOutPin velocity, GraphOutPin force): this()
         {
             Velocity.TargetPin = velocity;
             Force.TargetPin = force;

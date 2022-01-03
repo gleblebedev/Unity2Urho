@@ -1,29 +1,34 @@
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
-    public partial class Divide : GraphNode
+    public partial class Lerp : GraphNode
     {
-        public Divide() : base("Divide")
+        public Lerp() : base("Lerp")
         {
             base.In.Add(X);
             base.In.Add(Y);
+            base.In.Add(T);
             base.Out.Add(Out);
         }
 
-        public Divide(GraphNode x, GraphNode y): this()
+        public Lerp(GraphNode x, GraphNode y, GraphNode t): this()
         {
             X.Connect(x);
             Y.Connect(y);
+            T.Connect(t);
         }
 
-        public Divide(GraphOutPin x, GraphOutPin y): this()
+        public Lerp(GraphOutPin x, GraphOutPin y, GraphOutPin t): this()
         {
             X.TargetPin = x;
             Y.TargetPin = y;
+            T.TargetPin = t;
         }
 
         public GraphInPin X { get; } = new GraphInPin("x", VariantType.None);
 
-        public GraphInPin Y { get; } = new GraphInPin("y", VariantType.Float);
+        public GraphInPin Y { get; } = new GraphInPin("y", VariantType.None);
+
+        public GraphInPin T { get; } = new GraphInPin("t", VariantType.Float);
 
         public GraphOutPin Out { get; } = new GraphOutPin("out", VariantType.None);
     }

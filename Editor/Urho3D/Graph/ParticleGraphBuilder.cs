@@ -73,21 +73,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     return BuildGradient(curve.gradient, t);
                 case ParticleSystemGradientMode.TwoColors:
                 {
-                    var f = factor();
-                    return Build(GraphNodeType.Lerp,
-                        new GraphInPin("x", VariantType.Color) { Value = ValueFormatter<Color>.Default.ToString(curve.colorMin) },
-                        new GraphInPin("y", VariantType.Color) { Value = ValueFormatter<Color>.Default.ToString(curve.colorMax) },
-                        new GraphInPin("t", VariantType.Float, f),
-                        new GraphOutPin("out", VariantType.Color));
-                    }
+                    return Add(new Lerp(BuildConstant(curve.colorMin), BuildConstant(curve.colorMax), factor()));
+                }
                 case ParticleSystemGradientMode.TwoGradients:
                     var min = BuildGradient(curve.gradientMin, t);
                     var max = BuildGradient(curve.gradientMax, t);
-                    return Build(GraphNodeType.Lerp,
-                        new GraphInPin("x", VariantType.Color, min),
-                        new GraphInPin("y", VariantType.Color, max),
-                        new GraphInPin("t", VariantType.Float, factor()),
-                        new GraphOutPin("out", VariantType.Color));
+                    return Add(new Lerp(min, max, factor()));
                 case ParticleSystemGradientMode.RandomColor:
                     //TODO: Generate color!
                     return BuildConstant(curve.color);
@@ -109,11 +100,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 {
                     var min = BuildCurve(curve.curveMin, curve.curveMultiplier * multiplier, t);
                     var max = BuildCurve(curve.curveMax, curve.curveMultiplier * multiplier, t);
-                    return Build(GraphNodeType.Lerp,
-                        new GraphInPin("x", VariantType.Float, min),
-                        new GraphInPin("y", VariantType.Float, max),
-                        new GraphInPin("t", VariantType.Float, factor()),
-                        new GraphOutPin("out", VariantType.Float));
+                    return Add(new Lerp(min, max, factor()));
                 }
                 case ParticleSystemCurveMode.TwoConstants:
                 {
@@ -122,11 +109,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     {
                         return f;
                     }
-                    return Build(GraphNodeType.Lerp,
-                        new GraphInPin("x", VariantType.Float) {Value = curve.constantMin.ToString(CultureInfo.InvariantCulture) },
-                        new GraphInPin("y", VariantType.Float) { Value = curve.constantMax.ToString(CultureInfo.InvariantCulture) },
-                        new GraphInPin("t", VariantType.Float, f),
-                        new GraphOutPin("out", VariantType.Float));
+                    return Add(new Lerp(BuildConstant(curve.constantMin), BuildConstant(curve.constantMax), f));
                 }
             }
 

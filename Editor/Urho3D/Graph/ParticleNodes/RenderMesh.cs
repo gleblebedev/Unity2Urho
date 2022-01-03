@@ -1,4 +1,4 @@
-﻿namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
+namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class RenderMesh : GraphNode
     {
@@ -13,24 +13,22 @@
             base.Properties.Add(_material);
         }
 
-        public RenderMesh(GraphNode transform) : this()
+        public RenderMesh(GraphNode transform): this()
         {
             Transform.Connect(transform);
         }
 
-        public RenderMesh(GraphOutPin transform) : this()
+        public RenderMesh(GraphOutPin transform): this()
         {
             Transform.TargetPin = transform;
         }
 
-        public ResourceRef Model
-        {
+        public ResourceRef Model {
             get => _model.Value;
             set => _model.Value = value;
         }
 
-        public ResourceRefList Material
-        {
+        public ResourceRefList Material {
             get => _material.Value;
             set => _material.Value = value;
         }
