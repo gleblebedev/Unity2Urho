@@ -80,7 +80,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         }
         public class EmitFromFormatter : IValueFormatter
         {
-            public VariantType Type => VariantType.EmitFrom;
+            public VariantType Type => VariantType.Int;
 
             public void WriteValue(XmlWriter writer, object val)
             {
@@ -89,13 +89,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public string ToString(object val)
             {
-                var Value = (EmitFrom)val;
+                var Value = (int)(EmitFrom)val;
                 return string.Format(CultureInfo.InvariantCulture, "{0}", Value);
             }
         }
         public class FaceCameraModeFormatter : IValueFormatter
         {
-            public VariantType Type => VariantType.FaceCameraMode;
+            public VariantType Type => VariantType.Int;
 
             public void WriteValue(XmlWriter writer, object val)
             {
@@ -104,25 +104,27 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             public string ToString(object val)
             {
-                switch ((FaceCameraMode)val)
-                {
-                    case FaceCameraMode.None:
-                        return "None";
-                    case FaceCameraMode.RotateXYZ:
-                        return "Rotate XYZ";
-                    case FaceCameraMode.RotateY:
-                        return "Rotate Y";
-                    case FaceCameraMode.LookAtXYZ:
-                        return "LookAt XYZ";
-                    case FaceCameraMode.LookAtY:
-                        return "LookAt Y";
-                    case FaceCameraMode.LookAtMixed:
-                        return "LookAt Mixed";
-                    case FaceCameraMode.Direction:
-                        return "Direction";
-                    default:
-                        return string.Format(CultureInfo.InvariantCulture, "{0}", (FaceCameraMode)val);
-                }
+                var Value = (int)(FaceCameraMode)val;
+                return string.Format(CultureInfo.InvariantCulture, "{0}", Value);
+                //switch ((FaceCameraMode)val)
+                //{
+                //    case FaceCameraMode.None:
+                //        return "None";
+                //    case FaceCameraMode.RotateXYZ:
+                //        return "Rotate XYZ";
+                //    case FaceCameraMode.RotateY:
+                //        return "Rotate Y";
+                //    case FaceCameraMode.LookAtXYZ:
+                //        return "LookAt XYZ";
+                //    case FaceCameraMode.LookAtY:
+                //        return "LookAt Y";
+                //    case FaceCameraMode.LookAtMixed:
+                //        return "LookAt Mixed";
+                //    case FaceCameraMode.Direction:
+                //        return "Direction";
+                //    default:
+                //        return string.Format(CultureInfo.InvariantCulture, "{0}", (FaceCameraMode)val);
+                //}
             }
         }
         public class Vec2Formatter : IValueFormatter

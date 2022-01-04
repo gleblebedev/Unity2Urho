@@ -31,7 +31,5 @@
         Int64,
         Custom,
         VariantCurve,
-        EmitFrom,
-        FaceCameraMode,
     }
 }
