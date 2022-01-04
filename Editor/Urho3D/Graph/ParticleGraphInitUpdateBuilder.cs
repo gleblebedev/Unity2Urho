@@ -262,6 +262,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(),
                 _update.BuildConstant<float>(render.Rows * render.Columns))));
             render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+
+            switch (particleSystemRenderer.renderMode)
+            {
+                case ParticleSystemRenderMode.Stretch:
+                    render.FaceCameraMode = FaceCameraMode.Direction;
+                    render.Direction.Connect(_updateVel);
+                    break;
+                default:
+                    switch (particleSystemRenderer.alignment)
+                    {
+                        default:
+                            render.FaceCameraMode = FaceCameraMode.RotateXYZ;
+                            render.Direction.Connect(_update.BuildConstant(new Vector3(0, 1, 0)));
+                            break;
+                    }
+                    break;
+            }
+
+
             _engine.ScheduleAssetExport(particleSystemRenderer.sharedMaterial, _prefabContext);
             _update.Add(render);
         }

@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 {
     public partial class RenderBillboard : GraphNode
@@ -8,6 +10,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 
         private readonly GraphNodeProperty<int> _columns = new GraphNodeProperty<int>("Columns");
 
+        private readonly GraphNodeProperty<FaceCameraMode> _faceCameraMode = new GraphNodeProperty<FaceCameraMode>("Face Camera Mode");
+
         private readonly GraphNodeProperty<bool> _isWorldspace = new GraphNodeProperty<bool>("Is Worldspace");
 
         public RenderBillboard() : base("RenderBillboard")
@@ -17,28 +21,32 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             base.In.Add(Frame);
             base.In.Add(Color);
             base.In.Add(Rotation);
+            base.In.Add(Direction);
             base.Properties.Add(_material);
             base.Properties.Add(_rows);
             base.Properties.Add(_columns);
+            base.Properties.Add(_faceCameraMode);
             base.Properties.Add(_isWorldspace);
         }
 
-        public RenderBillboard(GraphNode pos, GraphNode size, GraphNode frame, GraphNode color, GraphNode rotation): this()
+        public RenderBillboard(GraphNode pos, GraphNode size, GraphNode frame, GraphNode color, GraphNode rotation, GraphNode direction): this()
         {
             Pos.Connect(pos);
             Size.Connect(size);
             Frame.Connect(frame);
             Color.Connect(color);
             Rotation.Connect(rotation);
+            Direction.Connect(direction);
         }
 
-        public RenderBillboard(GraphOutPin pos, GraphOutPin size, GraphOutPin frame, GraphOutPin color, GraphOutPin rotation): this()
+        public RenderBillboard(GraphOutPin pos, GraphOutPin size, GraphOutPin frame, GraphOutPin color, GraphOutPin rotation, GraphOutPin direction): this()
         {
             Pos.TargetPin = pos;
             Size.TargetPin = size;
             Frame.TargetPin = frame;
             Color.TargetPin = color;
             Rotation.TargetPin = rotation;
+            Direction.TargetPin = direction;
         }
 
         public ResourceRef Material {
@@ -56,6 +64,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             set => _columns.Value = value;
         }
 
+        public FaceCameraMode FaceCameraMode {
+            get => _faceCameraMode.Value;
+            set => _faceCameraMode.Value = value;
+        }
+
         public bool IsWorldspace {
             get => _isWorldspace.Value;
             set => _isWorldspace.Value = value;
@@ -70,5 +83,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
         public GraphInPin Color { get; } = new GraphInPin("color", VariantType.Color);
 
         public GraphInPin Rotation { get; } = new GraphInPin("rotation", VariantType.Float);
+
+        public GraphInPin Direction { get; } = new GraphInPin("direction", VariantType.Vector3);
     }
 }
