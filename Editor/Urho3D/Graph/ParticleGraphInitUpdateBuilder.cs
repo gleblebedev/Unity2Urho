@@ -232,12 +232,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 if (sizeType == VariantType.Float)
                 {
-                    render.Size.Connect(_update.Add(Make.Make_x_y_out(size, size)));
+                    render.Size.Connect(_update.Add(Make.Make_x_y_out(size.Out.FirstOrDefault(),  StretchSize(particleSystemRenderer, size.Out.FirstOrDefault()))));
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
                     var b = _update.Add(new BreakVector3(size));
-                    render.Size.Connect(_update.Add(Make.Make_x_y_out(b.X, b.Y)));
+                    render.Size.Connect(_update.Add(Make.Make_x_y_out(b.X, StretchSize(particleSystemRenderer, b.Y))));
                 }
                 else if (sizeType == VariantType.Vector2)
                 {
@@ -267,7 +267,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 case ParticleSystemRenderMode.Stretch:
                     render.FaceCameraMode = FaceCameraMode.Direction;
-                    render.Direction.Connect(_updateVel);
+                    render.Direction.Connect(_update.Add(new Multiply(_updateVel, _update.BuildConstant(particleSystemRenderer.lengthScale))));
                     break;
                 default:
                     switch (particleSystemRenderer.alignment)
@@ -283,6 +283,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             _engine.ScheduleAssetExport(particleSystemRenderer.sharedMaterial, _prefabContext);
             _update.Add(render);
+        }
+
+        private GraphOutPin StretchSize(ParticleSystemRenderer particleSystemRenderer, GraphOutPin y)
+        {
+            if (particleSystemRenderer.renderMode != ParticleSystemRenderMode.Stretch)
+                return y;
+
+            if (Math.Abs(particleSystemRenderer.lengthScale - 1.0f) < 1e-6f)
+                return y;
+
+            return _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
         }
 
         private void BuildCone(EmitFrom emitFrom)
