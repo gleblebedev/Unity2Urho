@@ -37,37 +37,69 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             _init = new ParticleGraphBuilder(init);
             _update = new ParticleGraphBuilder(update);
         }
-
+        
         public void Build(ParticleSystem particleSystem)
         {
             _particleSystem = particleSystem;
 
             _initTime = _init.Add(new SetAttribute("time", VariantType.Float, _init.BuildConstant(0.0f)));
-            _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, particleSystem.main.startLifetimeMultiplier, GetInitNormalizedDuration, GetInitRandom)));
-            _initRotation = _init.Add(new SetAttribute("rotation", VariantType.Float, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, _particleSystem.main.startRotationMultiplier, GetInitNormalizedDuration, GetInitRandom)));
-            BuildShape(particleSystem);
+            _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, GetInitNormalizedDuration, GetInitRandom)));
+            if (_particleSystem.main.startRotation3D)
+            {
+                var radToDeg = _init.BuildConstant(57.295779513f);
+                var x = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationX, GetInitNormalizedDuration, GetInitRandom), radToDeg));
+                var y = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationY, GetInitNormalizedDuration, GetInitRandom), radToDeg));
+                var z = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationZ, GetInitNormalizedDuration, GetInitRandom), radToDeg));
+
+                var q = _init.Add(Make.Make_pitch_yaw_roll_out(x, y, z));
+                _rotationType = VariantType.Quaternion;
+                _initRotation = _init.Add(new SetAttribute("rotation", _rotationType, q));
+            }
+            else
+            {
+                _rotationType = VariantType.Float;
+                _initRotation = _init.Add(new SetAttribute("rotation", _rotationType, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, GetInitNormalizedDuration, GetInitRandom)));
+            }
+            var startVelocity = BuildShape(particleSystem);
+
 
             _update.Build("Expire", new GraphInPin("time", GetTime()), new GraphInPin("lifetime", GetLifeTime()));
             _updatePos = _update.Add(new GetAttribute("pos", VariantType.Vector3));
+            GraphNode getVel;
             _updateVel = _update.Add(new GetAttribute("vel", VariantType.Vector3));
-            var getVel = _updateVel;
+            getVel = _updateVel;
 
             var velocityOverLifetime = _particleSystem.velocityOverLifetime;
             if (velocityOverLifetime.enabled)
             {
-                var linearX = _update.BuildMinMaxCurve(velocityOverLifetime.x, velocityOverLifetime.xMultiplier, GetNormalizedTime,
-                    GetUpdateRandom);
-                var linearY = _update.BuildMinMaxCurve(velocityOverLifetime.y, velocityOverLifetime.yMultiplier, GetNormalizedTime,
-                    GetUpdateRandom);
-                var linearZ = _update.BuildMinMaxCurve(velocityOverLifetime.z, velocityOverLifetime.zMultiplier, GetNormalizedTime,
-                    GetUpdateRandom);
-                _updateVel = _update.Add(Make.Make_x_y_z_out(linearX, linearY, linearZ));
+                var isConstantVelocityOverLifetime = velocityOverLifetime.x.mode == ParticleSystemCurveMode.Constant ||
+                                                     velocityOverLifetime.x.mode ==
+                                                     ParticleSystemCurveMode.TwoConstants;
+                if (isConstantVelocityOverLifetime)
+                {
+                    var additionalVelocity = BuildVelocityOverLifetime(_init, velocityOverLifetime);
+                    _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.Add(new Add(startVelocity, additionalVelocity))));
+                }
+                else
+                {
+                    _init.Add(new SetAttribute("vel", VariantType.Vector3, startVelocity));
+                    _init.Add(new SetAttribute("velOverLifetime", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+                    var prevValue = _update.Add(new GetAttribute("velOverLifetime", VariantType.Vector3));
+                    var additionalVelocity = BuildVelocityOverLifetime(_update, velocityOverLifetime);
+                    var diff = _update.Add(new Subtract(additionalVelocity, prevValue));
+                    _updateVel = _update.Add(new Add(_updateVel, diff));
+                    _update.Add(new SetAttribute("velOverLifetime", VariantType.Vector3, additionalVelocity));
+                }
+            }
+            else
+            {
+                _init.Add(new SetAttribute("vel", VariantType.Vector3, startVelocity));
             }
 
             var limitVelocityOverLifetime = _particleSystem.limitVelocityOverLifetime;
             if (limitVelocityOverLifetime.enabled)
             {
-                _updateVel = _update.Add(new LimitVelocity(_updateVel, _update.BuildMinMaxCurve(limitVelocityOverLifetime.limit, limitVelocityOverLifetime.limitMultiplier, GetNormalizedTime, GetUpdateRandom))
+                _updateVel = _update.Add(new LimitVelocity(_updateVel, _update.BuildMinMaxCurve(limitVelocityOverLifetime.limit, GetNormalizedTime, GetUpdateRandom))
                 {
                     Dampen = limitVelocityOverLifetime.dampen
                 });
@@ -75,11 +107,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             var forceOverLifetime = _particleSystem.forceOverLifetime;
             if (forceOverLifetime.enabled)
             {
-                var x = _update.BuildMinMaxCurve(forceOverLifetime.x, forceOverLifetime.xMultiplier, GetNormalizedTime,
+                var x = _update.BuildMinMaxCurve(forceOverLifetime.x, GetNormalizedTime,
                     GetUpdateRandom);
-                var y = _update.BuildMinMaxCurve(forceOverLifetime.y, forceOverLifetime.yMultiplier, GetNormalizedTime,
+                var y = _update.BuildMinMaxCurve(forceOverLifetime.y, GetNormalizedTime,
                     GetUpdateRandom);
-                var z = _update.BuildMinMaxCurve(forceOverLifetime.z, forceOverLifetime.zMultiplier, GetNormalizedTime,
+                var z = _update.BuildMinMaxCurve(forceOverLifetime.z, GetNormalizedTime,
                     GetUpdateRandom);
                 var force = _update.Add(Make.Make_x_y_z_out(x, y, z));
                 _updateVel = _update.Add(new ApplyForce(_updateVel, force));
@@ -127,40 +159,53 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
         }
 
-        private void BuildShape(ParticleSystem particleSystem)
+        private GraphNode BuildVelocityOverLifetime(ParticleGraphBuilder graph, ParticleSystem.VelocityOverLifetimeModule velocityOverLifetime)
+        {
+            Func<GraphNode> rnd;
+            if (graph == _update)
+                rnd = GetUpdateRandom;
+            else 
+                rnd =GetInitRandom;
+            Func<GraphNode> t;
+            if (graph == _update) 
+                t = GetNormalizedTime;
+            else
+                t = GetInitNormalizedDuration;
+            var linearX = graph.BuildMinMaxCurve(velocityOverLifetime.x, t,
+                rnd);
+            var linearY = graph.BuildMinMaxCurve(velocityOverLifetime.y, t,
+                rnd);
+            var linearZ = graph.BuildMinMaxCurve(velocityOverLifetime.z, t,
+                rnd);
+            return graph.Add(Make.Make_x_y_z_out(linearX, linearY, linearZ));
+        }
+
+        private GraphNode BuildShape(ParticleSystem particleSystem)
         {
             if (particleSystem.shape.enabled)
             {
                 switch (particleSystem.shape.shapeType)
                 {
                     case ParticleSystemShapeType.Sphere:
-                        BuildSphere(EmitFrom.Volume);
-                        return;
+                        return BuildSphere(EmitFrom.Volume);
                     case ParticleSystemShapeType.SphereShell:
-                        BuildSphere(EmitFrom.Surface);
-                        return;
+                        return BuildSphere(EmitFrom.Surface);
                     case ParticleSystemShapeType.Hemisphere:
-                        BuildHemisphere(EmitFrom.Volume);
-                        return;
+                        return BuildHemisphere(EmitFrom.Volume);
                     case ParticleSystemShapeType.HemisphereShell:
-                        BuildHemisphere(EmitFrom.Surface);
-                        return;
+                        return BuildHemisphere(EmitFrom.Surface);
                     case ParticleSystemShapeType.Cone:
-                        BuildCone(EmitFrom.Base);
-                        return;
+                        return BuildCone(EmitFrom.Base);
                     //case ParticleSystemShapeType.Box:
                     //    break;
                     //case ParticleSystemShapeType.Mesh:
                     //    break;
                     case ParticleSystemShapeType.ConeShell:
-                        BuildCone(EmitFrom.Surface);
-                        return;
+                        return BuildCone(EmitFrom.Surface);
                     case ParticleSystemShapeType.ConeVolume:
-                        BuildCone(EmitFrom.Volume);
-                        return;
+                        return BuildCone(EmitFrom.Volume);
                     case ParticleSystemShapeType.ConeVolumeShell:
-                        BuildCone(EmitFrom.Surface);
-                        return;
+                        return BuildCone(EmitFrom.Surface);
                     //case ParticleSystemShapeType.Circle:
                     //    break;
                     //case ParticleSystemShapeType.CircleEdge:
@@ -186,7 +231,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 }
             }
             _init.Add(new SetAttribute("pos", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
-            _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+            return _init.BuildConstant(Vector3.zero);
         }
 
         private void AddRenderMesh(ParticleSystemRenderer particleSystemRenderer)
@@ -209,7 +254,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 scale = _update.BuildConstant(Vector3.one);
             }
-            var transform = _update.Add(Make.Make_translation_rotation_scale_out(_updatePos, _update.BuildConstant(Quaternion.identity), scale));
+
+            GraphNode rot;
+            if (_rotationType == VariantType.Quaternion)
+                rot = _update.Add(new GetAttribute("rotation", VariantType.Quaternion));
+            else
+                rot = _update.BuildConstant(Quaternion.identity);
+            var transform = _update.Add(Make.Make_translation_rotation_scale_out(_updatePos, rot, scale));
             var render = _update.Add(new RenderMesh(transform) { IsWorldspace = false });
             render.Model = new ResourceRef("Model", _engine.EvaluateMeshName(particleSystemRenderer.mesh, _prefabContext));
             _engine.ScheduleAssetExport(particleSystemRenderer.mesh, _prefabContext);
@@ -261,7 +312,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(),
                 _update.BuildConstant<float>(render.Rows * render.Columns))));
-            render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+
+            if (_rotationType == VariantType.Float)
+                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+            else
+                render.Rotation.Connect(_update.BuildConstant(0.0f));
 
             switch (particleSystemRenderer.renderMode)
             {
@@ -296,7 +351,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             return _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
         }
 
-        private void BuildCone(EmitFrom emitFrom)
+        private GraphNode BuildCone(EmitFrom emitFrom)
         {
             var shape = _particleSystem.shape;
             var cone = new Cone
@@ -312,12 +367,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
-            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed,
                 GetInitNormalizedDuration, GetInitRandom);
             var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
-            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
+            return vel;
         }
-        private void BuildHemisphere(EmitFrom emitFrom)
+        private GraphNode BuildHemisphere(EmitFrom emitFrom)
         {
             var shape = _particleSystem.shape;
             var cone = new Hemisphere()
@@ -331,12 +386,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
-            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed,
                 GetInitNormalizedDuration, GetInitRandom);
-            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
-            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
+            return _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
         }
-        private void BuildSphere(EmitFrom emitFrom)
+        private GraphNode BuildSphere(EmitFrom emitFrom)
         {
             var shape = _particleSystem.shape;
             var cone = new Sphere()
@@ -350,10 +404,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             };
             _init.Add(cone);
             _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
-            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed, _particleSystem.main.startSpeedMultiplier,
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed,
                 GetInitNormalizedDuration, GetInitRandom);
-            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
-            _init.Add(new SetAttribute("vel", VariantType.Vector3, vel));
+            return _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
         }
         private GraphNode GetInitNormalizedDuration()
         {
@@ -366,6 +419,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         private GraphNode _updateColor;
         private SetAttribute _initRotation;
+        private VariantType _rotationType;
 
         private GraphNode BuildColor()
         {
@@ -387,12 +441,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             if (_particleSystem.main.startSize3D)
             {
-                var startSizeX = _init.BuildMinMaxCurve(_particleSystem.main.startSizeX,
-                    _particleSystem.main.startSizeXMultiplier, GetInitNormalizedDuration, GetInitRandom);
-                var startSizeY = _init.BuildMinMaxCurve(_particleSystem.main.startSizeY,
-                    _particleSystem.main.startSizeYMultiplier, GetInitNormalizedDuration, GetInitRandom);
-                var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ,
-                    _particleSystem.main.startSizeZMultiplier, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeX = _init.BuildMinMaxCurve(_particleSystem.main.startSizeX, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeY = _init.BuildMinMaxCurve(_particleSystem.main.startSizeY, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ, GetInitNormalizedDuration, GetInitRandom);
                 var startSize = _init.Add(Make.Make_x_y_z_out(startSizeX, startSizeY, startSizeZ));
                 _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Vector3, startSize),
                     new GraphOutPin("size", VariantType.Vector3));
@@ -400,8 +451,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             else
             {
-                var startSize = _init.BuildMinMaxCurve(_particleSystem.main.startSize,
-                    _particleSystem.main.startSizeMultiplier, GetInitNormalizedDuration, GetInitRandom);
+                var startSize = _init.BuildMinMaxCurve(_particleSystem.main.startSize, GetInitNormalizedDuration, GetInitRandom);
                 _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Float, startSize),
                     new GraphOutPin("size", VariantType.Float));
                 sizeType = VariantType.Float;
@@ -415,7 +465,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 var size = _particleSystem.sizeOverLifetime;
                 //if (!size.separateAxes)
                 {
-                    var sizeScale = _update.BuildMinMaxCurve(size.size, size.sizeMultiplier, GetNormalizedTime,
+                    var sizeScale = _update.BuildMinMaxCurve(size.size, GetNormalizedTime,
                         GetUpdateRandom);
                     updateSize = _update.Add(new Multiply(updateSize, sizeScale));
                 }
@@ -427,8 +477,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         private GraphNode GetUpdateRandom()
         {
             GetInitRandom();
-            return _updateRandom ?? (_updateRandom =
-                _update.Build(GraphNodeType.GetAttribute, new GraphOutPin("rnd", VariantType.Float)));
+            if (_updateRandom != null)
+                return _updateRandom;
+            _updateRandom = _update.Build(GraphNodeType.GetAttribute, new GraphOutPin("rnd", VariantType.Float));
+            return _updateRandom;
         }
 
         private GraphNode GetNormalizedTime()

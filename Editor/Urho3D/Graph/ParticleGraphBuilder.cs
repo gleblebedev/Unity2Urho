@@ -86,7 +86,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             throw new ArgumentOutOfRangeException(curve.mode.ToString());
         }
 
-        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, float multiplier, Func<GraphNode> t, Func<GraphNode> factor)
+        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, Func<GraphNode> t, Func<GraphNode> factor)
         {
             switch (curve.mode)
             {
@@ -94,16 +94,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     return BuildConstant(curve.constant);
                 case ParticleSystemCurveMode.Curve:
                 {
-                    return BuildCurve(curve.curve, curve.curveMultiplier * multiplier, t);
+                    return BuildCurve(curve.curve, curve.curveMultiplier, t);
                 }
                 case ParticleSystemCurveMode.TwoCurves:
                 {
-                    var min = BuildCurve(curve.curveMin, curve.curveMultiplier * multiplier, t);
-                    var max = BuildCurve(curve.curveMax, curve.curveMultiplier * multiplier, t);
+                    var min = BuildCurve(curve.curveMin, curve.curveMultiplier , t);
+                    var max = BuildCurve(curve.curveMax, curve.curveMultiplier, t);
                     return Add(new Lerp(min, max, factor()));
                 }
                 case ParticleSystemCurveMode.TwoConstants:
                 {
+                    if (curve.constantMin == curve.constantMax)
+                        return BuildConstant(curve.constantMin);
                     var f = factor();
                     if (curve.constantMin == 0.0f && Math.Abs(curve.constantMax - 1.0f) < 1e-6f)
                     {
@@ -135,7 +137,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         public GraphNode BuildBurst(ParticleSystem.Burst burst, Func<GraphNode> t, Func<GraphNode> factor)
         {
-            var count = BuildMinMaxCurve(burst.count, 1.0f, t, factor);
+            var count = BuildMinMaxCurve(burst.count, t, factor);
             return _graph.Add(
                 new BurstTimer(count)
                 {

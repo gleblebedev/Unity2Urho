@@ -27,7 +27,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (particleSystem.emission.rateOverTime.mode != ParticleSystemCurveMode.Constant ||
                 particleSystem.emission.rateOverTime.constant > 0)
             {
-                var rate = _emit.BuildMinMaxCurve(particleSystem.emission.rateOverTime, particleSystem.emission.rateOverTimeMultiplier, ParticleEffectTime, GetRandom);
+                var rate = _emit.BuildMinMaxCurve(particleSystem.emission.rateOverTime, ParticleEffectTime, GetRandom);
                 lastSum = _emit.Add(new TimeStepScale(rate));
             }
 

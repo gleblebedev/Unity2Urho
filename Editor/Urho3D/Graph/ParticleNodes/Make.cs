@@ -63,5 +63,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             res.Out.Add(new GraphOutPin("out", VariantType.Matrix3x4));
             return res;
         }
+
+        public static Make Make_pitch_yaw_roll_out(GraphNode pitch, GraphNode yaw, GraphNode roll)
+        {
+            var res = new Make();
+            res.In.Add(new GraphInPin("pitch", VariantType.Float)).Connect(pitch);
+            res.In.Add(new GraphInPin("yaw", VariantType.Float)).Connect(yaw);
+            res.In.Add(new GraphInPin("roll", VariantType.Float)).Connect(roll);
+            res.Out.Add(new GraphOutPin("out", VariantType.Quaternion));
+            return res;
+        }
+
+        public static Make Make_pitch_yaw_roll_out(GraphOutPin pitch, GraphOutPin yaw, GraphOutPin roll)
+        {
+            var res = new Make();
+            res.In.Add(new GraphInPin("pitch", VariantType.Float)).TargetPin = pitch;
+            res.In.Add(new GraphInPin("yaw", VariantType.Float)).TargetPin = yaw;
+            res.In.Add(new GraphInPin("roll", VariantType.Float)).TargetPin = roll;
+            res.Out.Add(new GraphOutPin("out", VariantType.Quaternion));
+            return res;
+        }
+
     }
 }
