@@ -86,20 +86,20 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             throw new ArgumentOutOfRangeException(curve.mode.ToString());
         }
 
-        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, Func<GraphNode> t, Func<GraphNode> factor)
+        public GraphNode BuildMinMaxCurve(ParticleSystem.MinMaxCurve curve, Func<GraphNode> t, Func<GraphNode> factor, float scale = 1.0f)
         {
             switch (curve.mode)
             {
                 case ParticleSystemCurveMode.Constant:
-                    return BuildConstant(curve.constant);
+                    return BuildConstant(curve.constant* scale);
                 case ParticleSystemCurveMode.Curve:
                 {
-                    return BuildCurve(curve.curve, curve.curveMultiplier, t);
+                    return BuildCurve(curve.curve, curve.curveMultiplier * scale, t);
                 }
                 case ParticleSystemCurveMode.TwoCurves:
                 {
-                    var min = BuildCurve(curve.curveMin, curve.curveMultiplier , t);
-                    var max = BuildCurve(curve.curveMax, curve.curveMultiplier, t);
+                    var min = BuildCurve(curve.curveMin, curve.curveMultiplier * scale, t);
+                    var max = BuildCurve(curve.curveMax, curve.curveMultiplier * scale, t);
                     return Add(new Lerp(min, max, factor()));
                 }
                 case ParticleSystemCurveMode.TwoConstants:
@@ -107,11 +107,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     if (curve.constantMin == curve.constantMax)
                         return BuildConstant(curve.constantMin);
                     var f = factor();
-                    if (curve.constantMin == 0.0f && Math.Abs(curve.constantMax - 1.0f) < 1e-6f)
+                    var min = curve.constantMin * scale;
+                    var max = curve.constantMax * scale;
+                    if (min == 0.0f && Math.Abs(max - 1.0f) < 1e-6f)
                     {
                         return f;
                     }
-                    return Add(new Lerp(BuildConstant(curve.constantMin), BuildConstant(curve.constantMax), f));
+                    return Add(new Lerp(BuildConstant(min), BuildConstant(max), f));
                 }
             }
 

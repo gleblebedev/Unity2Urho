@@ -41,15 +41,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         public void Build(ParticleSystem particleSystem)
         {
             _particleSystem = particleSystem;
+            var renderer = particleSystem.GetComponent<Renderer>() as ParticleSystemRenderer;
 
             _initTime = _init.Add(new SetAttribute("time", VariantType.Float, _init.BuildConstant(0.0f)));
             _initLifeTime = _init.Add(new SetAttribute("lifetime", VariantType.Float, _init.BuildMinMaxCurve(particleSystem.main.startLifetime, GetInitNormalizedDuration, GetInitRandom)));
+            var radToDeg = 57.295779513f;
             if (_particleSystem.main.startRotation3D)
             {
-                var radToDeg = _init.BuildConstant(57.295779513f);
-                var x = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationX, GetInitNormalizedDuration, GetInitRandom), radToDeg));
-                var y = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationY, GetInitNormalizedDuration, GetInitRandom), radToDeg));
-                var z = _init.Add(new Multiply(_init.BuildMinMaxCurve(_particleSystem.main.startRotationZ, GetInitNormalizedDuration, GetInitRandom), radToDeg));
+                var x = _init.BuildMinMaxCurve(_particleSystem.main.startRotationX, GetInitNormalizedDuration, GetInitRandom, 57.295779513f);
+                var y = _init.BuildMinMaxCurve(_particleSystem.main.startRotationY, GetInitNormalizedDuration, GetInitRandom, 57.295779513f);
+                var z = _init.BuildMinMaxCurve(_particleSystem.main.startRotationZ, GetInitNormalizedDuration, GetInitRandom, 57.295779513f);
 
                 var q = _init.Add(Make.Make_pitch_yaw_roll_out(x, y, z));
                 _rotationType = VariantType.Quaternion;
@@ -58,7 +59,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             else
             {
                 _rotationType = VariantType.Float;
-                _initRotation = _init.Add(new SetAttribute("rotation", _rotationType, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, GetInitNormalizedDuration, GetInitRandom)));
+                if (renderer?.renderMode == ParticleSystemRenderMode.Stretch)
+                {
+                    _initRotation = _init.Add(new SetAttribute("rotation", _rotationType, _init.BuildConstant(90.0f)));
+                }
+                else
+                {
+                    _initRotation = _init.Add(new SetAttribute("rotation", _rotationType, _init.BuildMinMaxCurve(_particleSystem.main.startRotation, GetInitNormalizedDuration, GetInitRandom, radToDeg)));
+                }
             }
             var startVelocity = BuildShape(particleSystem);
 
@@ -134,26 +142,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, _updatePos));
             }
 
-
-            var renderer = particleSystem.GetComponent<Renderer>();
-            if (renderer is ParticleSystemRenderer particleSystemRenderer)
+            if (renderer != null)
             {
-                switch (particleSystemRenderer.renderMode)
+                switch (renderer.renderMode)
                 {
                     case ParticleSystemRenderMode.Billboard:
-                        AddRenderBillboard(particleSystemRenderer);
+                        AddRenderBillboard(renderer);
                         break;
                     case ParticleSystemRenderMode.Stretch:
-                        AddRenderBillboard(particleSystemRenderer);
+                        AddRenderBillboard(renderer);
                         break;
                     case ParticleSystemRenderMode.HorizontalBillboard:
-                        AddRenderBillboard(particleSystemRenderer);
+                        AddRenderBillboard(renderer);
                         break;
                     case ParticleSystemRenderMode.VerticalBillboard:
-                        AddRenderBillboard(particleSystemRenderer);
+                        AddRenderBillboard(renderer);
                         break;
                     case ParticleSystemRenderMode.Mesh:
-                        AddRenderMesh(particleSystemRenderer);
+                        AddRenderMesh(renderer);
                         break;
                 }
             }
@@ -279,24 +285,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             var render = new RenderBillboard();
             render.Color.Connect(BuildColor());
             var size = BuildSize(out var sizeType);
-            if (size != null)
-            {
-                if (sizeType == VariantType.Float)
-                {
-                    render.Size.Connect(_update.Add(Make.Make_x_y_out(size.Out.FirstOrDefault(),  StretchSize(particleSystemRenderer, size.Out.FirstOrDefault()))));
-                }
-                else if (sizeType == VariantType.Vector3)
-                {
-                    var b = _update.Add(new BreakVector3(size));
-                    render.Size.Connect(_update.Add(Make.Make_x_y_out(b.X, StretchSize(particleSystemRenderer, b.Y))));
-                }
-                else if (sizeType == VariantType.Vector2)
-                {
-                    render.Size.Connect(size);
-                }
-            }
+            render.Size.Connect(BuildBillboardSize(particleSystemRenderer, size, sizeType, render, out var height));
 
-            render.Pos.Connect(_updatePos);
             render.Material = new ResourceRef("Material",  _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext));
             if (_particleSystem.textureSheetAnimation.enabled)
             {
@@ -322,9 +312,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             {
                 case ParticleSystemRenderMode.Stretch:
                     render.FaceCameraMode = FaceCameraMode.Direction;
-                    render.Direction.Connect(_update.Add(new Multiply(_updateVel, _update.BuildConstant(particleSystemRenderer.lengthScale))));
+                    var dir = _update.Add(new Normalized(_updateVel));
+                    render.Pos.Connect(_update.Add(new Add(_updatePos,  _update.Add(new Multiply(dir, _update.Add(new Negate(height)))))));
+                    render.Direction.Connect(dir);
                     break;
                 default:
+                    render.Pos.Connect(_updatePos);
                     switch (particleSystemRenderer.alignment)
                     {
                         default:
@@ -338,6 +331,55 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
             _engine.ScheduleAssetExport(particleSystemRenderer.sharedMaterial, _prefabContext);
             _update.Add(render);
+        }
+
+        private GraphNode BuildBillboardSize(ParticleSystemRenderer particleSystemRenderer, GraphNode size, VariantType sizeType,
+            RenderBillboard render, out GraphOutPin height)
+        {
+            height = null;
+            if (size == null)
+            {
+                return null;
+            }
+
+            if (particleSystemRenderer.renderMode == ParticleSystemRenderMode.Stretch)
+            {
+                if (sizeType == VariantType.Float)
+                {
+                    height = StretchSize(particleSystemRenderer, size.Out.FirstOrDefault());
+                    return _update.Add(Make.Make_x_y_out(height, size.Out.FirstOrDefault()));
+                }
+                else if (sizeType == VariantType.Vector3)
+                {
+                    var b = _update.Add(new BreakVector3(size));
+                    height = StretchSize(particleSystemRenderer, b.X);
+                    return _update.Add(Make.Make_x_y_out(height, b.Y));
+                }
+                else if (sizeType == VariantType.Vector2)
+                {
+                    return size;
+                }
+            }
+            else
+            {
+                if (sizeType == VariantType.Float)
+                {
+                    height = StretchSize(particleSystemRenderer, size.Out.FirstOrDefault());
+                    return _update.Add(Make.Make_x_y_out(size.Out.FirstOrDefault(), height));
+                }
+                else if (sizeType == VariantType.Vector3)
+                {
+                    var b = _update.Add(new BreakVector3(size));
+                    height = StretchSize(particleSystemRenderer, b.Y);
+                    return _update.Add(Make.Make_x_y_out(b.X, height));
+                }
+                else if (sizeType == VariantType.Vector2)
+                {
+                    return size;
+                }
+            }
+
+            return null;
         }
 
         private GraphOutPin StretchSize(ParticleSystemRenderer particleSystemRenderer, GraphOutPin y)
