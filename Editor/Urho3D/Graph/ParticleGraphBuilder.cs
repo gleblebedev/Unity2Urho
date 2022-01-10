@@ -105,7 +105,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 case ParticleSystemCurveMode.TwoConstants:
                 {
                     if (curve.constantMin == curve.constantMax)
-                        return BuildConstant(curve.constantMin);
+                        return BuildConstant(curve.constantMin* scale);
                     var f = factor();
                     var min = curve.constantMin * scale;
                     var max = curve.constantMax * scale;
