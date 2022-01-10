@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Cryptography.X509Certificates;
+using ICSharpCode.NRefactory.Ast;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 using UnityEngine;
 using Random = UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes.Random;
@@ -399,12 +401,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 // 10 is an empirically obtained but accurate multiplier
                 // we took 2 particle systems with different settings - one is with velocityScale and second one is with fixed size
                 // found that 10 works for differnt values
-                var updateVelLengthMultVelScale = new Multiply(updateVelLength, _update.BuildConstant(particleSystemRenderer.velocityScale * 10.0f));
-                var totalUpdateVelLengthMultVelScale = new Add(updateVelLengthMultVelScale, _update.BuildConstant(1.0f));
-                result = _update.Add(new Multiply(result, totalUpdateVelLengthMultVelScale.Out)).Out;
-                _update.Add(updateVelLength);
-                _update.Add(updateVelLengthMultVelScale);
-                _update.Add(totalUpdateVelLengthMultVelScale);
+
+                return _update.Visit((Vector3 len, float size) => 
+                    size * (len.magnitude * (particleSystemRenderer.velocityScale * 10.0f) + 1.0f), 
+                    _updateVel.Out.FirstOrDefault(),
+                    result);
+
+                //var updateVelLengthMultVelScale = new Multiply(updateVelLength, _update.BuildConstant(particleSystemRenderer.velocityScale * 10.0f));
+                //var totalUpdateVelLengthMultVelScale = new Add(updateVelLengthMultVelScale, _update.BuildConstant(1.0f));
+                //result = _update.Add(new Multiply(result, totalUpdateVelLengthMultVelScale.Out)).Out;
+                //_update.Add(updateVelLength);
+                //_update.Add(updateVelLengthMultVelScale);
+                //_update.Add(totalUpdateVelLengthMultVelScale);
             }
             return result;
         }

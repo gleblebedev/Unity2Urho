@@ -91,9 +91,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             switch (curve.mode)
             {
                 case ParticleSystemCurveMode.Constant:
-                    Expression<Func<float>> expression = () => curve.constant;
-                    return Visit(expression);
-                    return BuildConstant(curve.constant* scale);
+                    var val = curve.constant * scale;
+                    //Expression<Func<float>> expression = () => val;
+                    return BuildConstant(val);
                 case ParticleSystemCurveMode.Curve:
                 {
                     return BuildCurve(curve.curve, curve.curveMultiplier * scale, t);
@@ -162,9 +162,29 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             return node;
         }
 
-        public GraphNode Visit(Expression expression)
+        public GraphOutPin Visit(Expression expression, params GraphOutPin[] args)
         {
-            var visitor = new GraphExpressionVisitor(this);
+            var visitor = new GraphExpressionVisitor(this, args);
+            return visitor.Visit(expression);
+        }
+        public GraphOutPin Visit<TResult>(Expression<Func<TResult>> expression, params GraphOutPin[] args)
+        {
+            var visitor = new GraphExpressionVisitor(this, args);
+            return visitor.Visit(expression);
+        }
+        public GraphOutPin Visit<T, TResult>(Expression<Func<T, TResult>> expression, params GraphOutPin[] args)
+        {
+            var visitor = new GraphExpressionVisitor(this, args);
+            return visitor.Visit(expression);
+        }
+        public GraphOutPin Visit<T1, T2, TResult>(Expression<Func<T1, T2, TResult>> expression, params GraphOutPin[] args)
+        {
+            var visitor = new GraphExpressionVisitor(this, args);
+            return visitor.Visit(expression);
+        }
+        public GraphOutPin Visit<T1, T2, T3, TResult>(Expression<Func<T1, T2, T3, TResult>> expression, params GraphOutPin[] args)
+        {
+            var visitor = new GraphExpressionVisitor(this, args);
             return visitor.Visit(expression);
         }
     }

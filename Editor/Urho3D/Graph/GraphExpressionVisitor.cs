@@ -1,32 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using UnityEngine;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 {
     public class GraphExpressionVisitor
     {
-        private readonly ParticleGraphBuilder _graph;
-        private readonly Dictionary<Expression, GraphNode> _visitedNodes = new Dictionary<Expression, GraphNode>();
-
-        public GraphExpressionVisitor(ParticleGraphBuilder graph)
+        static readonly private Dictionary<MemberInfo, Func<GraphOutPin, GraphOutPin>> unaryOperators_ = new Dictionary<MemberInfo, Func<GraphOutPin, GraphOutPin>>();
+        static GraphExpressionVisitor()
         {
-            _graph = graph;
+            RegisterMember(() => Vector3.one.magnitude, "Length");
         }
 
-        public GraphNode Visit(Expression node)
+        private static void RegisterMember<T>(Expression<Func<T>> func, string nodeName)
+        {
+            if (func.Body is MemberExpression memberExpression)
+            {
+                var member = memberExpression.Member;
+                if (member is FieldInfo fieldInfo)
+                {
+                    unaryOperators_[member] = _ =>
+                    {
+                        var node = new GraphNode(nodeName);
+                        node.In.Add(new GraphInPin("x", _));
+                        node.Out.Add(new GraphOutPin("out", fieldInfo.FieldType.ToVariantType()));
+                        return node.Out.FirstOrDefault();
+                    };
+
+                }
+                else if (member is PropertyInfo propertyInfo)
+                {
+                    unaryOperators_[member] = _ =>
+                    {
+                        var node = new GraphNode(nodeName);
+                        node.In.Add(new GraphInPin("x", _));
+                        node.Out.Add(new GraphOutPin("out", propertyInfo.PropertyType.ToVariantType()));
+                        return node.Out.FirstOrDefault();
+                    };
+                }
+            }
+        }
+
+        private readonly ParticleGraphBuilder _graph;
+        private readonly GraphOutPin[] _args;
+        private readonly Dictionary<Expression, GraphOutPin> _visitedNodes = new Dictionary<Expression, GraphOutPin>();
+
+        public GraphExpressionVisitor(ParticleGraphBuilder graph, params GraphOutPin[] args)
+        {
+            _graph = graph;
+            _args = args;
+        }
+
+        public GraphOutPin Visit(Expression node)
         {
             if (_visitedNodes.TryGetValue(node, out var res))
                 return res;
             res = VisitImpl(node);
+            _graph.Add(res.Node);
             _visitedNodes[node] = res;
             return res;
         }
 
-        protected GraphNode VisitImpl(Expression node)
+        protected GraphOutPin VisitImpl(Expression node)
         {
+            if (ExpressionAsConstant(node, out object obj))
+            {
+                return VisitConstant(obj);
+            }
+
             switch (node.NodeType)
             {
                 case ExpressionType.Negate:
@@ -98,21 +143,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             throw new NotImplementedException(node.NodeType.ToString());
         }
 
-        private GraphNode VisitConditional(ConditionalExpression node)
+        private GraphOutPin VisitConditional(ConditionalExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitParameter(ParameterExpression node)
+        private GraphOutPin VisitParameter(ParameterExpression node)
         {
+
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitMemberAccess(MemberExpression node)
+        private GraphOutPin VisitMemberAccess(MemberExpression node)
         {
-            if (ExpressionAsConstant(node, out object obj))
+            if (unaryOperators_.TryGetValue(node.Member, out var func))
             {
-                return VisitConstant(obj);
+                return func(Visit(node.Expression));
             }
             throw new NotImplementedException();
         }
@@ -121,6 +167,19 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             switch (nodeExpression.NodeType)
             {
+                case ExpressionType.Multiply:
+                {
+                    var op = (BinaryExpression)nodeExpression;
+                    if (ExpressionAsConstant(op.Left, out var left) && ExpressionAsConstant(op.Right, out var right))
+                    {
+                        if (left is float l && right is float r)
+                        {
+                            res = l * r;
+                            return true;
+                        }
+                    }
+                    break;
+                }
                 case ExpressionType.MemberAccess:
                 {
                     var parentMember = (MemberExpression)nodeExpression;
@@ -146,101 +205,102 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                     res = ((ConstantExpression)nodeExpression).Value;
                     return true;
                 default:
-                    res = null;
-                    return false;
+                    break;
             }
+            res = null;
+            return false;
         }
 
-        private GraphNode VisitMethodCall(MethodCallExpression node)
+        private GraphOutPin VisitMethodCall(MethodCallExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitNew(NewExpression node)
+        private GraphOutPin VisitNew(NewExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitNewArray(NewArrayExpression node)
+        private GraphOutPin VisitNewArray(NewArrayExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitInvocation(InvocationExpression node)
+        private GraphOutPin VisitInvocation(InvocationExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitMemberInit(MemberInitExpression node)
+        private GraphOutPin VisitMemberInit(MemberInitExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitTypeIs(TypeBinaryExpression node)
+        private GraphOutPin VisitTypeIs(TypeBinaryExpression node)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitListInit(ListInitExpression exp)
+        private GraphOutPin VisitListInit(ListInitExpression exp)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitBinary(BinaryExpression exp)
+        private GraphOutPin VisitBinary(BinaryExpression exp)
         {
             throw new NotImplementedException();
         }
 
-        private GraphNode VisitUnary(UnaryExpression node)
+        private GraphOutPin VisitUnary(UnaryExpression node)
         {
             throw new NotImplementedException();
         }
-
-        private GraphNode VisitLambda(LambdaExpression node)
+        
+        private GraphOutPin VisitLambda(LambdaExpression node)
         {
+            if (node.Parameters.Count != _args.Length)
+                throw new ArgumentException("Number of parameters doesn't match lambda arguments");
+            for (var index = 0; index < node.Parameters.Count; index++)
+            {
+                var parameterExpression = node.Parameters[index];
+                _visitedNodes[parameterExpression] = _args[index];
+            }
+
             return Visit(node.Body);
         }
-        private GraphNode VisitSubtract(BinaryExpression node)
+        private GraphOutPin VisitSubtract(BinaryExpression node)
         {
-            return _graph.Add(new Subtract(Visit(node.Left), Visit(node.Right)));
+            return new Subtract(Visit(node.Left), Visit(node.Right)).Out;
         }
 
-        private GraphNode VisitDivide(BinaryExpression node)
+        private GraphOutPin VisitDivide(BinaryExpression node)
         {
-            return _graph.Add(new Divide(Visit(node.Left), Visit(node.Right)));
+            return new Divide(Visit(node.Left), Visit(node.Right)).Out;
         }
 
-        private GraphNode VisitMultiply(BinaryExpression node)
+        private GraphOutPin VisitMultiply(BinaryExpression node)
         {
-            return _graph.Add(new Multiply(Visit(node.Left), Visit(node.Right)));
+            return new Multiply(Visit(node.Left), Visit(node.Right)).Out;
         }
 
-        private GraphNode VisitAdd(BinaryExpression node)
+        private GraphOutPin VisitAdd(BinaryExpression node)
         {
-            return _graph.Add(new Add(Visit(node.Left), Visit(node.Right)));
+            return new Add(Visit(node.Left), Visit(node.Right)).Out;
         }
 
-        protected GraphNode VisitConstant(ConstantExpression node)
+        protected GraphOutPin VisitConstant(ConstantExpression node)
         {
-            if (node.Type == typeof(int))
-            {
-                return _graph.BuildConstant((int)node.Value);
-            }
-            if (node.Type == typeof(float))
-            {
-                return _graph.BuildConstant((int)node.Value);
-            }
-            throw new NotImplementedException();
+            return VisitConstant(node.Value);
         }
-        protected GraphNode VisitConstant(object value)
+        protected GraphOutPin VisitConstant(object value)
         {
             if (value.GetType() == typeof(int))
             {
-                return _graph.BuildConstant((int)value);
+                return _graph.BuildConstant((int)value).Out.FirstOrDefault();
             }
             if (value.GetType() == typeof(float))
             {
-                return _graph.BuildConstant((float)value);
+                return _graph.BuildConstant((float)value).Out.FirstOrDefault();
             }
             throw new NotImplementedException();
         }
