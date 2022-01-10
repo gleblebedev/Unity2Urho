@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Linq.Expressions;
 using UnityEngine;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 
@@ -91,6 +91,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             switch (curve.mode)
             {
                 case ParticleSystemCurveMode.Constant:
+                    Expression<Func<float>> expression = () => curve.constant;
+                    return Visit(expression);
                     return BuildConstant(curve.constant* scale);
                 case ParticleSystemCurveMode.Curve:
                 {
@@ -158,6 +160,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             _graph.Add(node);
             return node;
+        }
+
+        public GraphNode Visit(Expression expression)
+        {
+            var visitor = new GraphExpressionVisitor(this);
+            return visitor.Visit(expression);
         }
     }
 }
