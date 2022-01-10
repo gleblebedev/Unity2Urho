@@ -12,6 +12,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
 
         private readonly GraphNodeProperty<FaceCameraMode> _faceCameraMode = new GraphNodeProperty<FaceCameraMode>("Face Camera Mode");
 
+        private readonly GraphNodeProperty<bool> _sortByDistance = new GraphNodeProperty<bool>("Sort By Distance");
+
         private readonly GraphNodeProperty<bool> _isWorldspace = new GraphNodeProperty<bool>("Is Worldspace");
 
         public RenderBillboard() : base("RenderBillboard")
@@ -26,6 +28,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
             base.Properties.Add(_rows);
             base.Properties.Add(_columns);
             base.Properties.Add(_faceCameraMode);
+            base.Properties.Add(_sortByDistance);
             base.Properties.Add(_isWorldspace);
         }
 
@@ -67,6 +70,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes
         public FaceCameraMode FaceCameraMode {
             get => _faceCameraMode.Value;
             set => _faceCameraMode.Value = value;
+        }
+
+        public bool SortByDistance {
+            get => _sortByDistance.Value;
+            set => _sortByDistance.Value = value;
         }
 
         public bool IsWorldspace {

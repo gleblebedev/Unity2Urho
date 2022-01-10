@@ -309,7 +309,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
             else
                 render.Rotation.Connect(_update.BuildConstant(0.0f));
-
+            render.SortByDistance = true;
             switch (particleSystemRenderer.renderMode)
             {
                 case ParticleSystemRenderMode.Stretch:
