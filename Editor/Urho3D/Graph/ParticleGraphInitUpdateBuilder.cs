@@ -242,7 +242,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
 
         private void AddRenderMesh(ParticleSystemRenderer particleSystemRenderer)
         {
-            var size = BuildSize(out var sizeType);
+            var size = BuildSize(out var sizeType, 1.0f);
             GraphNode scale = null;
             if (size != null)
             {
@@ -284,7 +284,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
         {
             var render = new RenderBillboard();
             render.Color.Connect(BuildColor());
-            var size = BuildSize(out var sizeType);
+            var size = BuildSize(out var sizeType, 0.5f);
             render.Size.Connect(BuildBillboardSize(particleSystemRenderer, size, sizeType, render, out var height));
 
             render.Material = new ResourceRef("Material",  _engine.EvaluateMaterialName(particleSystemRenderer.sharedMaterial, _prefabContext));
@@ -351,6 +351,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
+                    // swap x and y axises to let urho to match unity
                     var b = _update.Add(new BreakVector3(size));
                     height = StretchSize(particleSystemRenderer, b.X);
                     return _update.Add(Make.Make_x_y_out(height, b.Y));
@@ -387,10 +388,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (particleSystemRenderer.renderMode != ParticleSystemRenderMode.Stretch)
                 return y;
 
-            if (Math.Abs(particleSystemRenderer.lengthScale - 1.0f) < 1e-6f)
-                return y;
+            var result = y;
+            if (Math.Abs(particleSystemRenderer.lengthScale - 1.0f) > 1e-6f)
+                result = _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
 
-            return _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
+            if (particleSystemRenderer.velocityScale > 1e-6f)
+            {
+                // ToDo: (optimize) make a single node that implements this math
+                var updateVelLength = new Length(_updateVel);
+                var updateVelLengthMultVelScale = new Multiply(updateVelLength, _update.BuildConstant(particleSystemRenderer.velocityScale * 10.0f));
+                var totalUpdateVelLengthMultVelScale = new Add(updateVelLengthMultVelScale, _update.BuildConstant(1.0f));
+                result = _update.Add(new Multiply(result, totalUpdateVelLengthMultVelScale.Out)).Out;
+                _update.Add(updateVelLength);
+                _update.Add(updateVelLengthMultVelScale);
+                _update.Add(totalUpdateVelLengthMultVelScale);
+            }
+            return result;
         }
 
         private GraphNode BuildCone(EmitFrom emitFrom)
@@ -479,13 +492,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             return _updateColor;
         }
-        private GraphNode BuildSize(out VariantType sizeType)
+
+        private GraphNode BuildSize(out VariantType sizeType, float scale)
         {
             if (_particleSystem.main.startSize3D)
             {
-                var startSizeX = _init.BuildMinMaxCurve(_particleSystem.main.startSizeX, GetInitNormalizedDuration, GetInitRandom);
-                var startSizeY = _init.BuildMinMaxCurve(_particleSystem.main.startSizeY, GetInitNormalizedDuration, GetInitRandom);
-                var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ, GetInitNormalizedDuration, GetInitRandom);
+                var startSizeX = _init.BuildMinMaxCurve(_particleSystem.main.startSizeX, GetInitNormalizedDuration, GetInitRandom, scale);
+                var startSizeY = _init.BuildMinMaxCurve(_particleSystem.main.startSizeY, GetInitNormalizedDuration, GetInitRandom, scale);
+                var startSizeZ = _init.BuildMinMaxCurve(_particleSystem.main.startSizeZ, GetInitNormalizedDuration, GetInitRandom, scale);
                 var startSize = _init.Add(Make.Make_x_y_z_out(startSizeX, startSizeY, startSizeZ));
                 _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Vector3, startSize),
                     new GraphOutPin("size", VariantType.Vector3));
@@ -493,7 +507,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             else
             {
-                var startSize = _init.BuildMinMaxCurve(_particleSystem.main.startSize, GetInitNormalizedDuration, GetInitRandom);
+                var startSize = _init.BuildMinMaxCurve(_particleSystem.main.startSize, GetInitNormalizedDuration, GetInitRandom, scale);
                 _init.Build(GraphNodeType.SetAttribute, new GraphInPin("", VariantType.Float, startSize),
                     new GraphOutPin("size", VariantType.Float));
                 sizeType = VariantType.Float;
