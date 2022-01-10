@@ -351,6 +351,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
+                    // swap x and y axises to let urho to match unity
                     var b = _update.Add(new BreakVector3(size));
                     height = StretchSize(particleSystemRenderer, b.X);
                     return _update.Add(Make.Make_x_y_out(height, b.Y));
@@ -387,10 +388,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             if (particleSystemRenderer.renderMode != ParticleSystemRenderMode.Stretch)
                 return y;
 
-            if (Math.Abs(particleSystemRenderer.lengthScale - 1.0f) < 1e-6f)
-                return y;
+            var result = y;
+            if (Math.Abs(particleSystemRenderer.lengthScale - 1.0f) > 1e-6f)
+                result = _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
 
-            return _update.Add(new Multiply(y, _update.BuildConstant(particleSystemRenderer.lengthScale).Out.FirstOrDefault())).Out;
+            if (particleSystemRenderer.velocityScale > 1e-6f)
+            {
+                // ToDo: (optimize) make a single node that implements this math
+                var updateVelLength = new Length(_updateVel);
+                // 10 is an empirically obtained but accurate multiplier
+                // we took 2 particle systems with different settings - one is with velocityScale and second one is with fixed size
+                // found that 10 works for differnt values
+                var updateVelLengthMultVelScale = new Multiply(updateVelLength, _update.BuildConstant(particleSystemRenderer.velocityScale * 10.0f));
+                var totalUpdateVelLengthMultVelScale = new Add(updateVelLengthMultVelScale, _update.BuildConstant(1.0f));
+                result = _update.Add(new Multiply(result, totalUpdateVelLengthMultVelScale.Out)).Out;
+                _update.Add(updateVelLength);
+                _update.Add(updateVelLengthMultVelScale);
+                _update.Add(totalUpdateVelLengthMultVelScale);
+            }
+            return result;
         }
 
         private GraphNode BuildCone(EmitFrom emitFrom)
@@ -479,6 +495,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             }
             return _updateColor;
         }
+
         private GraphNode BuildSize(out VariantType sizeType, float scale)
         {
             if (_particleSystem.main.startSize3D)
