@@ -65,5 +65,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 throw new ArgumentException($"No output pins in {target.Name}");
             }
         }
+
+        public void Connect(GraphOutPin target)
+        {
+            TargetPin = target;
+        }
     }
 }

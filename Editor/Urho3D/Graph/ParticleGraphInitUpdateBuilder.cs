@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Cryptography.X509Certificates;
-using ICSharpCode.NRefactory.Ast;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes;
 using UnityEngine;
 using Random = UnityToCustomEngineExporter.Editor.Urho3D.Graph.ParticleNodes.Random;
@@ -214,10 +211,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                         return BuildCone(EmitFrom.Volume);
                     case ParticleSystemShapeType.ConeVolumeShell:
                         return BuildCone(EmitFrom.Surface);
-                    //case ParticleSystemShapeType.Circle:
-                    //    break;
-                    //case ParticleSystemShapeType.CircleEdge:
-                    //    break;
+                    case ParticleSystemShapeType.Circle:
+                        return BuildCircle(EmitFrom.Surface);
+                    case ParticleSystemShapeType.CircleEdge:
+                        return BuildCircle(EmitFrom.Surface);
                     //case ParticleSystemShapeType.SingleSidedEdge:
                     //    break;
                     //case ParticleSystemShapeType.MeshRenderer:
@@ -305,26 +302,55 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(),
                 _update.BuildConstant<float>(render.Rows * render.Columns))));
 
-            if (_rotationType == VariantType.Float)
-                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
-            else
-                render.Rotation.Connect(_update.BuildConstant(0.0f));
             render.SortByDistance = true;
             switch (particleSystemRenderer.renderMode)
             {
                 case ParticleSystemRenderMode.Stretch:
                     render.FaceCameraMode = FaceCameraMode.Direction;
-                    var dir = _update.Add(new Normalized(_updateVel));
-                    render.Pos.Connect(_update.Add(new Add(_updatePos,  _update.Add(new Multiply(dir, _update.Add(new Negate(height)))))));
-                    render.Direction.Connect(dir);
+                    if (_rotationType == VariantType.Float)
+                    {
+                        var dir = _update.Add(new Normalized(_updateVel));
+                        render.Pos.Connect(_update.Add(new Add(_updatePos, _update.Add(new Multiply(dir, _update.Add(new Negate(height)))))));
+                        render.Direction.Connect(dir);
+                        render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+                    }
+                    else
+                    {
+                        var q = _update.Add(new GetAttribute("rotation", VariantType.Quaternion));
+                        var axisAngle = _update.Add(Break.Break_q_axis_angle(q));
+                        render.Rotation.Connect(axisAngle.Out["angle"]);
+                        render.Direction.Connect(axisAngle.Out["axis"]);
+                    }
+
                     break;
                 default:
                     render.Pos.Connect(_updatePos);
                     switch (particleSystemRenderer.alignment)
                     {
+                        case ParticleSystemRenderSpace.Local:
+                        case ParticleSystemRenderSpace.World:
+                            render.FaceCameraMode = FaceCameraMode.AxisAngle;
+                            if (_rotationType == VariantType.Float)
+                            {
+                                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+                                render.Direction.Connect(_update.BuildConstant(new Vector3(0, 0, 1)));
+                            }
+                            else
+                            {
+                                var q = _update.Add(new GetAttribute("rotation", VariantType.Quaternion));
+                                var axisAngle = _update.Add(Break.Break_q_axis_angle(q));
+                                render.Rotation.Connect(axisAngle.Out["angle"]);
+                                render.Direction.Connect(axisAngle.Out["axis"]);
+                            }
+
+                            break;
                         default:
                             render.FaceCameraMode = FaceCameraMode.RotateXYZ;
                             render.Direction.Connect(_update.BuildConstant(new Vector3(0, 1, 0)));
+                            if (_rotationType == VariantType.Float)
+                                render.Rotation.Connect(_update.Add(new GetAttribute("rotation", VariantType.Float)));
+                            else
+                                render.Rotation.Connect(_update.BuildConstant(0.0f));
                             break;
                     }
                     break;
@@ -354,9 +380,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 else if (sizeType == VariantType.Vector3)
                 {
                     // swap x and y axises to let urho to match unity
-                    var b = _update.Add(new BreakVector3(size));
-                    height = StretchSize(particleSystemRenderer, b.X);
-                    return _update.Add(Make.Make_x_y_out(height, b.Y));
+                    var b = _update.Add(Break.Break_vec_x_y_z(size));
+                    height = StretchSize(particleSystemRenderer, b.Out["x"]);
+                    return _update.Add(Make.Make_x_y_out(height, b.Out["y"]));
                 }
                 else if (sizeType == VariantType.Vector2)
                 {
@@ -372,9 +398,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
                 }
                 else if (sizeType == VariantType.Vector3)
                 {
-                    var b = _update.Add(new BreakVector3(size));
-                    height = StretchSize(particleSystemRenderer, b.Y);
-                    return _update.Add(Make.Make_x_y_out(b.X, height));
+                    var b = _update.Add(Break.Break_vec_x_y_z(size));
+                    height = StretchSize(particleSystemRenderer, b.Out["y"]);
+                    return _update.Add(Make.Make_x_y_out(b.Out["x"], height));
                 }
                 else if (sizeType == VariantType.Vector2)
                 {
@@ -417,6 +443,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.Graph
             return result;
         }
 
+        private GraphNode BuildCircle(EmitFrom emitFrom)
+        {
+            var shape = _particleSystem.shape;
+            var cone = new Circle
+            {
+                Radius = shape.radius,
+                RadiusThickness = shape.radiusThickness,
+                Rotation = Quaternion.Euler(shape.rotation),
+                Translation = shape.position,
+                Scale = shape.scale,
+            };
+            _init.Add(cone);
+            _init.Add(new SetAttribute("pos", VariantType.Vector3, cone.Position));
+            var speed = _init.BuildMinMaxCurve(_particleSystem.main.startSpeed,
+                GetInitNormalizedDuration, GetInitRandom);
+            var vel = _init.Add(new Multiply(speed.Out.FirstOrDefault(), cone.Velocity));
+            return vel;
+        }
         private GraphNode BuildCone(EmitFrom emitFrom)
         {
             var shape = _particleSystem.shape;

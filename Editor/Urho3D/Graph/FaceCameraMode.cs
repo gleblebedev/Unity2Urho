@@ -9,5 +9,6 @@
         LookAtY,
         LookAtMixed,
         Direction,
+        AxisAngle,
     };
 }
