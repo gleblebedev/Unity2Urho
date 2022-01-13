@@ -28,21 +28,37 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override void ExportMaterial(Material material, PrefabContext prefabContext)
         {
-
             var urhoPath = EvaluateMaterialName(material, prefabContext);
             using (var writer = Engine.TryCreateXml(material.GetKey(), urhoPath, ExportUtils.GetLastWriteTimeUtc(material)))
             {
                 if (writer == null)
                     return;
                 writer.WriteStartElement("material"); writer.WriteWhitespace(Environment.NewLine);
-                var mainTex = material.GetTexture("_MainTex");
-                if (mainTex != null)
+
+                if (_techniqueByShader.TryGetValue(material.shader.name, out var technique))
                 {
-                    WriteTexture(mainTex, writer, "diffuse", prefabContext);
+                    WriteTechnique(writer, technique);
                 }
-                writer.WriteParameter("MatDiffColor", material.GetColor("_Color"));
-                WriteTechnique(writer, _techniqueByShader[material.shader.name]);
-                WriteTexture(mainTex, writer, "diffuse", prefabContext);
+                else
+                {
+                    WriteTechnique(writer, "Techniques/DiffAddAlpha.xml");
+                }
+
+                if (material.HasProperty("_MainTex"))
+                {
+                    var mainTex = material.GetTexture("_MainTex");
+                    if (mainTex != null)
+                    {
+                        WriteTexture(mainTex, writer, "diffuse", prefabContext);
+                    }
+                }
+
+                if (material.HasProperty("_Color"))
+                {
+                    writer.WriteParameter("MatDiffColor", material.GetColor("_Color"));
+                }
+
+     
                 writer.WriteEndElement();
             }
             //TexEnv _MainTex

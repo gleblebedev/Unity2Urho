@@ -33,6 +33,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private readonly TerrainExporter _terrainExporter;
         private Dictionary<Object, string> _assetPaths = new Dictionary<Object, string>();
         private string _tempFolder;
+        private readonly AmplifyShaderExporter _amplifyShaderExporter;
 
         public Urho3DEngine(string dataFolder, CancellationToken cancellationToken,
             Urho3DExportOptions options)
@@ -55,6 +56,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _terrainExporter = new TerrainExporter(this);
             _animationExporter = new AnimationExporter(this);
             _animationControllerExporter = new AnimationControllerExporter(this);
+            _amplifyShaderExporter = new AmplifyShaderExporter(this);
             CopyFolder(options.Subfolder, "bcc1b6196266be34e88c40110ba206ce");
             if (Options.ExportShadersAndTechniques)
                 CopyFolder("", "a20749a09ce562043815b33e8eec4077");
@@ -313,6 +315,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return name;
         }
 
+        public string ScheduleAmplifyShader(Shader shader, PrefabContext prefabContext)
+        {
+            if (shader == null)
+                return null;
+            string name = _amplifyShaderExporter.EvaluateName(shader, prefabContext);
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _amplifyShaderExporter.ExportShader(shader, prefabContext), "Shader " + name);
+            return name;
+        }
+
         public string ScheduleParticleEffect(ParticleSystem particleSystem, PrefabContext prefabContext)
         {
             if (particleSystem == null)
@@ -523,5 +535,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             return color.linear;
         }
+
+
     }
 }
