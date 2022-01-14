@@ -28,7 +28,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _skyboxMaterialExporter,
                 new VegetationMaterialExporter(_engine),
                 new SyntyStudiosBloodExporter(_engine),
-                new HDRPMaterialExporter(_engine)
+                new HDRPMaterialExporter(_engine),
+                new AmplifyMaterialExporter(_engine)
             }.OrderByDescending(_ => _.ExporterPriority).ToList();
         }
 

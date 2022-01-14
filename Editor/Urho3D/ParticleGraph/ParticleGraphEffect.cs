@@ -14,10 +14,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
         public void Write(XmlWriter writer)
         {
             writer.WriteStartElement("particleGraphEffect");
+            writer.WriteWhitespace(Environment.NewLine);
+            writer.WriteStartElement("layers");
             foreach (var layer in Layers)
             {
                 layer.Write(writer);
             }
+            writer.WriteWhitespace(Environment.NewLine);
+            writer.WriteEndElement();
             writer.WriteWhitespace(Environment.NewLine);
             writer.WriteEndElement();
         }
