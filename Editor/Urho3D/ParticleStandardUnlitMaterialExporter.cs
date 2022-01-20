@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor;
-using UnityEditor.Build.Content;
 using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
@@ -9,9 +7,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
     [CustomUrho3DExporter(typeof(Material))]
     public class ParticleStandardUnlitMaterialExporter : AbstractMaterialExporter, IUrho3DMaterialExporter
     {
+        enum Mode
+        {
+            Opaque,
+            Cutout,
+            Fade,
+            Transparent,
+            Additive,
+            Subtractive,
+            Modulate,
+        }
+
+        enum ColorMode
+        {
+            Multiply,
+            Additive,
+            Subtractive,
+            Overlay,
+            Color,
+            Difference,
+        }
+
         public ParticleStandardUnlitMaterialExporter(Urho3DEngine engine) : base(engine)
         {
             _techniqueByShader["Particles/Standard Unlit"] = "Techniques/DiffAddAlpha.xml";
+            _techniqueByShader["Legacy Shaders/Particles/Alpha Blended Premultiply"] = "Techniques/DiffUnlitParticleAlpha.xml";
             _techniqueByShader["Hovl/Particles/Blend_CenterGlow"] = "Techniques/UnlitTransparent.xml";
             _techniqueByShader["Hovl/Particles/Add_CenterGlow"] = "Techniques/DiffAdd.xml";
         }
@@ -35,7 +55,53 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     return;
                 writer.WriteStartElement("material"); writer.WriteWhitespace(Environment.NewLine);
 
-                if (_techniqueByShader.TryGetValue(material.shader.name, out var technique))
+                if (material.shader.name == "Particles/Standard Unlit")
+                {
+                    var mode = (Mode)(int)material.GetFloat("_Mode");
+                    var colorMode = (ColorMode)(int)material.GetFloat("_ColorMode");
+                    var blendOp = material.GetFloat("_BlendOp");
+                    var srcBlend = material.GetFloat("_SrcBlend");
+                    var dstBlend = material.GetFloat("_DstBlend");
+                    var zWrite = material.GetFloat("_ZWrite");
+                    var twoSided = material.GetFloat("_Cull") < 0.5f;
+                    var soft = material.GetFloat("_SoftParticlesEnabled") > 0.5f;
+
+                    //Debug.Log($"emissionColor: {emissionColor}, emissionEnabled: {emissionEnabled}");
+                    if (mode == Mode.Opaque || mode == Mode.Cutout)
+                    {
+                        if (soft)
+                        {
+                            WriteTechnique(writer, "Techniques/DiffLitParticleAdd.xml");
+                        }
+                        else
+                        {
+                            WriteTechnique(writer, "Techniques/DiffLitParticleAddSoft.xml");
+                        }
+                    }
+                    if (mode == Mode.Additive)
+                    {
+                        if (soft)
+                        {
+                            WriteTechnique(writer, "Techniques/DiffUnlitParticleAdd.xml");
+                        }
+                        else
+                        {
+                            WriteTechnique(writer, "Techniques/DiffUnlitParticleAddSoft.xml");
+                        }
+                    }
+                    else
+                    {
+                        if (soft)
+                        {
+                            WriteTechnique(writer, "Techniques/DiffUnlitParticleAlpha.xml");
+                        }
+                        else
+                        {
+                            WriteTechnique(writer, "Techniques/DiffUnlitParticleAlphaSoft.xml");
+                        }
+                    }
+                }
+                else if (_techniqueByShader.TryGetValue(material.shader.name, out var technique))
                 {
                     WriteTechnique(writer, technique);
                 }
@@ -58,6 +124,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     writer.WriteParameter("MatDiffColor", material.GetColor("_Color"));
                 }
 
+                if (material.HasProperty("_EmissionEnabled") && material.GetFloat("_EmissionEnabled") > 0.5f)
+                {
+                    if (material.HasProperty("_EmissionColor"))
+                        writer.WriteParameter("MatEmissiveColor", material.GetColor("_EmissionColor"));
+                }
      
                 writer.WriteEndElement();
             }
