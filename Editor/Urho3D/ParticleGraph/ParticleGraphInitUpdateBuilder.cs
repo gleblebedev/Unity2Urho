@@ -2,7 +2,6 @@
 using System.Linq;
 using UnityEngine;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
-using Random = UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph.ParticleNodes.Random;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
 {
@@ -79,25 +78,55 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
             getVel = _updateVel;
 
             var velocityOverLifetime = _particleSystem.velocityOverLifetime;
-            if (velocityOverLifetime.enabled)
+            var hasAdditionalVelocity = velocityOverLifetime.enabled || _particleSystem.noise.enabled;
+            if (hasAdditionalVelocity)
             {
-                var isConstantVelocityOverLifetime = velocityOverLifetime.x.mode == ParticleSystemCurveMode.Constant ||
-                                                     velocityOverLifetime.x.mode ==
-                                                     ParticleSystemCurveMode.TwoConstants;
-                if (isConstantVelocityOverLifetime)
+                //var isConstantVelocityOverLifetime = velocityOverLifetime.x.mode == ParticleSystemCurveMode.Constant ||
+                //                                     velocityOverLifetime.x.mode ==
+                //                                     ParticleSystemCurveMode.TwoConstants;
+                //if (isConstantVelocityOverLifetime)
+                //{
+                //    var additionalVelocity = BuildVelocityOverLifetime(_init, velocityOverLifetime);
+                //    _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.Add(new Add(startVelocity, additionalVelocity))));
+                //}
+                //else
                 {
-                    var additionalVelocity = BuildVelocityOverLifetime(_init, velocityOverLifetime);
-                    _init.Add(new SetAttribute("vel", VariantType.Vector3, _init.Add(new Add(startVelocity, additionalVelocity))));
-                }
-                else
-                {
+                    // Setup initial velocity and previous velocity value to evaluate delta
                     _init.Add(new SetAttribute("vel", VariantType.Vector3, startVelocity));
-                    _init.Add(new SetAttribute("velOverLifetime", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
-                    var prevValue = _update.Add(new GetAttribute("velOverLifetime", VariantType.Vector3));
-                    var additionalVelocity = BuildVelocityOverLifetime(_update, velocityOverLifetime);
-                    var diff = _update.Add(new Subtract(additionalVelocity, prevValue));
-                    _updateVel = _update.Add(new Add(_updateVel, diff));
-                    _update.Add(new SetAttribute("velOverLifetime", VariantType.Vector3, additionalVelocity));
+                    _init.Add(new SetAttribute("prevVel", VariantType.Vector3, _init.BuildConstant(Vector3.zero)));
+
+                    var prevValue = _update.Add(new GetAttribute("prevVel", VariantType.Vector3));
+
+                    GraphNode sum = null;
+                    if (velocityOverLifetime.enabled)
+                    {
+                        var additionalLinearVelocity = BuildVelocityOverLifetime(_update, velocityOverLifetime);
+                        var additionalOrbitalVelocity = BuildOrbitalVelocity(_update, velocityOverLifetime);
+                        var additionalRadialVelocity = BuildRadialVelocity(_update, velocityOverLifetime);
+
+                        sum = _update.Add(new Add(additionalLinearVelocity, additionalOrbitalVelocity));
+                        sum = _update.Add(new Add(sum, additionalRadialVelocity));
+                        sum = _update.Add(new Multiply(sum,
+                            _update.BuildMinMaxCurve(velocityOverLifetime.speedModifier, GetNormalizedTime,
+                                GetUpdateRandom)));
+                    }
+
+                    if (_particleSystem.noise.enabled)
+                    {
+                        GraphNode noise = _update.Add(new CurlNoise3D(_updatePos));
+                        if (sum == null)
+                            sum = noise;
+                        else
+                            sum = _update.Add(new Add(sum, noise));
+                        _updateVel = _update.Add(new Add(_updateVel, noise));
+                    }
+
+                    if (sum != null)
+                    {
+                        var diff = _update.Add(new Subtract(sum, prevValue));
+                        _updateVel = _update.Add(new Add(_updateVel, diff));
+                        _update.Add(new SetAttribute("prevVel", VariantType.Vector3, sum));
+                    }
                 }
             }
             else
@@ -125,7 +154,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
                 var force = _update.Add(Make.Make_x_y_z_out(x, y, z));
                 _updateVel = _update.Add(new ApplyForce(_updateVel, force));
             }
-            
+
             if (_particleSystem.collision.enabled)
             {
                 var bounce = _update.Add(new Bounce(_updatePos, _updateVel));
@@ -142,6 +171,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
                 _updatePos = _update.Add(new Move(_updatePos, _updateVel));
                 _updatePos = _update.Add(new SetAttribute("pos", VariantType.Vector3, _updatePos));
             }
+
 
             if (renderer != null)
             {
@@ -164,6 +194,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
                         break;
                 }
             }
+        }
+
+        private GraphNode BuildRadialVelocity(ParticleGraphBuilder graph, ParticleSystem.VelocityOverLifetimeModule velocityOverLifetime)
+        {
+            return graph.BuildConstant(Vector3.zero);
+        }
+
+        private GraphNode BuildOrbitalVelocity(ParticleGraphBuilder graph, ParticleSystem.VelocityOverLifetimeModule velocityOverLifetime)
+        {
+            return graph.BuildConstant(Vector3.zero);
         }
 
         private GraphNode BuildVelocityOverLifetime(ParticleGraphBuilder graph, ParticleSystem.VelocityOverLifetimeModule velocityOverLifetime)
@@ -304,8 +344,14 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
                 render.Columns = (int)v.y;
             }
 
-            render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(),
-                _update.BuildConstant<float>(render.Rows * render.Columns))));
+            var frameScale = render.Rows * render.Columns;
+            if (_particleSystem.textureSheetAnimation.enabled)
+            {
+                frameScale *= _particleSystem.textureSheetAnimation.cycleCount;
+            }
+            var frameIndex = _update.BuildConstant<float>(frameScale);
+            
+            render.Frame.Connect(_update.Add(new Multiply(GetNormalizedTime(), frameIndex)));
 
             render.SortByDistance = true;
             switch (particleSystemRenderer.renderMode)

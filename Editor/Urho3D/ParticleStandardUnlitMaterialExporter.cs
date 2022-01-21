@@ -71,11 +71,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     {
                         if (soft)
                         {
-                            WriteTechnique(writer, "Techniques/DiffLitParticleAdd.xml");
+                            WriteTechnique(writer, "Techniques/DiffLitParticleAlpha.xml");
                         }
                         else
                         {
-                            WriteTechnique(writer, "Techniques/DiffLitParticleAddSoft.xml");
+                            WriteTechnique(writer, "Techniques/DiffLitParticleAlphaSoft.xml");
                         }
                     }
                     if (mode == Mode.Additive)
@@ -88,6 +88,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         {
                             WriteTechnique(writer, "Techniques/DiffUnlitParticleAddSoft.xml");
                         }
+                        writer.WriteElementParameter("renderorder", "value", "129");
                     }
                     else
                     {
@@ -100,6 +101,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             WriteTechnique(writer, "Techniques/DiffUnlitParticleAlphaSoft.xml");
                         }
                     }
+
+                    if (soft)
+                    {
+                        writer.WriteElementParameter("SoftParticleFadeScale", "value", "1");
+                    }
+                    if (twoSided)
+                    {
+                        writer.WriteElementParameter("cull", "value", Urho3DCulling.none.ToString());
+                        writer.WriteElementParameter("shadowcull", "value", Urho3DCulling.none.ToString());
+                    }
+                    else
+                    {
+                        writer.WriteElementParameter("cull", "value", Urho3DCulling.ccw.ToString());
+                        writer.WriteElementParameter("shadowcull", "value", Urho3DCulling.ccw.ToString());
+                    }
+
+
                 }
                 else if (_techniqueByShader.TryGetValue(material.shader.name, out var technique))
                 {

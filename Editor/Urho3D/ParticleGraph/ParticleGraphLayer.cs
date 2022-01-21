@@ -14,7 +14,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
         private readonly GraphResource _init = new GraphResource();
         private readonly GraphResource _update = new GraphResource();
         private int _capacity;
-
+        private float _timeScale;
+        private float _duration;
+        private bool _loop;
 
         public ParticleGraphLayer(Urho3DEngine engine, PrefabContext prefabContext, ParticleSystem particleSystem)
         {
@@ -27,6 +29,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
         private void BuildUpdate(ParticleSystem particleSystem)
         {
             _capacity = particleSystem.main.maxParticles;
+            _timeScale = particleSystem.main.simulationSpeed;
+            _duration = particleSystem.main.duration;
+            _loop = particleSystem.main.loop;
             new ParticleGraphInitUpdateBuilder(_engine, _prefabContext, _init, _update).Build(particleSystem);
         }
 
@@ -48,6 +53,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph
             writer.WriteStartElement("layer");
             writer.WriteAttributeString("type", "ParticleGraphLayer");
             writer.WriteAttributeString("capacity", _capacity.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("timeScale", _timeScale.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("duration", _duration.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("loop", _loop.ToString(CultureInfo.InvariantCulture));
 
             writer.WriteWhitespace(Environment.NewLine);
             writer.WriteStartElement("emit");
