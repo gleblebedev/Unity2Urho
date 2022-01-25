@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEditor;
 using UnityToCustomEngineExporter.Editor.Urho3D;
 using Object = UnityEngine.Object;

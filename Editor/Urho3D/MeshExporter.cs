@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.ProBuilder;
 using UnityEngine.SceneManagement;
 using Math = System.Math;
 using Object = UnityEngine.Object;
@@ -34,7 +34,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _engine = engine;
         }
 
-        public void ExportProBuilderMesh(Object proBuilderMesh, PrefabContext prefabContext)
+        public void ExportProBuilderMesh(ProBuilderMeshAdapter proBuilderMesh, PrefabContext prefabContext)
         {
             if (!_engine.Options.ExportMeshes)
                 return;
@@ -77,7 +77,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (!_engine.Options.ExportMeshes)
                 return;
-            var proBuilderMesh = go.GetComponent<ProBuilderMesh>();
+            var proBuilderMesh = ProBuilderMeshAdapter.Get(go);
             var skinnedMeshRenderer = go.GetComponent<SkinnedMeshRenderer>();
             var meshFilter = go.GetComponent<MeshFilter>();
 
@@ -174,11 +174,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return ExportUtils.Combine(prefabContext.TempFolder, "NavMesh.mdl");
         }
 
-        private void ExportProBuilderMeshModel(Object proBuilderMesh, PrefabContext prefabContext)
+        private void ExportProBuilderMeshModel(ProBuilderMeshAdapter proBuilderMesh, PrefabContext prefabContext)
         {
             ExportMeshModel(() => new ProBuilderMeshSource(proBuilderMesh),
-                EvaluateMeshName(proBuilderMesh, prefabContext),
-                proBuilderMesh.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh));
+                EvaluateMeshName(proBuilderMesh.Object, prefabContext),
+                proBuilderMesh.Object.GetKey(), ExportUtils.GetLastWriteTimeUtc(proBuilderMesh.Object));
         }
 
 

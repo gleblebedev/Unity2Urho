@@ -1,8 +1,6 @@
 ﻿using System.Linq;
 using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
 
-using UnityToCustomEngineExporter.Editor.Urho3D.Graph;
-
 namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph.ParticleNodes
 {
     public class SetAttribute : GraphNode

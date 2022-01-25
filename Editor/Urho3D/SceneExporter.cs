@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -61,6 +62,25 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         EndElement(writer, "\t");
                         StartComponent(writer, "\t", "DebugRenderer", true);
                         EndElement(writer, "\t");
+                        if (_engine.Options.RBFX)
+                        {
+                            StartComponent(writer, "\t", "RenderPipeline", true);
+                            if (PlayerSettings.colorSpace == ColorSpace.Linear)
+                            {
+                                WriteAttribute(writer, "\t\t", "Color Space", "HDR Linear");
+                            }
+                            else if (PlayerSettings.colorSpace == ColorSpace.Gamma)
+                            {
+                                WriteAttribute(writer, "\t\t", "Color Space", "LDR Gamma");
+                            }
+                            WriteAttribute(writer, "\t\t", "Readable Depth", true);
+                            WriteAttribute(writer, "\t\t", "PCF Kernel Size", 3);
+                            WriteAttribute(writer, "\t\t", "Bloom", true);
+                            WriteAttribute(writer, "\t\t", "Bloom Threshold", 0.88f);
+                            WriteAttribute(writer, "\t\t", "Post Process Antialiasing", "FXAA3");
+                            
+                            EndElement(writer, "\t");
+                        }
 
                         var skybox = scene.GetRootGameObjects().Select(_ => _.GetComponentInChildren<Skybox>(true))
                             .Where(_ => _ != null).FirstOrDefault();

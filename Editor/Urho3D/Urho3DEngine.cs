@@ -4,11 +4,11 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -254,9 +254,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _meshExporter.EvaluateLODGroupName(sharedMesh, prefabContext);
         }
 
-        public string EvaluateMeshName(ProBuilderMesh sharedMesh, PrefabContext prefabContext)
+        public string EvaluateMeshName(ProBuilderMeshAdapter sharedMesh, PrefabContext prefabContext)
         {
-            return _meshExporter.EvaluateMeshName(sharedMesh, prefabContext);
+            return _meshExporter.EvaluateMeshName(sharedMesh.Object, prefabContext);
         }
 
         public string EvaluateTerrainHeightMap(TerrainData terrainData)
@@ -411,7 +411,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip
                 }
-                else if (asset is ProBuilderMesh proBuilderMesh)
+                else if (asset.GetType().Name == "ProBuilderMesh")
                 {
                     //Skip
                 }
@@ -475,9 +475,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
             if (asset == null)
                 yield break;
-            if (asset.GetType().Name == "ProBuilderMesh")
+            var behaviour =  asset as Behaviour;
+            if (behaviour != null && asset.GetType().Name == "ProBuilderMesh" )
             {
-                _meshExporter.ExportProBuilderMesh(asset, prefabContext);
+                _meshExporter.ExportProBuilderMesh(new ProBuilderMeshAdapter(behaviour), prefabContext);
                 yield break;
             }
 

@@ -78,6 +78,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             writer.WriteAttributeString(name, value.ToString(CultureInfo.InvariantCulture));
         }
 
+        public static void WriteAttribute(this XmlWriter writer, string name, int value)
+        {
+            writer.WriteAttributeString(name, value.ToString(CultureInfo.InvariantCulture));
+        }
+
         public static void WriteParameter(this XmlWriter writer, string name, Quaternion value)
         {
             writer.WriteWhitespace("\t");

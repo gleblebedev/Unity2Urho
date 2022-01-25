@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEngine;
-using UnityEngine.ProBuilder;
-using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
 {
     public class ProBuilderMeshSource : AbstractMeshSource, IMeshSource
     {
-        private readonly ProBuilderMesh _mesh;
+        private readonly ProBuilderMeshAdapter _mesh;
         private readonly Color32[] _colors;
         private readonly List<Geometry> _geometries;
 
-        public ProBuilderMeshSource(Object mesh)
+        public ProBuilderMeshSource(ProBuilderMeshAdapter mesh)
         {
-            _mesh = (ProBuilderMesh)mesh;
+            _mesh = mesh;
             var subMeshCount = _mesh.faces.Select(_ => _.submeshIndex).Max() + 1;
             if (_mesh.colors != null)
             {

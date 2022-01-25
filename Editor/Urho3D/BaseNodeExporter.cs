@@ -4,9 +4,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.ProBuilder;
 using UnityEngine.Rendering;
 using UnityToCustomEngineExporter.Urho3D;
 using Math = System.Math;
@@ -340,7 +340,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             var meshFilter = obj.GetComponent<MeshFilter>();
 
-            var proBuilderMesh = obj.GetComponent<ProBuilderMesh>();
+            var proBuilderMesh = ProBuilderMeshAdapter.Get(obj);
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
             var lodGroup = obj.GetComponent<LODGroup>();
@@ -408,7 +408,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         string meshPath;
                         if (proBuilderMesh != null)
                         {
-                            _engine.ScheduleAssetExport(proBuilderMesh, prefabContext);
+                            _engine.ScheduleAssetExport(proBuilderMesh.Object, prefabContext);
                             meshPath = _engine.EvaluateMeshName(proBuilderMesh, prefabContext);
                         }
                         else
@@ -793,7 +793,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             WriteVariant(writer, subSubPrefix, "Float", value.ToString(CultureInfo.InvariantCulture));
         }
 
-        private void WriteVariant(XmlWriter writer, string subSubPrefix, bool value)
+        protected void WriteVariant(XmlWriter writer, string subSubPrefix, bool value)
         {
             WriteVariant(writer, subSubPrefix, "Bool", value ? "true" : "false");
         }
@@ -969,7 +969,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             EndElement(writer, subPrefix);
         }
 
-        private void WriteAttribute(XmlWriter writer, string prefix, string name, bool flag)
+        protected void WriteAttribute(XmlWriter writer, string prefix, string name, bool flag)
         {
             WriteAttribute(writer, prefix, name, flag ? "true" : "false");
         }
