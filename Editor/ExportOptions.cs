@@ -91,10 +91,10 @@ namespace UnityToCustomEngineExporter.Editor
             };
         }
 
-        [MenuItem("Assets/Export/Export Assets and Scene")]
+        [MenuItem("Assets/Export/Export Assets or Scene")]
         public static void Init()
         {
-            var window = (ExportOptions) GetWindow(typeof(ExportOptions));
+            var window = GetWindow<ExportOptions>("Export Assets or Scene");
             window.Show();
         }
 

@@ -15,7 +15,7 @@ namespace UnityToCustomEngineExporter.Editor
         [MenuItem("Assets/Export/Export Terrain")]
         public static void Init()
         {
-            var window = (EditorWindow)GetWindow(typeof(ExportTerrain));
+            var window = (EditorWindow)GetWindow<ExportTerrain>("Export Terrain");
             window.Show();
         }
         public void OnGUI()
