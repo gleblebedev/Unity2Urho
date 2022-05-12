@@ -463,12 +463,24 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ++boneIndex;
             }
 
-            writer.Write(minX);
-            writer.Write(minY);
-            writer.Write(minZ);
-            writer.Write(maxX);
-            writer.Write(maxY);
-            writer.Write(maxZ);
+            if (minX > maxX)
+            {
+                writer.Write(-0.1f);
+                writer.Write(-0.1f);
+                writer.Write(-0.1f);
+                writer.Write(0.1f);
+                writer.Write(0.1f);
+                writer.Write(0.1f);
+            }
+            else
+            {
+                writer.Write(minX);
+                writer.Write(minY);
+                writer.Write(minZ);
+                writer.Write(maxX);
+                writer.Write(maxY);
+                writer.Write(maxZ);
+            }
         }
 
         private List<MeshStreamWriter> WriteVertexBufferHeader(BinaryWriter writer, IMeshSource mesh, IList<Vector3> positions)
@@ -484,8 +496,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             writer.Write(positions.Count);
             var elements = new List<MeshStreamWriter>();
-            if (positions.Count > 0)
-                elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
+
+            //if (positions.Count > 0) We should always have positions!
+            elements.Add(new MeshVector3Stream(positions, VertexElementSemantic.SEM_POSITION));
+
             if (normals.Count > 0)
             {
                 //var n = new Vector3[normals.Count];
