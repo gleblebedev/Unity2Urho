@@ -133,10 +133,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(clip))) + ".ani");
         }
 
-        private UrhoAnimationFile WriteSkelAnimation(AnimationClip clipAnimation, GameObject root)
+        private UrhoAnimationFile WriteSkelAnimation(AnimationClip clipAnimation, GameObject root, HashSet<string> avatarBones)
         {
             var animationFile = new UrhoAnimationFile();
-            var trackBones = CloneTree(root).Select(_ => new BoneTrack(_)).ToList();
+            var trackBones = CloneTree(root).Select(_ => new BoneTrack(_, avatarBones.Contains(_.name))).ToList();
             var cloneRoot = trackBones[0].gameObject;
             ISampler sampler;
             if (!clipAnimation.isHumanMotion)
@@ -167,7 +167,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            foreach (var bone in trackBones) bone.Optimize();
+            foreach (var bone in trackBones)
+            {
+                bone.Optimize();
+                // Disable translation for avatar bones.
+                if (bone.isAvatarBone)
+                {
+                    bone.translation = null;
+                }
+            }
             foreach (var bone in trackBones)
             {
                 var track = new UrhoAnimationTrack() { BoneName = _engine.DecorateName(bone.gameObject.name) };
@@ -358,7 +366,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (prefabRoot == null)
                 return new UrhoAnimationFile();
 
-            return WriteSkelAnimation(clip, prefabRoot);
+            var avatarBones = new HashSet<string>(avatar.humanDescription.human.Select(_ => _.boneName));
+
+            return WriteSkelAnimation(clip, prefabRoot, avatarBones);
         }
 
         private UrhoAnimationFile WriteGenericAnimation(AnimationClip clip)
@@ -383,7 +393,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 rootBoneGO = null;
                 if (rootBoneGO != null)
                 {
-                    return WriteSkelAnimation(clip, rootBoneGO.gameObject);
+                    return WriteSkelAnimation(clip, rootBoneGO.gameObject, new HashSet<string>());
                 }
                 else
                 {
@@ -495,14 +505,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             public List<Vector3> translation = new List<Vector3>();
             public List<Quaternion> rotation = new List<Quaternion>();
             public List<Vector3> scale = new List<Vector3>();
+            public readonly bool isAvatarBone;
 
 
-            public BoneTrack(GameObject gameObject)
+            public BoneTrack(GameObject gameObject, bool isAvatarBone)
             {
                 this.gameObject = gameObject;
+                this.isAvatarBone = isAvatarBone;
                 originalTranslation = gameObject.transform.localPosition;
                 originalRotation = gameObject.transform.localRotation;
                 originalScale = gameObject.transform.localScale;
+                
             }
 
             public override string ToString()
