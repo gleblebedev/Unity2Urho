@@ -1,13 +1,56 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.SceneManagement;
 using UnityToCustomEngineExporter.Editor.Urho3D;
 
 namespace UnityToCustomEngineExporter.Editor
 {
+    public class EliminateNegativeScale
+    {
+        [MenuItem("Tools/Export To Custom Engine/Eliminate Negative Scale")]
+        public static void Run()
+        {
+            var scene = SceneManager.GetActiveScene();
+            Visit(scene.GetRootGameObjects());
+        }
+
+        private static void Visit(IEnumerable<GameObject> gos)
+        {
+            foreach (var gameObject in gos)
+            {
+                Visit(gameObject);
+            }
+        }
+
+        private static void Visit(GameObject go)
+        {
+            var scale = go.transform.localScale;
+            if (scale.x < 0)
+            {
+                scale.x = -scale.x;
+                go.transform.Rotate(Vector3.up, 180);
+            }
+            if (scale.z < 0)
+            {
+                scale.z = -scale.z;
+                go.transform.Rotate(Vector3.up, 180);
+            }
+            if (scale.y < 0)
+            {
+                scale.y = -scale.y;
+                go.transform.Rotate(Vector3.right, 180);
+            }
+            go.transform.localScale = scale;
+            Visit(Enumerable.Range(0, go.transform.childCount).Select(_ => go.transform.GetChild(_))
+                .Select(_ => _.gameObject));
+        }
+    }
+
     public class ExportOptions : EditorWindow
     {
         private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";
@@ -55,6 +98,9 @@ namespace UnityToCustomEngineExporter.Editor
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportLODs", "Merge LOD Group into single model",
                 false);
 
+        private readonly BoolEditorProperty _exportPrefabReferences =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportPrefabReferences", "Export Prefab References", false);
+
         private readonly BoolEditorProperty _mergeStaticGeometry =
             new BoolEditorProperty("UnityToCustomEngineExporter.MergeStaticGeometry", "Merge static geometry", false);
 
@@ -86,6 +132,7 @@ namespace UnityToCustomEngineExporter.Editor
                 _exportParticles,
                 _exportAscii,
                 _exportLods,
+                _exportPrefabReferences,
                 _eliminateRootMotion,
                 _rbfx
             };
@@ -224,6 +271,7 @@ namespace UnityToCustomEngineExporter.Editor
             options.RBFX = _rbfx.Value;
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
+            options.ExportPrefabReferences = _exportPrefabReferences.Value;
             options.ASCIIOnly = _exportAscii.Value;
             options.ExportLODs = _exportLods.Value;
             options.ExportParticles = _exportParticles.Value;

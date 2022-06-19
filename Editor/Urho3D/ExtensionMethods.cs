@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Xml;
 using UnityEngine;
@@ -7,6 +8,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
     public static class ExtensionMethods
     {
+        internal static TValue GetOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> map, TKey key)
+        {
+            if (map.TryGetValue(key, out TValue value))
+                return value;
+            return default(TValue);
+        }
+
         public static void WriteParameter(this XmlWriter writer, string name, string value)
         {
             writer.WriteStartElement("parameter");

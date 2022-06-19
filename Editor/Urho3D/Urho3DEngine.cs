@@ -65,7 +65,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public Urho3DExportOptions Options { get; }
 
-
         public void CopyFolder(string subfolder, string guid)
         {
             var assetsPath = AssetDatabase.GUIDToAssetPath(guid);
@@ -269,6 +268,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return _terrainExporter.EvaluateMaterial(terrainData);
         }
 
+        public string EvaluatePrefabName(GameObject gameObject)
+        {
+            return _prefabExporter.EvaluatePrefabName(AssetDatabase.GetAssetPath(gameObject));
+        }
+
         public void SchedulePBRTextures(MetallicGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
             EditorTaskScheduler.Default.ScheduleForegroundTask(
@@ -411,7 +415,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     //Skip
                 }
-                else if (asset.GetType().Name == "ProBuilderMesh")
+                else if (asset != null && asset.GetType().Name == "ProBuilderMesh")
                 {
                     //Skip
                 }
@@ -536,7 +540,5 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             return color.linear;
         }
-
-
     }
 }

@@ -18,6 +18,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             _defaultFolder = defaultFolder ?? TempFolder;
         }
 
+        public GameObject PrefabRoot
+        {
+            get
+            {
+                return _prefabRoot;
+            }
+        }
+
+        public string DefaultFolder => _defaultFolder;
+
         public string TempFolder
         {
             get => _prefabFolder;

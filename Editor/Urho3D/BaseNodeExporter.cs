@@ -122,43 +122,31 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         private readonly Dictionary<GameObject, int> _objectIds = new Dictionary<GameObject, int>();
-        protected void WriteObject(XmlWriter writer, string prefix, GameObject obj, HashSet<Renderer> excludeList,
+        protected void WriteObject(XmlWriter writer, string prefix, GameObject gameObject, HashSet<Renderer> excludeList,
             bool parentEnabled, PrefabContext prefabContext)
         {
-            if (obj == null)
+            if (gameObject == null)
                 return;
-            prefabContext = prefabContext.Retarget(obj);
 
-            var isEnabled = obj.activeSelf && parentEnabled;
+            var isEnabled = gameObject.activeSelf && parentEnabled;
             if (_engine.Options.SkipDisabled && !isEnabled) return;
 
-            var localExcludeList = new HashSet<Renderer>(excludeList);
-            var id = StartNode(writer, prefix);
-            _objectIds[obj] = id;
-
-            var subPrefix = prefix + "\t";
-            var subSubPrefix = subPrefix + "\t";
-
-            WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
-            WriteAttribute(writer, subPrefix, "Name", _engine.DecorateName(obj.name));
-            if (!string.IsNullOrWhiteSpace(obj.tag))
+            if (_engine.Options.ExportPrefabReferences)
             {
-                writer.WriteWhitespace(subPrefix);
-                writer.WriteStartElement("attribute");
-                writer.WriteAttributeString("name", "Tags");
-                writer.WriteStartElement("string");
-                writer.WriteAttributeString("value", obj.tag);
-                writer.WriteEndElement();
-                writer.WriteEndElement();
-                writer.WriteWhitespace(Environment.NewLine);
+                if (prefabContext.PrefabRoot != gameObject && PrefabUtility.IsAnyPrefabInstanceRoot(gameObject))
+                {
+                    if (WritePrefabReferenceNode(writer, prefix, gameObject, isEnabled, prefabContext))
+                    {
+                        return;
+                    }
+                }
             }
+            prefabContext = prefabContext.Retarget(gameObject);
+            var localExcludeList = new HashSet<Renderer>(excludeList);
 
-            //WriteAttribute(writer, subPrefix, "Tags", obj.tag);
-            WriteAttribute(writer, subPrefix, "Position", obj.transform.localPosition);
-            WriteAttribute(writer, subPrefix, "Rotation", obj.transform.localRotation);
-            WriteAttribute(writer, subPrefix, "Scale", obj.transform.localScale);
+            WriteNodeHeader(writer, prefix, gameObject, isEnabled, out var subPrefix, out var subSubPrefix);
 
-            foreach (var component in obj.GetComponents<Component>())
+            foreach (var component in gameObject.GetComponents<Component>())
                 if (component is IUrho3DComponent customComponent)
                 {
                     ExportCustomComponent(writer, subPrefix, customComponent);
@@ -181,13 +169,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
                 else if (component is Terrain terrain)
                 {
-                    ExportTerrain(writer, terrain?.terrainData, obj.GetComponent<TerrainCollider>(), subPrefix,
+                    ExportTerrain(writer, terrain?.terrainData, gameObject.GetComponent<TerrainCollider>(), subPrefix,
                         terrain.enabled, prefabContext);
                 }
                 else if (component is Rigidbody rigidbody)
                 {
                     StartComponent(writer, subPrefix, "RigidBody", true);
-                    var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                    var localToWorldMatrix = gameObject.transform.localToWorldMatrix;
                     var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                     WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                     WriteAttribute(writer, subSubPrefix, "Mass", rigidbody.mass);
@@ -208,7 +196,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
 
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, meshCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, meshCollider.enabled);
                 }
                 else if (component is BoxCollider boxCollider)
                 {
@@ -218,7 +206,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
                     //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, boxCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, boxCollider.enabled);
                 }
                 else if (component is TerrainCollider terrainCollider)
                 {
@@ -240,7 +228,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         highLimit = new Vector2(characterJoint.swing1Limit.limit, 0);
                         lowLimit = new Vector2(-characterJoint.swing1Limit.limit, 0);
                         rotation = GetHingeOrPointRotation(characterJoint.swingAxis);
-                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(characterJoint.swingAxis)));
+                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(characterJoint.swingAxis)));
                     }
                     else
                     {
@@ -248,7 +236,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         highLimit = new Vector2(characterJoint.highTwistLimit.limit, 0);
                         lowLimit = new Vector2(-characterJoint.lowTwistLimit.limit, 0);
                         rotation = GetHingeOrPointRotation(characterJoint.axis);
-                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(characterJoint.axis)));
+                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(characterJoint.axis)));
                     }
                     StartComponent(writer, subPrefix, "Constraint", isEnabled);
                     WriteAttribute(writer, subSubPrefix, "Constraint Type", constraintType);
@@ -257,7 +245,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     if (_objectIds.TryGetValue(connectedObject, out var connectedId))
                     {
                         WriteAttribute(writer, subSubPrefix, "Other Body NodeID", connectedId);
-                        var connectedAxis = connectedObject.transform.InverseTransformDirection(obj.transform.TransformDirection(axis));
+                        var connectedAxis = connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(axis));
                     }
                     WriteAttribute(writer, subSubPrefix, "Other Body Position", characterJoint.connectedAnchor);
                     WriteAttribute(writer, subSubPrefix, "Other Body Rotation", otherBodyRotation);
@@ -274,7 +262,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
                     WriteAttribute(writer, subSubPrefix, "Size", new Vector3(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, sphereCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, sphereCollider.enabled);
                 }
                 else if (component is CapsuleCollider capsuleCollider)
                 {
@@ -297,7 +285,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             break;
                     } 
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, capsuleCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, capsuleCollider.enabled);
                 }
                 else if (component is Skybox skybox)
                 {
@@ -313,7 +301,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     StartComponent(writer, subPrefix, "CollisionShape", collider.enabled);
                     WriteCommonCollisionAttributes(writer, subSubPrefix, collider);
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, obj, subPrefix, subSubPrefix, collider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, collider.enabled);
                 }
                 else if (component is Animation animation)
                 {
@@ -338,12 +326,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
                 }
 
-            var meshFilter = obj.GetComponent<MeshFilter>();
+            var meshFilter = gameObject.GetComponent<MeshFilter>();
 
-            var proBuilderMesh = ProBuilderMeshAdapter.Get(obj);
-            var meshRenderer = obj.GetComponent<MeshRenderer>();
-            var skinnedMeshRenderer = obj.GetComponent<SkinnedMeshRenderer>();
-            var lodGroup = obj.GetComponent<LODGroup>();
+            var proBuilderMesh = ProBuilderMeshAdapter.Get(gameObject);
+            var meshRenderer = gameObject.GetComponent<MeshRenderer>();
+            var skinnedMeshRenderer = gameObject.GetComponent<SkinnedMeshRenderer>();
+            var lodGroup = gameObject.GetComponent<LODGroup>();
 
             if (lodGroup != null)
             {
@@ -472,8 +460,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
 
-            foreach (Transform childTransform in obj.transform)
-                if (childTransform.parent.gameObject == obj)
+            foreach (Transform childTransform in gameObject.transform)
+                if (childTransform.parent.gameObject == gameObject)
                     WriteObject(writer, subPrefix, childTransform.gameObject, localExcludeList, isEnabled,
                         prefabContext);
 
@@ -481,6 +469,68 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 writer.WriteWhitespace(prefix);
             writer.WriteEndElement();
             writer.WriteWhitespace("\n");
+        }
+
+        private bool WritePrefabReferenceNode(XmlWriter writer, string prefix, GameObject gameObject, bool isEnabled, PrefabContext prefabContext)
+        {
+            var originalSource = PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject);
+            if (originalSource == null)
+            {
+                return false;
+            }
+
+            var name = _engine.EvaluatePrefabName(originalSource);
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+
+            WriteNodeHeader(writer, prefix, gameObject, isEnabled, out var subPrefix, out var subSubPrefix);
+
+            StartComponent(writer, subPrefix, "PrefabReference", true);
+            WriteAttribute(writer, subSubPrefix, "Prefab", "XMLFile;"+name);
+            EndElement(writer, subPrefix);
+
+            if (!string.IsNullOrEmpty(prefix))
+                writer.WriteWhitespace(prefix);
+            writer.WriteEndElement();
+            writer.WriteWhitespace("\n");
+
+            _engine.ScheduleAssetExport(originalSource, new PrefabContext(_engine, originalSource, name, prefabContext.DefaultFolder));
+
+            return true;
+        }
+
+        private void WriteNodeHeader(XmlWriter writer, string prefix, GameObject gameObject, bool isEnabled,
+            out string subPrefix,
+            out string subSubPrefix)
+
+        {
+            var id = StartNode(writer, prefix);
+            _objectIds[gameObject] = id;
+            subPrefix = prefix + "\t";
+            subSubPrefix = subPrefix + "\t";
+
+            WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
+            if (!string.IsNullOrWhiteSpace(gameObject.name))
+                WriteAttribute(writer, subPrefix, "Name", _engine.DecorateName(gameObject.name));
+            if (!string.IsNullOrWhiteSpace(gameObject.tag))
+            {
+                writer.WriteWhitespace(subPrefix);
+                writer.WriteStartElement("attribute");
+                writer.WriteAttributeString("name", "Tags");
+                writer.WriteStartElement("string");
+                writer.WriteAttributeString("value", gameObject.tag);
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+                writer.WriteWhitespace(Environment.NewLine);
+            }
+
+            //WriteAttribute(writer, subPrefix, "Tags", obj.tag);
+            if (gameObject.transform.localPosition != Vector3.zero)
+                WriteAttribute(writer, subPrefix, "Position", gameObject.transform.localPosition);
+            if (gameObject.transform.localRotation != Quaternion.identity)
+                WriteAttribute(writer, subPrefix, "Rotation", gameObject.transform.localRotation);
+            if (gameObject.transform.localScale != Vector3.one)
+                WriteAttribute(writer, subPrefix, "Scale", gameObject.transform.localScale);
         }
 
         private Quaternion GetRotationFromConstraintAxis(UrhoConstraint urhoConstraint, Vector3 axis)
@@ -934,9 +984,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (obj.GetComponent<Rigidbody>() == null)
             {
                 StartComponent(writer, subPrefix, "RigidBody", meshColliderEnabled);
-                var localToWorldMatrix = obj.transform.localToWorldMatrix;
-                var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-                WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                // When saving prefab we don't need world position
+                //var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                //var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+                //WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                 EndElement(writer, subPrefix);
             }
         }

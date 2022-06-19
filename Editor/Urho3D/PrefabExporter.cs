@@ -26,6 +26,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string EvaluatePrefabName(string assetPath)
         {
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
             return ExportUtils.ReplaceExtension(
                 ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath),
                 ".xml");
