@@ -486,7 +486,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private List<MeshStreamWriter> WriteVertexBufferHeader(BinaryWriter writer, IMeshSource mesh, IList<Vector3> positions)
         {
             var normals = mesh.Normals;
-            var colors = mesh.Colors;
+            var colors = _engine.Options.ExportVertexColor?mesh.Colors:Array.Empty<Color32>();
             var tangents = mesh.Tangents;
             var boneWeights = mesh.BoneWeights;
             var uvs = mesh.TexCoords0;

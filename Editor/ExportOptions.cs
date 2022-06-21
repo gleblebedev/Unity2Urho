@@ -85,6 +85,9 @@ namespace UnityToCustomEngineExporter.Editor
         private readonly BoolEditorProperty _exportMeshes =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportMeshes", "Export Meshes", true);
 
+        private readonly BoolEditorProperty _exportVertexColor =
+            new BoolEditorProperty("UnityToCustomEngineExporter.ExportVertexColor", "Export Vertex Color", true);
+
         private readonly BoolEditorProperty _exportParticles =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportParticles", "Export Particles", true);
         
@@ -129,6 +132,7 @@ namespace UnityToCustomEngineExporter.Editor
                 _packedNormal,
                 _exportAnimations,
                 _exportMeshes,
+                _exportVertexColor,
                 _exportParticles,
                 _exportAscii,
                 _exportLods,
@@ -271,6 +275,7 @@ namespace UnityToCustomEngineExporter.Editor
             options.RBFX = _rbfx.Value;
             options.ExportAnimations = _exportAnimations.Value;
             options.ExportMeshes = _exportMeshes.Value;
+            options.ExportVertexColor = _exportVertexColor.Value;
             options.ExportPrefabReferences = _exportPrefabReferences.Value;
             options.ASCIIOnly = _exportAscii.Value;
             options.ExportLODs = _exportLods.Value;

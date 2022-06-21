@@ -30,6 +30,7 @@
         public bool ExportShadersAndTechniques { get; set; } = true;
         public bool ExportAnimations { get; set; } = true;
         public bool ExportMeshes { get; set; } = true;
+        public bool ExportVertexColor { get; set; } = true;
         public bool ExportPrefabReferences { get; set; }
 
         public bool PackedNormal { get; set; } = false;
