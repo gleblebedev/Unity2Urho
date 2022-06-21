@@ -192,7 +192,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return false;
         }
 
-        public FileStream TryCreate(AssetKey assetGuid, string relativePath, DateTime sourceFileTimestampUTC)
+        public Stream TryCreate(AssetKey assetGuid, string relativePath, DateTime sourceFileTimestampUTC)
         {
             if (IsUpToDate(assetGuid, relativePath, sourceFileTimestampUTC)) return null;
             var targetPath = GetTargetFilePath(relativePath);
@@ -203,7 +203,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var directoryName = Path.GetDirectoryName(targetPath);
             if (directoryName != null) Directory.CreateDirectory(directoryName);
 
-            return File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            return new SaveOnCloseStream(targetPath);
         }
 
         public XmlWriter TryCreateXml(AssetKey assetGuid, string relativePath, DateTime sourceFileTimestampUTC)

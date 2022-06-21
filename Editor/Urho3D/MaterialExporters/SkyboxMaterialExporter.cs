@@ -11,7 +11,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         {
         }
 
-        public override int ExporterPriority => 0;
+        public override int ExporterPriority => 5;
 
         public SkyboxShaderArguments SetupSkybox(Material material)
         {
@@ -59,7 +59,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public override bool CanExportMaterial(Material material)
         {
-            return material.shader.name.StartsWith("Skybox/");
+            if (material.shader.name == "Urho3D/Skybox")
+                return true;
+            if (material.shader.name.StartsWith("Skybox/"))
+                return true;
+            return false;
         }
 
         public override void ExportMaterial(Material material, PrefabContext prefabContext)

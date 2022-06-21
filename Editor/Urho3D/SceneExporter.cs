@@ -58,12 +58,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     using (var sceneElement = Element.Start(writer, "scene"))
                     {
                         WriteAttribute(writer, "\t", "Name", _engine.DecorateName(scene.name));
+
                         StartComponent(writer, "\t", "Octree", true);
                         EndElement(writer, "\t");
                         StartComponent(writer, "\t", "DebugRenderer", true);
                         EndElement(writer, "\t");
                         if (_engine.Options.RBFX)
                         {
+                            StartComponent(writer, "\t", "EditorSceneSettings", true);
+                            WriteAttribute(writer, "\t\t", "Camera Position", SceneView.lastActiveSceneView.camera.transform.position);
+                            WriteAttribute(writer, "\t\t", "Camera Rotation", SceneView.lastActiveSceneView.rotation);
+                            EndElement(writer, "\t");
+
                             StartComponent(writer, "\t", "RenderPipeline", true);
                             if (PlayerSettings.colorSpace == ColorSpace.Linear)
                             {
