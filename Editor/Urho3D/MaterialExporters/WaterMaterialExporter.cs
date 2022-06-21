@@ -14,6 +14,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
 
         public override bool CanExportMaterial(Material material)
         {
+            if (!Engine.Options.RBFX)
+                return false;
+
             return material.shader.name == "Urho3D/Water";
         }
 
@@ -27,14 +30,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
                     return;
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
-                WriteTechnique(writer, "Techniques/Water.xml");
+                WriteTechnique(writer, "Techniques/LitWater.xml");
                 WriteTexture(material.GetTexture("_BumpMap"), writer, "normal", prefabContext);
                 writer.WriteParameter("NoiseSpeed", new Vector2(material.GetFloat("_NoiseSpeedX"), material.GetFloat("_NoiseSpeedY")));
                 writer.WriteParameter("NoiseTiling", material.GetFloat("_NoiseTiling"));
                 writer.WriteParameter("NoiseStrength", material.GetFloat("_NoiseStrength"));
                 writer.WriteParameter("FresnelPower", material.GetFloat("_FresnelPower"));
+                writer.WriteParameter("FadeOffsetScale", new Vector2(0, 5.0f));
                 Color c = material.GetColor("_Color");
-                writer.WriteParameter("WaterTint", new Vector3(c.r, c.g, c.b));
+                writer.WriteParameter("MatDiffColor", c);
 
                 writer.WriteEndElement();
             }
