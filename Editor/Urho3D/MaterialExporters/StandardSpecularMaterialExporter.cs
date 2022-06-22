@@ -153,6 +153,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var arguments = SetupSpecularGlossinessPBR(material);
                 var urhoMaterial = FromSpecularGlossiness(arguments);
+
+                FixNormalScale(urhoMaterial, arguments);
+
                 WriteMaterial(writer, urhoMaterial, prefabContext);
 
                 //Engine.ScheduleTexture(arguments.Bump, new TextureReference(TextureSemantic.Bump));

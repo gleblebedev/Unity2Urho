@@ -42,9 +42,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
                 urhoMaterial.ExtraParameters.Add("WaterTimeScale", 1);
                 urhoMaterial.ExtraParameters.Add("WaterFresnelPower", 4);
 
-                Engine.SchedulePBRTextures(metallicGlossinessShaderArguments, urhoMaterial);
-
                 WriteMaterial(writer, urhoMaterial, prefabContext);
+                FixNormalScale(urhoMaterial, metallicGlossinessShaderArguments);
+                Engine.SchedulePBRTextures(metallicGlossinessShaderArguments, urhoMaterial);
             }
         }
     }

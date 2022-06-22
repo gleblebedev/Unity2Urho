@@ -46,6 +46,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.ParticleGraph.ParticleNodes
 
         public GraphInPin Count { get; } = new GraphInPin("count", VariantType.Float);
 
-        public GraphOutPin Out { get; } = new GraphOutPin("out", VariantType.Float);
+        public new GraphOutPin Out { get; } = new GraphOutPin("out", VariantType.Float);
     }
 }

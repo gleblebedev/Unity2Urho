@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using UnityEditor;
 using UnityEngine;
@@ -10,47 +9,6 @@ using UnityToCustomEngineExporter.Editor.Urho3D;
 
 namespace UnityToCustomEngineExporter.Editor
 {
-    public class EliminateNegativeScale
-    {
-        [MenuItem("Tools/Export To Custom Engine/Eliminate Negative Scale")]
-        public static void Run()
-        {
-            var scene = SceneManager.GetActiveScene();
-            Visit(scene.GetRootGameObjects());
-        }
-
-        private static void Visit(IEnumerable<GameObject> gos)
-        {
-            foreach (var gameObject in gos)
-            {
-                Visit(gameObject);
-            }
-        }
-
-        private static void Visit(GameObject go)
-        {
-            var scale = go.transform.localScale;
-            if (scale.x < 0)
-            {
-                scale.x = -scale.x;
-                go.transform.Rotate(Vector3.up, 180);
-            }
-            if (scale.z < 0)
-            {
-                scale.z = -scale.z;
-                go.transform.Rotate(Vector3.up, 180);
-            }
-            if (scale.y < 0)
-            {
-                scale.y = -scale.y;
-                go.transform.Rotate(Vector3.right, 180);
-            }
-            go.transform.localScale = scale;
-            Visit(Enumerable.Range(0, go.transform.childCount).Select(_ => go.transform.GetChild(_))
-                .Select(_ => _.gameObject));
-        }
-    }
-
     public class ExportOptions : EditorWindow
     {
         private static readonly string _dataPathKey = "UnityToCustomEngineExporter.DataPath";

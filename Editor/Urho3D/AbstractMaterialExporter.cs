@@ -21,6 +21,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public abstract int ExporterPriority { get; }
         public Urho3DEngine Engine { get; }
 
+        public void FixNormalScale(UrhoPBRMaterial urhoMaterial, ShaderArguments arguments)
+        {
+            if (Engine.Options.RBFX)
+            {
+                urhoMaterial.NormalScale = arguments.BumpScale;
+                arguments.BumpScale = 1.0f;
+            }
+        }
+
         public static void WriteMaterial(XmlWriter writer, UrhoPBRMaterial urhoMaterial, PrefabContext prefabContext)
         {
             writer.WriteStartElement("material");

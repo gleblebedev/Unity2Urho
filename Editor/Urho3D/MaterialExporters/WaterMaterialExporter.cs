@@ -31,14 +31,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
                 writer.WriteStartElement("material");
                 writer.WriteWhitespace(Environment.NewLine);
                 WriteTechnique(writer, "Techniques/LitWater.xml");
+                {
+                    writer.WriteWhitespace("\t");
+                    writer.WriteStartElement("shader");
+                    writer.WriteAttributeString("vsdefines", "PBR");
+                    writer.WriteAttributeString("psdefines", "PBR");
+                    writer.WriteEndElement();
+                    writer.WriteWhitespace(Environment.NewLine);
+                }
                 WriteTexture(material.GetTexture("_BumpMap"), writer, "normal", prefabContext);
+                writer.WriteParameter("MatDiffColor", material.GetColor("_Color"));
+                var specColor = material.GetColor("_SpecularColor");
+                writer.WriteParameter("MatSpecColor", new Vector4(specColor.r, specColor.g, specColor.b, material.GetFloat("_SpecularPower")));
+                writer.WriteParameter("NormalScale", material.GetFloat("_BumpScale"));
                 writer.WriteParameter("NoiseSpeed", new Vector2(material.GetFloat("_NoiseSpeedX"), material.GetFloat("_NoiseSpeedY")));
-                writer.WriteParameter("NoiseTiling", material.GetFloat("_NoiseTiling"));
                 writer.WriteParameter("NoiseStrength", material.GetFloat("_NoiseStrength"));
-                writer.WriteParameter("FresnelPower", material.GetFloat("_FresnelPower"));
-                writer.WriteParameter("FadeOffsetScale", new Vector2(0, 5.0f));
-                Color c = material.GetColor("_Color");
-                writer.WriteParameter("MatDiffColor", c);
+                writer.WriteParameter("FadeOffsetScale", new Vector2(material.GetFloat("_FadeOffset"), material.GetFloat("_FadeScale")));
 
                 writer.WriteEndElement();
             }

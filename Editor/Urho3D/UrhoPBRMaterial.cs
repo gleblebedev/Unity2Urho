@@ -22,6 +22,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public string NormalTexture { get; set; }
 
+        /// <summary>
+        /// RBFX-only normal map scale argument.
+        /// </summary>
+        public float NormalScale { get; set; } = 1.0f;
+
         public string EmissiveTexture { get; set; }
 
         public string AOTexture { get; set; }

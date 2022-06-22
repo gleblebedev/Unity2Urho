@@ -70,6 +70,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
 
                 var urhoMaterial = FromMetallicGlossiness(material, arguments);
+
+                FixNormalScale(urhoMaterial, arguments);
+
                 WriteMaterial(writer, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.BaseColor);
