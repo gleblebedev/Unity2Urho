@@ -29,7 +29,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportScene(Scene scene)
         {
-            var exlusion = new HashSet<Renderer>();
+            var exlusion = new HashSet<Component>();
 
             var sceneAssetName = ResolveAssetPath(scene);
             var prefabContext = new PrefabContext(_engine, null, ExportUtils.ReplaceExtension(sceneAssetName, ""));

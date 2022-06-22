@@ -39,18 +39,26 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
-        public PrefabContext Retarget(GameObject gameObject)
+        public PrefabContext RetargetToRoot(GameObject root)
         {
-            if (gameObject == null) return this;
-            var root = PrefabUtility.GetNearestPrefabInstanceRoot(gameObject);
-            if (root == _prefabRoot) return this;
             if (root == null) return new PrefabContext(_engine, null, _defaultFolder);
+
+
             var assetPath = AssetDatabase.GetAssetPath(root);
             if (string.IsNullOrWhiteSpace(assetPath))
-                assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(gameObject);
+                assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(root);
             var relPathFromAssetPath = ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder,
                 ExportUtils.ReplaceExtension(assetPath, ""));
             return new PrefabContext(_engine, root, relPathFromAssetPath, _defaultFolder);
+        }
+
+        public PrefabContext Retarget(GameObject gameObject)
+        {
+            if (gameObject == _prefabRoot) return this;
+            if (gameObject == null) return this;
+            var root = PrefabUtility.GetNearestPrefabInstanceRoot(gameObject);
+            if (root == _prefabRoot) return this;
+            return RetargetToRoot(root);
         }
     }
 }

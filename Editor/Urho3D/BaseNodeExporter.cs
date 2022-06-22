@@ -122,8 +122,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         private readonly Dictionary<GameObject, int> _objectIds = new Dictionary<GameObject, int>();
-        protected void WriteObject(XmlWriter writer, string prefix, GameObject gameObject, HashSet<Renderer> excludeList,
-            bool parentEnabled, PrefabContext prefabContext)
+        protected void WriteObject(XmlWriter writer, string prefix, GameObject gameObject, HashSet<Component> excludeList,
+            bool parentEnabled, PrefabContext prefabContext, bool skipPos = false)
         {
             if (gameObject == null)
                 return;
@@ -142,11 +142,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 }
             }
             prefabContext = prefabContext.Retarget(gameObject);
-            var localExcludeList = new HashSet<Renderer>(excludeList);
+            var localExcludeList = new HashSet<Component>(excludeList);
+            var subPrefix = prefix + "\t";
+            var subSubPrefix = subPrefix + "\t";
 
-            WriteNodeHeader(writer, prefix, gameObject, isEnabled, out var subPrefix, out var subSubPrefix);
+            WriteNodeHeader(writer, prefix, gameObject, isEnabled, prefabContext, skipPos);
 
-            foreach (var component in gameObject.GetComponents<Component>())
+            foreach (var component in gameObject.GetComponents<Component>().Where(_=>!excludeList.Contains(_)))
                 if (component is IUrho3DComponent customComponent)
                 {
                     ExportCustomComponent(writer, subPrefix, customComponent);
@@ -371,6 +373,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     foreach (var lod in lods.Skip(0))
                     foreach (var renderer in lod.renderers.Where(_ => _ != null))
                         localExcludeList.Add(renderer);
+
+                    foreach (var lod in lods.Skip(1))
+                    foreach (var collider in lod.renderers.Where(_ => _ != null).Select(_=>_.gameObject.GetComponent<Collider>()).Where(_=>_!=null))
+                        localExcludeList.Add(collider);
                 }
                 else
                 {
@@ -378,6 +384,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     foreach (var lod in lods.Skip(1))
                     foreach (var renderer in lod.renderers.Where(_ => _ != null))
                         localExcludeList.Add(renderer);
+
+                    foreach (var lod in lods.Skip(1))
+                    foreach (var collider in lod.renderers.Where(_ => _ != null).Select(_ => _.gameObject.GetComponent<Collider>()).Where(_ => _ != null))
+                        localExcludeList.Add(collider);
                 }
             }
 
@@ -473,6 +483,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         private bool WritePrefabReferenceNode(XmlWriter writer, string prefix, GameObject gameObject, bool isEnabled, PrefabContext prefabContext)
         {
+            if (!_engine.Options.ExportPrefabReferences)
+            {
+                return false;
+            }
+            
             var originalSource = PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject);
             if (originalSource == null)
             {
@@ -483,7 +498,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (string.IsNullOrWhiteSpace(name))
                 return false;
 
-            WriteNodeHeader(writer, prefix, gameObject, isEnabled, out var subPrefix, out var subSubPrefix);
+            var subPrefix = prefix + "\t";
+            var subSubPrefix = subPrefix + "\t";
+
+            WriteNodeHeader(writer, prefix, gameObject, isEnabled, prefabContext);
 
             StartComponent(writer, subPrefix, "PrefabReference", true);
             WriteAttribute(writer, subSubPrefix, "Prefab", "XMLFile;"+name);
@@ -499,15 +517,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             return true;
         }
 
-        private void WriteNodeHeader(XmlWriter writer, string prefix, GameObject gameObject, bool isEnabled,
-            out string subPrefix,
-            out string subSubPrefix)
+        private void WriteNodeHeader(XmlWriter writer, string prefix, GameObject gameObject, bool isEnabled, PrefabContext prefabContext, bool skipPos = false)
 
         {
             var id = StartNode(writer, prefix);
             _objectIds[gameObject] = id;
-            subPrefix = prefix + "\t";
-            subSubPrefix = subPrefix + "\t";
+            var subPrefix = prefix + "\t";
+            
 
             WriteAttribute(writer, subPrefix, "Is Enabled", isEnabled);
             if (!string.IsNullOrWhiteSpace(gameObject.name))
@@ -525,12 +541,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
 
             //WriteAttribute(writer, subPrefix, "Tags", obj.tag);
-            if (gameObject.transform.localPosition != Vector3.zero)
-                WriteAttribute(writer, subPrefix, "Position", gameObject.transform.localPosition);
-            if (gameObject.transform.localRotation != Quaternion.identity)
-                WriteAttribute(writer, subPrefix, "Rotation", gameObject.transform.localRotation);
-            if (gameObject.transform.localScale != Vector3.one)
-                WriteAttribute(writer, subPrefix, "Scale", gameObject.transform.localScale);
+            if (!skipPos)
+            {
+                if (gameObject.transform.localPosition != Vector3.zero)
+                    WriteAttribute(writer, subPrefix, "Position", gameObject.transform.localPosition);
+                if (gameObject.transform.localRotation != Quaternion.identity)
+                    WriteAttribute(writer, subPrefix, "Rotation", gameObject.transform.localRotation);
+                if (gameObject.transform.localScale != Vector3.one)
+                    WriteAttribute(writer, subPrefix, "Scale", gameObject.transform.localScale);
+            }
         }
 
         private Quaternion GetRotationFromConstraintAxis(UrhoConstraint urhoConstraint, Vector3 axis)
@@ -985,9 +1004,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 StartComponent(writer, subPrefix, "RigidBody", meshColliderEnabled);
                 // When saving prefab we don't need world position
-                //var localToWorldMatrix = obj.transform.localToWorldMatrix;
-                //var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-                //WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                var localToWorldMatrix = obj.transform.localToWorldMatrix;
+                var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
+                WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                 EndElement(writer, subPrefix);
             }
         }
@@ -1103,8 +1122,22 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var rotation = Quaternion.AngleAxis(treeInstance.rotation, Vector3.up);
             WriteAttribute(writer, subPrefix, "Rotation", rotation);
 
-            WriteObject(writer, subPrefix + "\t", treePrototype.prefab, new HashSet<Renderer>(), enabled,
-                prefabContext);
+            var subSubPrefix = subPrefix + "\t";
+            if (_engine.Options.ExportPrefabReferences)
+            {
+                var name = _engine.EvaluatePrefabName(treePrototype.prefab);
+
+                StartComponent(writer, subPrefix, "PrefabReference", true);
+                WriteAttribute(writer, subSubPrefix, "Prefab", "XMLFile;" + name);
+                EndElement(writer, subPrefix);
+            }
+            else
+            {
+                WriteObject(writer, subSubPrefix, treePrototype.prefab, new HashSet<Component>(), enabled,
+                    prefabContext.RetargetToRoot(treePrototype.prefab), true);
+            }
+
+
             EndElement(writer, subPrefix);
         }
 

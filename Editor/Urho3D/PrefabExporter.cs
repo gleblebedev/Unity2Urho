@@ -20,7 +20,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var prefabContext =
                     new PrefabContext(_engine, gameObject, ExportUtils.ReplaceExtension(relativePath, ""));
 
-                WriteObject(writer, "", gameObject, new HashSet<Renderer>(), true, prefabContext);
+                WriteObject(writer, "", gameObject, new HashSet<Component>(), true, prefabContext, true);
             }
         }
 
