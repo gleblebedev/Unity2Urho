@@ -48,11 +48,15 @@ namespace UnityToCustomEngineExporter.Editor
 
         public static void SaveAsRgbaDds(Cubemap texture, string fileName, bool convertToSRGB = false)
         {
+            int skipMipMaps = 0;
+            int mipMapsCount = Math.Max(1, texture.mipmapCount- skipMipMaps);
+            skipMipMaps = texture.mipmapCount - mipMapsCount;
+            int sizeDivisor = 1 << skipMipMaps;
             using (var fileStream = File.Open(fileName, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
                 using (var binaryWriter = new BinaryWriter(fileStream))
                 {
-                    WriteHeader(binaryWriter, texture.width, texture.height, texture.mipmapCount, true);
+                    WriteHeader(binaryWriter, texture.width/ sizeDivisor, texture.height/ sizeDivisor, mipMapsCount, true);
                     var facesInOrder = new[]
                     {
                         CubemapFace.PositiveX,
@@ -63,14 +67,15 @@ namespace UnityToCustomEngineExporter.Editor
                         CubemapFace.NegativeZ
                     };
                     foreach (var cubemapFace in facesInOrder)
-                        for (var mipIndex = 0; mipIndex < texture.mipmapCount; ++mipIndex)
+                        for (var mipIndex = skipMipMaps; mipIndex < texture.mipmapCount; ++mipIndex)
                         {
+                            sizeDivisor = 1 << mipIndex;
                             var pixels = texture.GetPixels(cubemapFace, mipIndex);
 
                             if (convertToSRGB)
-                                WriteLinearAsSRGB(binaryWriter, pixels, Math.Max(1, texture.width / (1 << mipIndex)));
+                                WriteLinearAsSRGB(binaryWriter, pixels, Math.Max(1, texture.width / sizeDivisor));
                             else
-                                WriteAsIs(binaryWriter, pixels, Math.Max(1, texture.width / (1 << mipIndex)), false);
+                                WriteAsIs(binaryWriter, pixels, Math.Max(1, texture.width / sizeDivisor), false);
                         }
                 }
             }

@@ -179,7 +179,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     StartComponent(writer, subPrefix, "RigidBody", true);
                     var localToWorldMatrix = gameObject.transform.localToWorldMatrix;
                     var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-                    WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                    //WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                     WriteAttribute(writer, subSubPrefix, "Mass", rigidbody.mass);
                     EndElement(writer, subPrefix);
                 }
@@ -696,7 +696,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             StartComponent(writer, prefix, "RigidBody", characterController.enabled);
             var localToWorldMatrix = characterController.gameObject.transform.localToWorldMatrix;
             var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-            WriteAttribute(writer, subPrefix, "Physics Position", pos);
+            //WriteAttribute(writer, subPrefix, "Physics Position", pos);
             WriteAttribute(writer, subPrefix, "Angular Factor", Vector3.zero);
             WriteAttribute(writer, subPrefix, "Collision Event Mode", "Always");
             WriteAttribute(writer, subPrefix, "Is Kinematic", "true");
@@ -1006,7 +1006,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 // When saving prefab we don't need world position
                 var localToWorldMatrix = obj.transform.localToWorldMatrix;
                 var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
-                WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                //WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
                 EndElement(writer, subPrefix);
             }
         }
@@ -1086,7 +1086,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 StartComponent(writer, subPrefix, "RigidBody", enabled);
                 var localToWorldMatrix = terrainCollider.transform.localToWorldMatrix;
                 var pos = localToWorldMatrix.MultiplyPoint(offset);
-                WriteAttribute(writer, subPrefix, "Physics Position", pos);
+                //WriteAttribute(writer, subPrefix, "Physics Position", pos);
                 EndElement(writer, subPrefix);
             }
 
