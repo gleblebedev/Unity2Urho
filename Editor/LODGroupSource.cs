@@ -58,7 +58,9 @@ namespace UnityToCustomEngineExporter.Editor
                 var lod = lods[lodIndex];
                 foreach (var renderer in lod.renderers.Where(_ => _ != null))
                 {
-                    var transform = renderer.localToWorldMatrix * worldToLocalMatrix;
+                    //var transform = renderer.transform.localToWorldMatrix * worldToLocalMatrix;
+                    //var transform = renderer.localToWorldMatrix * worldToLocalMatrix;
+                    var transform = worldToLocalMatrix * renderer.localToWorldMatrix;
                     var mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
                     if (mesh != null)
                     {

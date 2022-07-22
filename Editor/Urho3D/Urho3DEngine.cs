@@ -7,6 +7,7 @@ using System.Xml;
 using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
@@ -363,6 +364,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public void ExportScene(Scene scene)
         {
             _sceneExporter.ExportScene(scene);
+        }
+
+        public void ExportPrefab(PrefabStage scene)
+        {
+            var root = scene.prefabContentsRoot;
+            ScheduleAssetExport(root, new PrefabContext(this, scene.prefabContentsRoot, _prefabExporter.EvaluatePrefabName(scene.assetPath)));
         }
 
         public void Dispose()

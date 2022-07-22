@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Xml;
 using UnityEditor;
+using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
 using UnityEngine.SceneManagement;
@@ -164,7 +166,14 @@ namespace UnityToCustomEngineExporter.Editor
                     if (GUILayout.Button("Export all assets")) StartExportAssets(AssetDatabase.FindAssets(""), null);
                 }
 
-                if (GUILayout.Button("Export active scene ")) StartExportScene();
+                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                {
+                    if (GUILayout.Button("Export active prefab")) StartExportPrefab();
+                }
+                else
+                {
+                    if (GUILayout.Button("Export active scene")) StartExportScene();
+                }
 
                 GUI.enabled = true;
             }
@@ -199,7 +208,18 @@ namespace UnityToCustomEngineExporter.Editor
         {
             if (_exporting) _exporting = EditorTaskScheduler.Default.DisplayProgressBar();
         }
-
+        private void StartExportPrefab()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                _exporting = true;
+                _engine = CreateEngine();
+                
+                EditorTaskScheduler.Default.ScheduleForegroundTask(() => { _engine.ExportPrefab(prefabStage); },
+                    prefabStage.assetPath);
+            }
+        }
         private void StartExportScene()
         {
             var activeScene = SceneManager.GetActiveScene();

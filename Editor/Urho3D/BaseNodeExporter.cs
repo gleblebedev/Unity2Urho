@@ -111,6 +111,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (!isEnabled) WriteAttribute(writer, prefix + "\t", "Is Enabled", isEnabled);
         }
 
+        private static HashSet<string> PrefabPropertiesToIgnore = new HashSet<string>()
+        {
+            "m_Name", "m_RootOrder", "m_LocalPosition.x", "m_LocalPosition.y", "m_LocalPosition.z", "m_LocalRotation.w",
+            "m_LocalRotation.x", "m_LocalRotation.y", "m_LocalRotation.z", "m_LocalEulerAnglesHint.x",
+            "m_LocalEulerAnglesHint.y", "m_LocalEulerAnglesHint.z",
+            "m_LocalScale.x","m_LocalScale.y","m_LocalScale.z"
+        };
         protected void WriteAttribute(XmlWriter writer, string prefix, string name, string vaue)
         {
             writer.WriteWhitespace(prefix);
@@ -135,9 +142,18 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (prefabContext.PrefabRoot != gameObject && PrefabUtility.IsAnyPrefabInstanceRoot(gameObject))
                 {
-                    if (WritePrefabReferenceNode(writer, prefix, gameObject, isEnabled, prefabContext))
+                    var type = PrefabUtility.GetPrefabAssetType(gameObject);
+                    if (type == PrefabAssetType.Regular)
                     {
-                        return;
+                        var prefabModifications = PrefabUtility.GetPropertyModifications(gameObject)
+                            .Where(_ => !PrefabPropertiesToIgnore.Contains(_.propertyPath)).ToList();
+                        if (prefabModifications.Count == 0)
+                        {
+                            if (WritePrefabReferenceNode(writer, prefix, gameObject, isEnabled, prefabContext))
+                            {
+                                return;
+                            }
+                        }
                     }
                 }
             }
