@@ -22,7 +22,7 @@ namespace UnityToCustomEngineExporter.Editor
 
         private readonly BoolEditorProperty _exportShadersAndTechniques =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportShadersAndTechniques",
-                "Export Shaders and Techniques", true);
+                "Export Shaders and Techniques", false);
 
         private readonly BoolEditorProperty _exportCameras =
             new BoolEditorProperty("UnityToCustomEngineExporter.ExportCameras", "Export Cameras", true);
