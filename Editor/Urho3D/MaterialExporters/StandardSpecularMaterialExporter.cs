@@ -19,6 +19,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public UrhoPBRMaterial FromSpecularGlossiness(SpecularGlossinessShaderArguments arguments)
         {
             var material = new UrhoPBRMaterial();
+            FixNormalScale(material, arguments);
             material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
             if (!Engine.Options.RBFX)
@@ -153,8 +154,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var arguments = SetupSpecularGlossinessPBR(material);
                 var urhoMaterial = FromSpecularGlossiness(arguments);
-
-                FixNormalScale(urhoMaterial, arguments);
 
                 WriteMaterial(writer, urhoMaterial, prefabContext);
 

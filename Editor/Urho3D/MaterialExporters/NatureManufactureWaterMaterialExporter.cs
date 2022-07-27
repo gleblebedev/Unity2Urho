@@ -34,6 +34,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
 
                 metallicGlossinessShaderArguments.Bump = _SlowWaterNormal;
                 metallicGlossinessShaderArguments.BumpScale = _SlowNormalScale;
+                FixNormalScale(urhoMaterial, metallicGlossinessShaderArguments);
                 urhoMaterial.NormalTexture = GetScaledNormalTextureName(_SlowWaterNormal, _SlowNormalScale);
 
                 urhoMaterial.ExtraParameters.Add("WaterMetallic", 1);
@@ -43,7 +44,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D.MaterialExporters
                 urhoMaterial.ExtraParameters.Add("WaterFresnelPower", 4);
 
                 WriteMaterial(writer, urhoMaterial, prefabContext);
-                FixNormalScale(urhoMaterial, metallicGlossinessShaderArguments);
                 Engine.SchedulePBRTextures(metallicGlossinessShaderArguments, urhoMaterial);
             }
         }

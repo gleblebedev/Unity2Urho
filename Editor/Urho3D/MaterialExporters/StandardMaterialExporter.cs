@@ -71,8 +71,6 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var urhoMaterial = FromMetallicGlossiness(material, arguments);
 
-                FixNormalScale(urhoMaterial, arguments);
-
                 WriteMaterial(writer, urhoMaterial, prefabContext);
 
                 Engine.ScheduleTexture(arguments.BaseColor);
@@ -90,7 +88,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             MetallicGlossinessShaderArguments arguments)
         {
             var material = new UrhoPBRMaterial();
-
+            FixNormalScale(material, arguments);
             material.NormalTexture = GetScaledNormalTextureName(arguments.Bump, arguments.BumpScale);
             if (arguments.Bump != null && Engine.Options.PackedNormal) material.PixelShaderDefines.Add("PACKEDNORMAL");
             material.EmissiveTexture = Engine.EvaluateTextrueName(arguments.Emission);
