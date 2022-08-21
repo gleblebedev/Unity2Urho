@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Xml;
 using UnityEngine;
+using Object = System.Object;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
@@ -116,6 +117,43 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         public static void WriteParameter(this XmlWriter writer, string name, Color32 pos)
         {
             WriteParameter(writer, name, (Color) pos);
+        }
+
+        public static void WriteParameter(this XmlWriter writer, string name, Object value)
+        {
+            if (value == null)
+                return;
+            if (value is float floatValue)
+            {
+                WriteParameter(writer, name, floatValue);
+                return;
+            }
+            if (value is Vector2 vec2Value)
+            {
+                WriteParameter(writer, name, vec2Value);
+                return;
+            }
+            if (value is Vector3 vec3Value)
+            {
+                WriteParameter(writer, name, vec3Value);
+                return;
+            }
+            if (value is Vector4 vec4Value)
+            {
+                WriteParameter(writer, name, vec4Value);
+                return;
+            }
+            if (value is Color colorValue)
+            {
+                WriteParameter(writer, name, colorValue);
+                return;
+            }
+            if (value is Color32 color32Value)
+            {
+                WriteParameter(writer, name, color32Value);
+                return;
+            }
+            WriteParameter(writer, name, string.Format(CultureInfo.InvariantCulture, "{0}", value.ToString()));
         }
 
         public static void WriteElementParameter(this XmlWriter writer, string parameterName, string valueName,

@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityToCustomEngineExporter.Editor;
 
 namespace Assets.Unity2Urho.Editor.Urho3D.ProBuilder
 {
-    public class ProBuilderMeshAdapter
+    public class ProBuilderMeshAdapter:ReflectionProxy
     {
         private readonly Behaviour _component;
         public IList<Vector3> positions;
@@ -15,7 +16,7 @@ namespace Assets.Unity2Urho.Editor.Urho3D.ProBuilder
         public IList<Vector2> textures;
         public bool enabled;
 
-        public ProBuilderMeshAdapter(Behaviour component)
+        public ProBuilderMeshAdapter(Behaviour component):base(component)
         {
             _component = component;
             var type = component.GetType();

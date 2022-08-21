@@ -8,7 +8,7 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public class RearrangeAssets
     {
-        [MenuItem("Assets/Export/Rearrange Assets")]
+        [MenuItem("Tools/Export To Custom Engine/Rearrange Assets")]
         public static void Rearrange()
         {
             HashSet<string> allAssetTypes = new HashSet<string>();

@@ -135,6 +135,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             material.UOffset = new Vector4(arguments.MainTextureScale.x, 0, 0, arguments.MainTextureOffset.x);
             material.VOffset = new Vector4(0, arguments.MainTextureScale.y, 0, arguments.MainTextureOffset.y);
             material.EvaluateTechnique();
+            foreach (var argumentsExtraParameter in arguments.ExtraParameters)
+            {
+                material.ExtraParameters[argumentsExtraParameter.Key] = argumentsExtraParameter.Value;
+            }
             return material;
         }
 

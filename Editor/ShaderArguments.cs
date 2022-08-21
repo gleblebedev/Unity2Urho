@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace UnityToCustomEngineExporter.Editor
 {
@@ -24,5 +25,7 @@ namespace UnityToCustomEngineExporter.Editor
         public Texture Parallax { get; set; }
         public Vector2 MainTextureOffset { get; set; }
         public Vector2 MainTextureScale { get; set; } = Vector2.one;
+        public IDictionary<string, object> ExtraParameters { get; } = new Dictionary<string, object>();
+
     }
 }

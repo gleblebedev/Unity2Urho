@@ -33,6 +33,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 new VegetationMaterialExporter(_engine),
                 new SyntyStudiosBloodExporter(_engine),
                 new HDRPMaterialExporter(_engine),
+                new HDRPDecalMaterialExporter(_engine),
                 new AmplifyMaterialExporter(_engine)
             }.OrderByDescending(_ => _.ExporterPriority).ToList();
         }

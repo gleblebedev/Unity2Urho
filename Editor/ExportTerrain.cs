@@ -12,7 +12,7 @@ namespace UnityToCustomEngineExporter.Editor
     {
         private string _exportFolder = "C:\\Temp\\Terrain\\Data";
 
-        [MenuItem("Assets/Export/Export Terrain")]
+        [MenuItem("Tools/Export To Custom Engine/Export Terrain")]
         public static void Init()
         {
             var window = (EditorWindow)GetWindow<ExportTerrain>("Export Terrain");

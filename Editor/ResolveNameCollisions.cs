@@ -16,7 +16,7 @@ namespace UnityToCustomEngineExporter.Editor
             public string Path;
             public string Ext;
         }
-        [MenuItem("Assets/Export/Resolve name collisions")]
+        [MenuItem("Tools/Export To Custom Engine/Resolve name collisions")]
         public static void Rearrange()
         {
             HashSet<string> allAssetTypes = new HashSet<string>();

@@ -102,7 +102,8 @@ namespace UnityToCustomEngineExporter.Editor
             };
         }
 
-        [MenuItem("Assets/Export/Export Assets or Scene")]
+        [MenuItem("Tools/Export To Custom Engine/Export Assets or Scene")]
+        [MenuItem("Assets/Export To Custom Engine")]
         public static void Init()
         {
             var window = GetWindow<ExportOptions>("Export Assets or Scene");

@@ -166,6 +166,10 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 if (arguments.HasEmission)
                     writer.WriteParameter("MatEmissiveColor", BaseNodeExporter.FormatRGB(arguments.EmissiveColor));
                 WriteCommonParameters(writer, arguments);
+                foreach (var extraParameter in arguments.ExtraParameters)
+                {
+                    writer.WriteParameter(extraParameter.Key, extraParameter.Value);
+                }
 
                 writer.WriteEndElement();
             }

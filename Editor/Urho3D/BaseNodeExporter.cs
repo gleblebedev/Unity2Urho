@@ -164,8 +164,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
             WriteNodeHeader(writer, prefix, gameObject, isEnabled, prefabContext, skipPos);
 
-            foreach (var component in gameObject.GetComponents<Component>().Where(_=>!excludeList.Contains(_)))
-                if (component is IUrho3DComponent customComponent)
+            foreach (var component in gameObject.GetComponents<Component>().Where(_ => !excludeList.Contains(_)))
+            {
+                if (component == null)
+                {
+                }
+                else if (component.GetType().Name == "DecalProjector")
+                {
+                    ExportDecalProjector(writer, new DecalDecalProjector(component), subPrefix, subSubPrefix, isEnabled, prefabContext);
+                }
+                else if (component is IUrho3DComponent customComponent)
                 {
                     ExportCustomComponent(writer, subPrefix, customComponent);
                 }
@@ -246,7 +254,9 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         highLimit = new Vector2(characterJoint.swing1Limit.limit, 0);
                         lowLimit = new Vector2(-characterJoint.swing1Limit.limit, 0);
                         rotation = GetHingeOrPointRotation(characterJoint.swingAxis);
-                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(characterJoint.swingAxis)));
+                        otherBodyRotation = GetHingeOrPointRotation(
+                            connectedObject.transform.InverseTransformDirection(
+                                gameObject.transform.TransformDirection(characterJoint.swingAxis)));
                     }
                     else
                     {
@@ -254,8 +264,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                         highLimit = new Vector2(characterJoint.highTwistLimit.limit, 0);
                         lowLimit = new Vector2(-characterJoint.lowTwistLimit.limit, 0);
                         rotation = GetHingeOrPointRotation(characterJoint.axis);
-                        otherBodyRotation = GetHingeOrPointRotation(connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(characterJoint.axis)));
+                        otherBodyRotation = GetHingeOrPointRotation(
+                            connectedObject.transform.InverseTransformDirection(
+                                gameObject.transform.TransformDirection(characterJoint.axis)));
                     }
+
                     StartComponent(writer, subPrefix, "Constraint", isEnabled);
                     WriteAttribute(writer, subSubPrefix, "Constraint Type", constraintType);
                     WriteAttribute(writer, subSubPrefix, "Position", characterJoint.anchor);
@@ -263,8 +276,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     if (_objectIds.TryGetValue(connectedObject, out var connectedId))
                     {
                         WriteAttribute(writer, subSubPrefix, "Other Body NodeID", connectedId);
-                        var connectedAxis = connectedObject.transform.InverseTransformDirection(gameObject.transform.TransformDirection(axis));
+                        var connectedAxis =
+                            connectedObject.transform.InverseTransformDirection(
+                                gameObject.transform.TransformDirection(axis));
                     }
+
                     WriteAttribute(writer, subSubPrefix, "Other Body Position", characterJoint.connectedAnchor);
                     WriteAttribute(writer, subSubPrefix, "Other Body Rotation", otherBodyRotation);
                     WriteAttribute(writer, subSubPrefix, "Disable Collision", true);
@@ -278,7 +294,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteCommonCollisionAttributes(writer, subSubPrefix, sphereCollider);
                     WriteAttribute(writer, subSubPrefix, "Shape Type", "Sphere");
                     WriteAttribute(writer, subSubPrefix, "Offset Position", sphereCollider.center);
-                    WriteAttribute(writer, subSubPrefix, "Size", new Vector3(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
+                    WriteAttribute(writer, subSubPrefix, "Size",
+                        new Vector3(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, sphereCollider.enabled);
                 }
@@ -296,12 +313,15 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     switch (capsuleCollider.direction)
                     {
                         case 0:
-                            WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0, 0, -0.707107f, 0.707107f));
+                            WriteAttribute(writer, subSubPrefix, "Offset Rotation",
+                                new Quaternion(0, 0, -0.707107f, 0.707107f));
                             break;
                         case 2:
-                            WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion( 0.707107f, 0, 0, 0.707107f));
+                            WriteAttribute(writer, subSubPrefix, "Offset Rotation",
+                                new Quaternion(0.707107f, 0, 0, 0.707107f));
                             break;
-                    } 
+                    }
+
                     EndElement(writer, subPrefix);
                     WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, capsuleCollider.enabled);
                 }
@@ -343,6 +363,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                             break;
                     }
                 }
+            }
 
             var meshFilter = gameObject.GetComponent<MeshFilter>();
 
@@ -1063,6 +1084,23 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private void WriteAttribute(XmlWriter writer, string prefix, string name, int flag)
         {
             WriteAttribute(writer, prefix, name, flag.ToString(CultureInfo.InvariantCulture));
+        }
+        private void ExportDecalProjector(XmlWriter writer, DecalDecalProjector component, string subPrefix, string subSubPrefix, bool enabled, PrefabContext prefabContext)
+        {
+            StartNode(writer, subPrefix);
+            var material = component.material;
+            var size = component.size;
+            var offset = component.offset;
+            WriteAttribute(writer, subPrefix, "Position", offset);
+            WriteAttribute(writer, subPrefix, "Scale", component.size);
+            //WriteAttribute(writer, subPrefix, "Rotation", new Quaternion(1, 0, 0, 0));
+            StartComponent(writer, subPrefix, "StaticModel", enabled);
+            WriteAttribute(writer, subSubPrefix, "Model", "Model;Models/Box.mdl");
+            WriteAttribute(writer, subSubPrefix, "Material", "Material;"+ _engine.EvaluateMaterialName(material, prefabContext));
+            EndElement(writer, subPrefix);
+            EndElement(writer, subPrefix);
+
+            _engine.ScheduleAssetExport(material, prefabContext);
         }
 
         private void ExportTerrain(XmlWriter writer, TerrainData terrainData, TerrainCollider terrainCollider,

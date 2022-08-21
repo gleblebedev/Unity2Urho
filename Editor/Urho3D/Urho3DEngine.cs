@@ -172,8 +172,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 if (existingAsset != assetGuid)
                 {
-                    Debug.LogError("Asset file name collision: " + AssetDatabase.GUIDToAssetPath(assetGuid.Guid) +
-                                   " and " + AssetDatabase.GUIDToAssetPath(existingAsset.Guid) +
+                    var newAssetPaths = AssetDatabase.GUIDToAssetPath(assetGuid.Guid);
+                    var existingAssetPaths = AssetDatabase.GUIDToAssetPath(existingAsset.Guid);
+                    if (newAssetPaths == existingAssetPaths)
+                        return true;
+                    Debug.LogError("Asset file name collision: " + newAssetPaths +
+                                   " and " + existingAssetPaths +
                                    " attempt to write into same file " + targetPath);
                     return true;
                 }
