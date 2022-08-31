@@ -9,6 +9,7 @@
         _MetallicScale("MetallicScale", Float) = 1.0
         _SmoothnessRemapMin("SmoothnessRemapMin", Float) = 0.0
         _SmoothnessRemapMax("SmoothnessRemapMax", Float) = 1.0
+        [Toggle] _GammaInput("GammaInput", Float) = 0
     }
     SubShader
     {
@@ -50,10 +51,24 @@
             sampler2D _Occlusion;
             float _MetallicScale;
             float _OcclusionStrength;
+            float _GammaInput;
+
+            inline float3 ColorLinearToGamma(float3 value)
+            {
+                return float3(LinearToGammaSpaceExact(value.r), LinearToGammaSpaceExact(value.g), LinearToGammaSpaceExact(value.b));
+            }
+            inline float3 ColorGammaToLinear(float3 value)
+            {
+                return float3(GammaToLinearSpaceExact(value.r), GammaToLinearSpaceExact(value.g), GammaToLinearSpaceExact(value.b));
+            }
 
             fixed4 frag (v2f i) : SV_Target
             {
                 float4 metGloss = tex2D(_MainTex, i.uv);
+                if (_GammaInput < 0.5)
+                {
+                    metGloss = float4(ColorLinearToGamma(metGloss.rgb), metGloss.a);
+                }
                 float smoothness = tex2D(_Smoothness, i.uv).a;
                 float r = 1.0 - (_SmoothnessRemapMin + smoothness * (_SmoothnessRemapMax - _SmoothnessRemapMin));
                 float occlusion = lerp(1.0 - _OcclusionStrength, 1.0, dot(tex2D(_Occlusion, i.uv).rgb, float3(0.33, 0.34, 0.33)));

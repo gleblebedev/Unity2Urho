@@ -287,6 +287,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 tmpMaterial.SetFloat("_SmoothnessRemapMin", arguments.SmoothnessRemapMin);
                 tmpMaterial.SetFloat("_SmoothnessRemapMax", arguments.SmoothnessRemapMax);
                 tmpMaterial.SetTexture("_Smoothness", smoothnessTexture);
+                tmpMaterial.SetFloat("_GammaInput", (PlayerSettings.colorSpace == ColorSpace.Linear) ? 0.0f : 1.0f);
                 if (_engine.Options.RBFX)
                 {
                     tmpMaterial.SetTexture("_Occlusion", arguments.Occlusion);
