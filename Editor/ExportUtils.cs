@@ -11,6 +11,8 @@ namespace UnityToCustomEngineExporter.Editor
 {
     public static class ExportUtils
     {
+        private static AssetNameCollisionResolver _nameCollisionResolver = new AssetNameCollisionResolver();
+
         private static readonly char[] InvalidFileNameChars =
         {
             '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07', '\x08', '\x09', '\x0A',
@@ -181,7 +183,10 @@ namespace UnityToCustomEngineExporter.Editor
         public static string GetName(Object asset)
         {
             if (!string.IsNullOrWhiteSpace(asset.name))
-                return asset.name;
+            {
+                return _nameCollisionResolver.GetUniqueName(asset);
+            }
+
             if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out var guid, out long localId))
                 return guid + "_" + localId;
 

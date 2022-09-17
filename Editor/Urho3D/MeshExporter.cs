@@ -197,12 +197,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     bone.parent = parentIndex.Value;
                 else
                     bone.parent = index;
-                bone.name = string.IsNullOrWhiteSpace(unityBone.name)? "bone" + index : unityBone.name;
+
+                bone.name = string.IsNullOrWhiteSpace(unityBone?.name)? "bone" + index : unityBone.name;
                 //if (bone.parent != 0)
                 //{
-                bone.actualPos = unityBone.localPosition;
-                bone.actualRot = unityBone.localRotation;
-                bone.actualScale = unityBone.localScale;
+                if (unityBone != null)
+                {
+                    bone.actualPos = unityBone.localPosition;
+                    bone.actualRot = unityBone.localRotation;
+                    bone.actualScale = unityBone.localScale;
+                }
                 //}
                 //else
                 //{

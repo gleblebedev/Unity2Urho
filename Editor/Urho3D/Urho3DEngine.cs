@@ -7,7 +7,11 @@ using System.Xml;
 using Assets.Unity2Urho.Editor.Urho3D.ProBuilder;
 using UnityEditor;
 using UnityEditor.Animations;
+#if UNITY_2021_2_OR_NEWER
+using UnityEditor.SceneManagement;
+#else
 using UnityEditor.Experimental.SceneManagement;
+# endif
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
