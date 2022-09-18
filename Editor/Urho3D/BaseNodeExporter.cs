@@ -222,7 +222,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
 
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, meshCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, meshCollider, meshCollider.enabled);
                 }
                 else if (component is BoxCollider boxCollider)
                 {
@@ -232,7 +232,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Offset Position", boxCollider.center);
                     //WriteAttribute(writer, subSubPrefix, "Offset Rotation", new Quaternion(0,0,0, 1));
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, boxCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, boxCollider, boxCollider.enabled);
                 }
                 else if (component is TerrainCollider terrainCollider)
                 {
@@ -297,7 +297,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     WriteAttribute(writer, subSubPrefix, "Size",
                         new Vector3(sphereCollider.radius, sphereCollider.radius, sphereCollider.radius));
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, sphereCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, sphereCollider, sphereCollider.enabled);
                 }
                 else if (component is CapsuleCollider capsuleCollider)
                 {
@@ -323,7 +323,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     }
 
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, capsuleCollider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, capsuleCollider, capsuleCollider.enabled);
                 }
                 else if (component is Skybox skybox)
                 {
@@ -339,7 +339,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     StartComponent(writer, subPrefix, "CollisionShape", collider.enabled);
                     WriteCommonCollisionAttributes(writer, subSubPrefix, collider);
                     EndElement(writer, subPrefix);
-                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, collider.enabled);
+                    WriteStaticRigidBody(writer, gameObject, subPrefix, subSubPrefix, collider, collider.enabled);
                 }
                 else if (component is Animation animation)
                 {
@@ -1035,15 +1035,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         private void WriteStaticRigidBody(XmlWriter writer, GameObject obj, string subPrefix, string subSubPrefix,
-            bool meshColliderEnabled)
+            Collider collisionShape,
+            bool colliderEnabled)
         {
             if (obj.GetComponent<Rigidbody>() == null)
             {
-                StartComponent(writer, subPrefix, "RigidBody", meshColliderEnabled);
+                StartComponent(writer, subPrefix, "RigidBody", colliderEnabled);
                 // When saving prefab we don't need world position
                 var localToWorldMatrix = obj.transform.localToWorldMatrix;
                 var pos = new Vector3(localToWorldMatrix.m03, localToWorldMatrix.m13, localToWorldMatrix.m23);
                 //WriteAttribute(writer, subSubPrefix, "Physics Position", pos);
+                WriteAttribute(writer, subSubPrefix, "Is Trigger", collisionShape.isTrigger);
                 EndElement(writer, subPrefix);
             }
         }
