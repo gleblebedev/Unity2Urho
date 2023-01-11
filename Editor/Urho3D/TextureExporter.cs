@@ -101,6 +101,16 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 TransformNormal(arguments.Bump, arguments.BumpScale, urhoMaterial.NormalTexture);
         }
 
+        public void ExportPBRTextures(AutodeskInteractiveShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            if (!_engine.Options.ExportTextures) return;
+
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.MetallicRoughnessTexture))
+                TransformAutodeskInteractive(arguments, urhoMaterial.MetallicRoughnessTexture);
+            if (!string.IsNullOrWhiteSpace(urhoMaterial.NormalTexture))
+                TransformNormal(arguments.Bump, arguments.BumpScale, urhoMaterial.NormalTexture);
+        }
+
         protected void WriteOptions(AssetKey assetGuid, string urhoTextureName, DateTime lastWriteTimeUtc,
             TextureOptions options)
         {
@@ -353,6 +363,54 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
+        private void TransformAutodeskInteractive(AutodeskInteractiveShaderArguments arguments, string baseColorName)
+        {
+            var sourceFileTimestampUtc = ExportUtils.GetLastWriteTimeUtc(arguments.Diffuse,
+                arguments.RoughnessMap, arguments.MetallicMap, arguments.Occlusion);
+            var assetGuid =
+                (arguments.Diffuse ?? arguments.RoughnessMap ?? arguments.MetallicMap ?? arguments.Occlusion).GetKey();
+            if (_engine.IsUpToDate(assetGuid, baseColorName, sourceFileTimestampUtc)) return;
+
+            var tmpMaterial =
+                new Material(
+                    Shader.Find("Hidden/UnityToCustomEngineExporter/Urho3D/CombineMetallicRoughnessOcclusion"));
+            Texture metallicMap = null;
+            Texture roughnessMap = null;
+            Texture occlusionMap = null;
+            try
+            {
+                roughnessMap = arguments.RoughnessMap;
+                metallicMap = arguments.MetallicMap;
+                occlusionMap = arguments.Occlusion;
+                var (width, height) = MaxTexutreSize(occlusionMap, metallicMap, roughnessMap);
+                tmpMaterial.SetTexture("_RoughnessMap", roughnessMap);
+                tmpMaterial.SetFloat("_RoughnessScale", (arguments.RoughnessMap != null) ? 1.0f : arguments.Glossiness);
+                tmpMaterial.SetFloat("_RoughnessOffset", 0.0f);
+                tmpMaterial.SetVector("_RoughnessMask", new Vector4(1,1,1,0));
+                tmpMaterial.SetTexture("_OcclusionMap", arguments.Occlusion);
+                tmpMaterial.SetFloat("_OcclusionScale", arguments.OcclusionStrength);
+                tmpMaterial.SetFloat("_OcclusionOffset", 0.0f);
+                tmpMaterial.SetVector("_OcclusionMask", new Vector4(1, 1, 1, 0));
+                tmpMaterial.SetTexture("_MetallicMap", metallicMap);
+                tmpMaterial.SetFloat("_MetallicScale", arguments.OcclusionStrength);
+                tmpMaterial.SetFloat("_MetallicOffset", 0.0f);
+                tmpMaterial.SetVector("_MetallicMask", new Vector4(1, 1, 1, 0));
+
+                new TextureProcessor().ProcessAndSaveTexture(metallicMap ?? roughnessMap ?? occlusionMap, width, height, tmpMaterial,
+                    _engine.GetTargetFilePath(baseColorName));
+                WriteOptions(assetGuid, baseColorName, sourceFileTimestampUtc,
+                    (ExportUtils.GetTextureOptions(roughnessMap) ??
+                        ExportUtils.GetTextureOptions(metallicMap) ??
+                        ExportUtils.GetTextureOptions(occlusionMap)).WithSRGB(false));
+            }
+            finally
+            {
+                Object.DestroyImmediate(tmpMaterial);
+                DestroyTmpTexture(arguments.RoughnessMap, roughnessMap);
+                DestroyTmpTexture(arguments.MetallicMap, metallicMap);
+                DestroyTmpTexture(arguments.Occlusion, occlusionMap);
+            }
+        }
         private void TransformNormal(Texture bump, float bumpScale, string baseColorName)
         {
             if (bump == null)

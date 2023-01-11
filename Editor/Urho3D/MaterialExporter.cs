@@ -27,6 +27,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 new PBRWaterMaterialExporter(_engine),
                 new StandardMaterialExporter(_engine),
                 new StandardSpecularMaterialExporter(_engine),
+                new AutodeskInteractiveExporter(_engine),
                 new WaterMaterialExporter(_engine),
                 new NatureManufactureWaterMaterialExporter(_engine),
                 new TreeCreatorMaterialExporter(engine),

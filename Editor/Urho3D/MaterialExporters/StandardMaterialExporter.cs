@@ -114,32 +114,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     material.Roughness = 1.0f;
                 }
 
-                var texNameBuilder = new StringBuilder();
-                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
-                    texNameBuilder.Append(Path.GetDirectoryName(metalicGlossinesTexture).FixAssetSeparator());
-                else
-                    texNameBuilder.Append(Path.GetDirectoryName(smoothnessTexture).FixAssetSeparator());
-                if (texNameBuilder.Length > 0) texNameBuilder.Append('/');
-
-                if (!string.IsNullOrWhiteSpace(metalicGlossinesTexture))
-                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(metalicGlossinesTexture));
-                else
-                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.00}", linearMetallic);
-
-                if (smoothnessTexture != metalicGlossinesTexture)
-                {
-                    texNameBuilder.Append('.');
-                    texNameBuilder.Append(Path.GetFileNameWithoutExtension(smoothnessTexture));
-                }
-
-                if (arguments.SmoothnessRemapMax < 0.999f)
-                {
-                    texNameBuilder.Append('.');
-                    texNameBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0:0.000}",
-                        arguments.SmoothnessRemapMax);
-                }
-
-                texNameBuilder.Append(".MetallicRoughness.dds");
+                var texNameBuilder = new TextureNameBuilder(Engine)
+                    .WithTexture(arguments.MetallicGloss)
+                    .WithTexture(arguments.Smoothness)
+                    .WithFloat(arguments.SmoothnessRemapMax, 1.0f)
+                    .Append("MetallicRoughness.dds");
                 material.MetallicRoughnessTexture = texNameBuilder.ToString();
             }
 

@@ -289,6 +289,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 urhoMaterial.MetallicRoughnessTexture);
         }
 
+        public void SchedulePBRTextures(AutodeskInteractiveShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
+        {
+            EditorTaskScheduler.Default.ScheduleForegroundTask(
+                () => _textureExporter.ExportPBRTextures(arguments, urhoMaterial),
+                urhoMaterial.MetallicRoughnessTexture);
+        }
+
         public void SchedulePBRTextures(SpecularGlossinessShaderArguments arguments, UrhoPBRMaterial urhoMaterial)
         {
             EditorTaskScheduler.Default.ScheduleForegroundTask(

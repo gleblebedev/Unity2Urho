@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +11,74 @@ using UnityEngine.Rendering;
 
 namespace UnityToCustomEngineExporter.Editor.Urho3D
 {
+    public class TextureNameBuilder
+    {
+        public Urho3DEngine Engine { get; }
+
+        private string _basePath;
+
+        private HashSet<Texture> _visitedTextures = new HashSet<Texture>();
+        private StringBuilder _name = new StringBuilder();
+
+        public TextureNameBuilder(Urho3DEngine engine)
+        {
+            Engine = engine;
+        }
+
+        public TextureNameBuilder WithTexture(Texture texture)
+        {
+            if (texture == null)
+                return this;
+
+            if (!_visitedTextures.Add(texture))
+                return this;
+            
+            var name = Engine.EvaluateTextrueName(texture);
+            if (_basePath == null)
+            {
+                _basePath = Path.GetDirectoryName(name).FixAssetSeparator();
+            }
+
+            return Append(Path.GetFileNameWithoutExtension(name));
+        }
+
+        public TextureNameBuilder WithFloat(float value, float defaultValue = 0.0f, float eps = 1e-3f)
+        {
+            if (Math.Abs(value-defaultValue) <= eps)
+                return this;
+
+            return Append(value.ToString("{0:0.000}", CultureInfo.InvariantCulture));
+        }
+
+        public TextureNameBuilder Append(string str)
+        {
+            if (!string.IsNullOrWhiteSpace(str))
+            {
+                if (_name.Length > 0)
+                    _name.Append(".");
+                _name.Append(str);
+            }
+            return this;
+        }
+
+        public string Build()
+        {
+            var sb = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(_basePath))
+            {
+                sb.Append(_basePath);
+                sb.Append("/");
+            }
+            sb.Append(_name);
+            return sb.ToString();
+        }
+
+        public override string ToString()
+        {
+            return Build();
+        }
+    }
+
     public abstract class AbstractMaterialExporter
     {
         protected AbstractMaterialExporter(Urho3DEngine engine)
