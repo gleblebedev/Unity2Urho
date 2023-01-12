@@ -89,11 +89,33 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             {
                 Mesh mesh = null;
                 if (skinnedMeshRenderer != null)
+                {
                     mesh = skinnedMeshRenderer.sharedMesh;
-                else if (meshFilter != null) mesh = meshFilter.sharedMesh;
-                ExportMeshModel(() => new MeshSource(mesh, skinnedMeshRenderer), EvaluateMeshName(mesh, prefabContext),
-                    mesh.GetKey(),
-                    ExportUtils.GetLastWriteTimeUtc(mesh));
+                }
+                else if (meshFilter != null)
+                {
+                    mesh = meshFilter.sharedMesh;
+                }
+
+                if (mesh != null)
+                {
+                    ExportMeshModel(() => new MeshSource(mesh, skinnedMeshRenderer),
+                        EvaluateMeshName(mesh, prefabContext),
+                        mesh.GetKey(),
+                        ExportUtils.GetLastWriteTimeUtc(mesh));
+                }
+            }
+
+            foreach (var meshCollider in go.GetComponents<MeshCollider>())
+            {
+                Mesh mesh = meshCollider.sharedMesh;
+                if (mesh != null)
+                {
+                    ExportMeshModel(() => new MeshSource(mesh, null),
+                        EvaluateMeshName(mesh, prefabContext),
+                        mesh.GetKey(),
+                        ExportUtils.GetLastWriteTimeUtc(mesh));
+                }
             }
 
 
