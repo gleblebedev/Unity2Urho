@@ -11,6 +11,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
         public void ExportPrefab(AssetKey assetGuid, string assetPath, GameObject gameObject)
         {
+            Reset();
             var relativePath = EvaluatePrefabName(assetPath);
             using (var writer =
                 _engine.TryCreateXml(assetGuid, relativePath, ExportUtils.GetLastWriteTimeUtc(assetPath)))
@@ -20,7 +21,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 var prefabContext =
                     new PrefabContext(_engine, gameObject, ExportUtils.ReplaceExtension(relativePath, ""));
 
-                WriteObject(writer, "", gameObject, new HashSet<Component>(), true, prefabContext, true);
+                if (_engine.Options.RBFX)
+                {
+                    using (var sceneElement = Element.Start(writer, "scene"))
+                    {
+                        WriteObject(writer, "\t", gameObject, new HashSet<Component>(), true, prefabContext, true);
+                    }
+                }
+                else
+                {
+                    WriteObject(writer, "", gameObject, new HashSet<Component>(), true, prefabContext, true);
+                }
             }
         }
 
@@ -30,7 +41,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return null;
             return ExportUtils.ReplaceExtension(
                 ExportUtils.GetRelPathFromAssetPath(_engine.Options.Subfolder, assetPath),
-                ".xml");
+                _engine.Options.RBFX ? ".prefab" : ".xml");
         }
     }
 }

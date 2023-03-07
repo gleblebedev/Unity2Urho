@@ -20,6 +20,11 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         protected int _id;
         protected EditorTaskScheduler BackgroundEditorTasks = new EditorTaskScheduler();
 
+        protected void Reset()
+        {
+            _id = 0;
+        }
+
         public BaseNodeExporter(Urho3DEngine engine)
         {
             _engine = engine;
