@@ -1,19 +1,29 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace UnityToCustomEngineExporter.Editor
 {
     public class AssetNameCollisionResolver
     {
-        private Dictionary<string, Dictionary<Key, string>> _vistedAssets = new Dictionary<string, Dictionary<Key, string>>();
+        class TimeStampAndAssets
+        {
+            public DateTime TimeStamp { get; set; }
+            public Dictionary<Key, string> Map { get; } = new Dictionary<Key, string>();
+        }
+        private readonly Dictionary<string, TimeStampAndAssets> _vistedAssets = new Dictionary<string, TimeStampAndAssets>();
+
         struct Key
         {
             public string guid;
 
             public long id;
+
+            public Type type;
         }
         public string GetUniqueName(Object asset)
         {
@@ -23,23 +33,25 @@ namespace UnityToCustomEngineExporter.Editor
                 return asset.name;
             }
 
-            if (!_vistedAssets.TryGetValue(path, out var values))
+            var timeStamp = File.GetLastWriteTimeUtc(path);
+
+            if (!_vistedAssets.TryGetValue(path, out var values) || values.TimeStamp != timeStamp)
             {
                 var visitedNames = new HashSet<string>();
 
-                values = new Dictionary<Key, string>();
-                _vistedAssets.Add(path, values);
-                foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+                values = new TimeStampAndAssets{TimeStamp = timeStamp};
+                _vistedAssets[path] = values;
+                foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path).Where(_ => _ != null))
                 {
-                    Key k;
+                    Key k = new Key(){ type = o.GetType() };
                     if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(o, out k.guid, out k.id))
                     {
-                        values[k] = o.name;
+                        values.Map[k] = o.name;
                         visitedNames.Add(o.name);
                     }
                 }
 
-                foreach (var group in values.GroupBy(_=>_.Value).ToList())
+                foreach (var group in values.Map.GroupBy(_=>Tuple.Create(_.Key.type, _.Value) ).ToList())
                 {
                     if (group.Skip(1).Any())
                     {
@@ -54,21 +66,19 @@ namespace UnityToCustomEngineExporter.Editor
                             }
 
                             visitedNames.Add(name);
-                            values[pair.Key] = name;
+                            values.Map[pair.Key] = name;
                         }
                     }
                 }
             }
 
-
-
-            Key key;
+            Key key = new Key() { type = asset.GetType() };
             if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(asset, out key.guid, out key.id))
             {
                 return asset.name;
             }
 
-            if (!values.TryGetValue(key, out var knownName))
+            if (!values.Map.TryGetValue(key, out var knownName))
             {
                 return asset.name;
             }

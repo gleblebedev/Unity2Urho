@@ -40,6 +40,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         private string _tempFolder;
         private readonly AmplifyShaderExporter _amplifyShaderExporter;
 
+        public MeshExporter MeshExporter => _meshExporter;
+
         public Urho3DEngine(string dataFolder, CancellationToken cancellationToken,
             Urho3DExportOptions options)
             : base(cancellationToken)
@@ -69,6 +71,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
         }
 
         public Urho3DExportOptions Options { get; }
+        public AssetNameCollisionResolver NameCollisionResolver { get; } = new AssetNameCollisionResolver();
 
         public void CopyFolder(string subfolder, string guid)
         {

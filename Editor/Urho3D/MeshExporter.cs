@@ -147,7 +147,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, mesh), "");
             if (string.IsNullOrWhiteSpace(folder)) folder = prefabContext.TempFolder;
             return ExportUtils.Combine(folder,
-                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + ".mdl");
+                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(_engine.NameCollisionResolver, mesh))) + ".mdl");
         }
 
         public string EvaluateLODGroupName(LODGroup lodGroup, PrefabContext prefabContext)
@@ -166,7 +166,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 ExportUtils.ReplaceExtension(ExportUtils.GetRelPathFromAsset(_engine.Options.Subfolder, firstMesh), "");
             if (string.IsNullOrWhiteSpace(folder)) folder = prefabContext.TempFolder;
             return ExportUtils.Combine(folder,
-                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(firstMesh))) + ".With" +
+                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(_engine.NameCollisionResolver, firstMesh))) + ".With" +
                 lods.Length.ToString(CultureInfo.InvariantCulture) + "Lods.mdl");
         }
 
@@ -181,7 +181,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             if (string.IsNullOrWhiteSpace(assetUrhoAssetName))
             {
                 name = ExportUtils.Combine(prefabContext.TempFolder,
-                    ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(mesh))) + "." +
+                    ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(_engine.NameCollisionResolver, mesh))) + "." +
                     _dynamicMeshNames.Count + ".mdl");
                 _dynamicMeshNames.Add(mesh, name);
                 return name;

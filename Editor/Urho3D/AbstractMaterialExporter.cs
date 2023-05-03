@@ -217,7 +217,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 return ExportUtils.ReplaceExtension(
                     ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                     ".xml");
-            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(ExportUtils.GetName(material))) + ".xml";
+            var newExt = "/" + ExportUtils.SafeFileName(Engine.DecorateName(ExportUtils.GetName(Engine.NameCollisionResolver, material))) + ".xml";
             return ExportUtils.ReplaceExtension(
                 ExportUtils.GetRelPathFromAssetPath(Engine.Options.Subfolder, assetPath),
                 newExt);
