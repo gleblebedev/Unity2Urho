@@ -64,7 +64,8 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 switch (newExt.ToLower())
                 {
                     case ".exr":
-                        newExt = ".exr";
+                        //newExt = ".exr";
+                        newExt = ".dds";
                         break;
                     default:
                         newExt = ".dds";

@@ -86,7 +86,7 @@ namespace UnityToCustomEngineExporter.Editor
                 {
                     width = width,
                     height = height,
-                    colorFormat = RenderTextureFormat.ARGB32,
+                    colorFormat = PickRenderTextureFormat(sourceTexture),
                     autoGenerateMips = mips,
                     depthBufferBits = 16,
                     dimension = TextureDimension.Tex2D,
@@ -102,7 +102,7 @@ namespace UnityToCustomEngineExporter.Editor
 
 
                 RenderTexture.active = renderTex;
-                texture = new Texture2D(width, height, TextureFormat.ARGB32, mips /* mipmap */, false);
+                texture = new Texture2D(width, height, PickTextureFormat(descriptor.colorFormat), mips /* mipmap */, false);
                 texture.ReadPixels(new Rect(0, 0, width, height), 0, 0, mips);
                 texture.Apply();
 
@@ -118,6 +118,46 @@ namespace UnityToCustomEngineExporter.Editor
                 if (material != null)
                     Object.DestroyImmediate(material);
             }
+        }
+
+        private TextureFormat PickTextureFormat(RenderTextureFormat format)
+        {
+            switch (format)
+            {
+                case RenderTextureFormat.ARGBHalf:
+                    return TextureFormat.RGBAHalf;
+                case RenderTextureFormat.RGHalf:
+                    return TextureFormat.RGHalf;
+                case RenderTextureFormat.RHalf:
+                    return TextureFormat.RHalf;
+                case RenderTextureFormat.ARGBFloat:
+                    return TextureFormat.RGBAFloat;
+                case RenderTextureFormat.RFloat:
+                    return TextureFormat.RFloat;
+                case RenderTextureFormat.RGFloat:
+                    return TextureFormat.RGFloat;
+            }
+            return TextureFormat.ARGB32;
+        }
+
+        private RenderTextureFormat PickRenderTextureFormat(Texture sourceTexture)
+        {
+            if (sourceTexture is Texture2D texture2D)
+            {
+                switch (texture2D.format)
+                {
+                    case TextureFormat.RGBAHalf:
+                    case TextureFormat.RGHalf:
+                    case TextureFormat.RHalf:
+                        return RenderTextureFormat.ARGBHalf;
+                    case TextureFormat.RGB9e5Float:
+                    case TextureFormat.RGBAFloat:
+                    case TextureFormat.RGFloat:
+                    case TextureFormat.RFloat:
+                        return RenderTextureFormat.ARGBFloat;
+                }
+            }
+            return RenderTextureFormat.ARGB32;
         }
 
         public void ProcessAndSaveTexture(Texture sourceTexture, int width, int height, Material material,

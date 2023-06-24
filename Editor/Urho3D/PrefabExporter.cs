@@ -25,7 +25,12 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 {
                     using (var sceneElement = Element.Start(writer, "scene"))
                     {
-                        WriteObject(writer, "\t", gameObject, new HashSet<Component>(), true, prefabContext, true);
+                        var prefix = "\t";
+
+                        StartComponent(writer, prefix, "Octree", true);
+                        EndElement(writer, prefix);
+
+                        WriteObject(writer, prefix, gameObject, new HashSet<Component>(), true, prefabContext, true);
                     }
                 }
                 else

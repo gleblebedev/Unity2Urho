@@ -52,7 +52,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     else
                         tracks = WriteGenericAnimation(clip);
                     
-                    if (_engine.Options.EliminateRootMotion)
+                    if (_engine.Options.EliminateRootMotion && !IsLoopedAnimation(tracks))
                     {
                         var rootTrack = tracks.Tracks.FirstOrDefault(_ => _.BoneName == tracks.RootBone);
                         if (rootTrack?.Positions != null)
@@ -77,7 +77,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     using (var writer = new BinaryWriter(file))
                     {
                         writer.Write(new byte[] {0x55, 0x41, 0x4e, 0x49});
-                        WriteStringSZ(writer, _engine.DecorateName(ExportUtils.GetName(clip)));
+                        WriteStringSZ(writer, _engine.DecorateName(ExportUtils.GetName(_engine.NameCollisionResolver, clip)));
                         writer.Write(clip.length);
 
                         writer.Write(tracks.Tracks.Count);
@@ -120,6 +120,48 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             }
         }
 
+        private bool IsLoopedAnimation(UrhoAnimationFile tracks)
+        {
+            foreach (var track in tracks.Tracks)
+            {
+                if (track.BoneName != tracks.RootBone && track.Keyframes.Count > 1)
+                {
+                    if (track.Positions != null)
+                    {
+                        var start = track.Positions[0];
+                        var end = track.Positions[track.Positions.Count-1];
+                        if ((end - start).sqrMagnitude > 1e-6f)
+                        {
+                            return false;
+                        }
+                    }
+                    if (track.Rotations != null)
+                    {
+                        var start = track.Rotations[0];
+                        var end = track.Rotations[track.Rotations.Count - 1];
+                        var startV = new Vector4(start.x, start.y, start.z, start.w);
+                        var endV = new Vector4(end.x, end.y, end.z, end.w);
+
+                        if ((endV - startV).sqrMagnitude > 1e-4f)
+                        {
+                            return false;
+                        }
+                    }
+                    if (track.Scales != null)
+                    {
+                        var start = track.Scales[0];
+                        var end = track.Scales[track.Scales.Count - 1];
+                        if ((end - start).sqrMagnitude > 1e-6f)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
         public string EvaluateAnimationName(AnimationClip clip, PrefabContext prefabContext)
         {
             if (clip == null)
@@ -130,7 +172,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
             var folder = ExportUtils.ReplaceExtension(relPath, "");
             if (string.IsNullOrWhiteSpace(folder)) folder = prefabContext.TempFolder;
             return ExportUtils.Combine(folder,
-                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(clip))) + ".ani");
+                ExportUtils.SafeFileName(_engine.DecorateName(ExportUtils.GetName(_engine.NameCollisionResolver, clip))) + ".ani");
         }
 
         private UrhoAnimationFile WriteSkelAnimation(AnimationClip clipAnimation, GameObject root, Dictionary<string,string> avatarBones)
@@ -388,8 +430,13 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
 
                 var avatarPath = AssetDatabase.GetAssetPath(clip);
                 var skeleton = AssetDatabase.LoadAssetAtPath<GameObject>(avatarPath);
-
-                var rootBoneGO = skeleton.name == rootBoneName ? skeleton.transform : skeleton.transform.Find(rootBoneName);
+                Transform rootBoneGO = null;
+                if (skeleton != null)
+                {
+                    rootBoneGO = skeleton.name == rootBoneName
+                        ? skeleton.transform
+                        : skeleton.transform.Find(rootBoneName);
+                }
                 rootBoneGO = null;
                 if (rootBoneGO != null)
                 {
@@ -470,8 +517,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                 _animator = _root.AddComponent<Animator>();
 
                 _controllerPath = Path.Combine("Assets", "UnityToCustomEngineExporter.TempController.controller");
-                _controller =
-                    AnimatorController.CreateAnimatorControllerAtPathWithClip(_controllerPath, _animationClip);
+                _controller = AnimatorController.CreateAnimatorControllerAtPathWithClip(_controllerPath, _animationClip);
                 var layers = _controller.layers;
                 layers[0].iKPass = true;
                 //layers[0].stateMachine.
