@@ -52,7 +52,7 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     else
                         tracks = WriteGenericAnimation(clip);
                     
-                    if (_engine.Options.EliminateRootMotion && !IsLoopedAnimation(tracks))
+                    if (_engine.Options.EliminateRootMotion && IsLoopedAnimation(tracks))
                     {
                         var rootTrack = tracks.Tracks.FirstOrDefault(_ => _.BoneName == tracks.RootBone);
                         if (rootTrack?.Positions != null)

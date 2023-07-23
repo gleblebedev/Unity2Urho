@@ -150,13 +150,17 @@ namespace UnityToCustomEngineExporter.Editor.Urho3D
                     var type = PrefabUtility.GetPrefabAssetType(gameObject);
                     if (type == PrefabAssetType.Regular)
                     {
-                        var prefabModifications = PrefabUtility.GetPropertyModifications(gameObject)
-                            .Where(_ => !PrefabPropertiesToIgnore.Contains(_.propertyPath)).ToList();
-                        if (prefabModifications.Count == 0)
+                        var modifications = PrefabUtility.GetPropertyModifications(gameObject);
+                        if (modifications != null && modifications.Length > 0)
                         {
-                            if (WritePrefabReferenceNode(writer, prefix, gameObject, isEnabled, prefabContext))
+                            if (!modifications
+                                .Any(_ => _.propertyPath == null ||
+                                          !PrefabPropertiesToIgnore.Contains(_.propertyPath)))
                             {
-                                return;
+                                if (WritePrefabReferenceNode(writer, prefix, gameObject, isEnabled, prefabContext))
+                                {
+                                    return;
+                                }
                             }
                         }
                     }
